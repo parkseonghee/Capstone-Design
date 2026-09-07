@@ -5,16 +5,13 @@ using UnityEngine;
 namespace RecycleLife.Core
 {
     /// <summary>
-    /// 가로 한 줄을 통째로 상단에 투입한다 — 원작 레퍼런스의 낙하 방식.
+    /// 런 시작에 깔리는 줄을 만든다(WEEK1 §5: "하단 3줄이 채워진 상태로 시작").
+    /// 가로 한 줄을 통째로 프리뷰 줄에 얹고, 아래로 내리는 건 GameLoop의 중력이 한다.
     ///
-    /// 두 가지 축을 인스펙터에서 조절한다:
-    ///  - StepsPerRow : 몇 스텝마다 새 줄이 내려오는지 (압박 속도)
-    ///  - GapsPerRow  : 한 줄에 몇 칸을 비워 두는지 (0이면 완전히 꽉 찬 줄)
-    ///
-    /// 런 시작 시의 "3줄이 먼저 내려온다"는 GameLoop.SeedInitialBoard가
-    /// SpawnImmediate를 RowsOnStart번 부르고 사이사이 중력을 돌려 만든다.
+    /// GapsPerRow는 한 줄에 몇 칸을 비워 둘지다. 확정값은 0(꽉 찬 줄)이지만
+    /// 난이도 실험용으로 인스펙터에 남겨 둔다(Hard Rule 1).
     /// </summary>
-    public sealed class RowTrashSpawner : ITrashSpawner
+    public sealed class RowTrashSpawner : ISeedSpawner
     {
         private static readonly int TrashTypeCount = Enum.GetValues(typeof(TrashType)).Length;
 
@@ -25,8 +22,6 @@ namespace RecycleLife.Core
         /// <summary>컬럼 순서 셔플용 재사용 버퍼(Hard Rule 8).</summary>
         private readonly List<int> _columns;
 
-        private int _stepsSinceRow;
-
         public RowTrashSpawner(BoardGrid grid, IBoardConfig config, IRandomSource random)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -35,23 +30,7 @@ namespace RecycleLife.Core
             _columns = new List<int>(grid.Cols);
         }
 
-        /// <summary>매 스텝 호출된다. 주기가 차지 않으면 아무것도 하지 않는다.</summary>
-        public int Spawn()
-        {
-            int cadence = Mathf.Max(1, _config.StepsPerRow);
-
-            _stepsSinceRow++;
-            if (_stepsSinceRow < cadence)
-            {
-                return 0;
-            }
-
-            _stepsSinceRow = 0;
-            return SpawnImmediate();
-        }
-
-        /// <summary>주기를 무시하고 한 줄을 지금 투입한다.</summary>
-        public int SpawnImmediate()
+        public int SpawnRow()
         {
             int gaps = Mathf.Clamp(_config.GapsPerRow, 0, _grid.Cols - 1);
 
@@ -76,8 +55,7 @@ namespace RecycleLife.Core
             {
                 var position = new Vector2Int(_columns[i], 0);
 
-                // 상단이 이미 막힌 컬럼은 건너뛴다. 전부 막혔으면 0을 돌려주고,
-                // 그 자체가 오버플로 신호가 된다(WEEK1 §6).
+                // 프리뷰 칸이 이미 막힌 컬럼은 건너뛴다. 시작 줄 수가 보드보다 많을 때만 생긴다.
                 if (!_grid.IsEmpty(position))
                 {
                     continue;

@@ -1057,6 +1057,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.GameSession
   config: {fileID: 11400000, guid: 665a2a283ad4e764aac9493f0ea847b0, type: 2}
+  spawnConfig: {fileID: 11400000, guid: 5c9e2a71d4b8f3e6a72c05b981fd3e47, type: 2}
   input: {fileID: 758893681}
   introFallInterval: 0.06
   introRowInterval: 0.3
@@ -1543,6 +1544,7 @@ MonoBehaviour:
   boardBackground: {fileID: 1621624296}
   cellSize: 1
   cellFill: 0.9
+  previewVisibleFraction: 0.16666667
   moveSmoothing: 16
   dropFromAbove: 1
 --- !u!4 &1443541777

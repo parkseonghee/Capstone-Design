@@ -11,17 +11,17 @@ namespace RecycleLife.Tests
     /// </summary>
     public sealed class IntroSequenceTests
     {
+        /// <summary>4열 x 6행(프리뷰 1 + 플레이 5). 시작 3줄은 row 3·4·5에 깔린다.</summary>
         private static FakeBoardConfig IntroConfig()
         {
             return new FakeBoardConfig
             {
                 Cols = 4,
-                Rows = 6,
-                Mode = SpawnMode.SingleBlock,
-                SpawnPerStep = 1,
+                PlayableRows = 5,
+                PreviewRows = 1,
                 GapsPerRow = 0,
                 RowsOnStart = 3,
-                PlayerStart = new Vector2Int(2, 1),
+                PlayerStart = new Vector2Int(2, 2),
             };
         }
 
@@ -37,7 +37,7 @@ namespace RecycleLife.Tests
         [Test]
         public void CreateStaged_StartsWithAnEmptyBoardAndNoPlayer()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
 
             Assert.AreEqual(24, loop.Grid.CountEmpty(), "보드가 완전히 비어 있어야 한다.");
             Assert.AreEqual(3, loop.PendingSeedRows);
@@ -48,14 +48,14 @@ namespace RecycleLife.Tests
         [Test]
         public void SeedNextRow_PutsTheRowOnTopWithoutDroppingIt()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
 
             Assert.AreEqual(4, loop.SeedNextRow(), "한 번에 한 줄(4칸)만 나온다.");
             Assert.AreEqual(2, loop.PendingSeedRows);
 
             for (int col = 0; col < 4; col++)
             {
-                Assert.IsFalse(loop.Grid.IsEmpty(new Vector2Int(col, 0)), "줄은 아직 최상단에 있다.");
+                Assert.IsFalse(loop.Grid.IsEmpty(new Vector2Int(col, 0)), "줄은 아직 프리뷰 줄에 있다.");
                 Assert.IsTrue(loop.Grid.IsEmpty(new Vector2Int(col, 5)), "낙하는 TickGravity가 시킨다.");
             }
         }
@@ -63,7 +63,7 @@ namespace RecycleLife.Tests
         [Test]
         public void TickGravity_LowersTheIntroRowOneCellAtATime()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
             loop.SeedNextRow();
 
             for (int row = 1; row <= 5; row++)
@@ -81,7 +81,7 @@ namespace RecycleLife.Tests
         [Test]
         public void RowsStackUp_OneAfterAnother()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
 
             SeedAndSettleOneRow(loop);
             for (int col = 0; col < 4; col++)
@@ -104,7 +104,7 @@ namespace RecycleLife.Tests
         [Test]
         public void PlayerAppearsOnlyAfterEveryRowHasLanded()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
 
             SeedAndSettleOneRow(loop);
             Assert.IsFalse(loop.IsPlayerPlaced, "줄이 남았는데 플레이어가 나오면 안 된다.");
@@ -113,7 +113,7 @@ namespace RecycleLife.Tests
             SeedAndSettleOneRow(loop);
             Assert.AreEqual(0, loop.PendingSeedRows);
 
-            Assert.AreEqual(new Vector2Int(2, 1), loop.PlacePlayer());
+            Assert.AreEqual(new Vector2Int(2, 2), loop.PlacePlayer(), "쌓인 3줄 바로 위.");
             Assert.IsTrue(loop.IsReady);
 
             // 플레이어가 나중에 오므로 모든 컬럼이 바닥까지 고르게 찬다.
@@ -126,7 +126,7 @@ namespace RecycleLife.Tests
         [Test]
         public void StepsAreRejectedWhileTheIntroIsStillRunning()
         {
-            GameLoop loop = GameLoopFactory.CreateStaged(IntroConfig(), new MinRandom());
+            GameLoop loop = Make.Staged(IntroConfig(), new MinRandom());
 
             StepResult duringIntro = loop.Step(Direction.Left);
 
@@ -141,7 +141,7 @@ namespace RecycleLife.Tests
         public void CompleteSetup_MatchesRowByRowSeeding()
         {
             // 연출을 켜든 끄든 최종 보드는 같아야 한다.
-            GameLoop staged = GameLoopFactory.CreateStaged(IntroConfig(), new SystemRandomSource(99));
+            GameLoop staged = Make.Staged(IntroConfig(), new SystemRandomSource(99));
             while (staged.PendingSeedRows > 0)
             {
                 SeedAndSettleOneRow(staged);
@@ -149,7 +149,7 @@ namespace RecycleLife.Tests
 
             staged.PlacePlayer();
 
-            GameLoop instant = GameLoopFactory.CreateWeek1(IntroConfig(), new SystemRandomSource(99));
+            GameLoop instant = Make.Week1(IntroConfig(), new SystemRandomSource(99));
 
             Assert.AreEqual(Dump(instant), Dump(staged));
         }
@@ -159,11 +159,11 @@ namespace RecycleLife.Tests
         {
             var config = IntroConfig();
             config.Cols = 8;
-            config.Rows = 12;
+            config.PlayableRows = 8;
             config.RowsOnStart = 3;
-            config.PlayerStart = new Vector2Int(4, 6);
+            config.PlayerStart = new Vector2Int(4, 5);
 
-            GameLoop loop = GameLoopFactory.CreateWeek1(config, new MinRandom());
+            GameLoop loop = Make.Week1(config, new MinRandom());
             int afterIntro = loop.Grid.CountEmpty();
 
             StepResult first = loop.Step(Direction.Left);

@@ -7,8 +7,10 @@ namespace RecycleLife.Unity
     /// <summary>
     /// 보드 상태를 스프라이트로 비추기만 하는 계층. 규칙 판단은 하나도 하지 않는다.
     ///
-    /// WEEK1 §4대로 로직은 이미 완전 정착된 상태를 주고, 여기서 그 위치로 보간해
-    /// "떨어지는 것처럼" 보여준다.
+    /// 로직은 스텝당 한 칸씩 내려간 결과를 주고, 여기서 그 위치로 보간해 부드럽게 잇는다.
+    ///
+    /// 프리뷰 줄(row 0)은 기획대로 <b>1/6만 드러난다</b>. 씬에 마스크 오브젝트를 심는 대신
+    /// 스프라이트를 천장선에서 잘라 그린다(§1, ApplyReveal 참조).
     ///
     /// 뷰 오브젝트는 풀링한다. 스텝마다 스폰이 생기므로 Instantiate/Destroy 반복은
     /// 안드로이드에서 GC를 만든다(Hard Rule 8).
@@ -28,7 +30,7 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("종류별 색·스프라이트 매핑 에셋.")]
         private EntityVisualSet visuals;
 
-        [SerializeField, Tooltip("(선택) 보드 배경. 연결하면 보드 크기에 맞춰 스케일만 조정한다.")]
+        [SerializeField, Tooltip("(선택) 보드 배경. 연결하면 보이는 영역에 맞춰 스케일만 조정한다.")]
         private SpriteRenderer boardBackground;
 
         [Header("레이아웃")]
@@ -38,6 +40,10 @@ namespace RecycleLife.Unity
         [SerializeField, Range(0.1f, 1f), Tooltip("칸 안에서 스프라이트가 차지하는 비율. 낮추면 칸 사이 여백이 생긴다.")]
         private float cellFill = 0.9f;
 
+        [SerializeField, Range(0f, 1f), Tooltip("프리뷰 줄이 화면에 드러나는 비율. 기획 확정값 1/6. " +
+                                                "0이면 다음 블록이 아예 안 보이고, 1이면 한 줄이 통째로 보인다.")]
+        private float previewVisibleFraction = 1f / 6f;
+
         [Header("연출")]
         [SerializeField, Min(0f), Tooltip("낙하·이동 보간 속도. 0이면 즉시 이동한다.")]
         private float moveSmoothing = 16f;
@@ -46,19 +52,62 @@ namespace RecycleLife.Unity
                                  "런 시작의 초기 줄도 이 경로로 쏟아져 내린다.")]
         private bool dropFromAbove = true;
 
-        private readonly Dictionary<Entity, SpriteRenderer> _views = new Dictionary<Entity, SpriteRenderer>(128);
-        private readonly Stack<SpriteRenderer> _pool = new Stack<SpriteRenderer>(64);
+        /// <summary>
+        /// 뷰 하나의 상태. 잘린 위치가 아니라 <b>진짜 위치</b>를 따로 들고 있어야
+        /// 다음 프레임 보간이 어긋나지 않는다(ApplyReveal이 transform을 아래로 당기기 때문).
+        /// </summary>
+        private sealed class ViewSlot
+        {
+            public SpriteRenderer Renderer;
+            public Vector3 Position;
+        }
+
+        private readonly Dictionary<Entity, ViewSlot> _views = new Dictionary<Entity, ViewSlot>(128);
+        private readonly Stack<ViewSlot> _pool = new Stack<ViewSlot>(64);
         private readonly HashSet<Entity> _alive = new HashSet<Entity>();
         private readonly List<Entity> _stale = new List<Entity>(32);
 
         private GameLoop _loop;
 
-        /// <summary>보드가 차지하는 월드 크기. CameraBoardFitter가 읽는다.</summary>
-        public Vector2 BoardWorldSize =>
-            _loop == null ? Vector2.zero : new Vector2(_loop.Grid.Cols * cellSize, _loop.Grid.Rows * cellSize);
+        /// <summary>
+        /// 화면에 보여야 할 영역의 월드 크기. CameraBoardFitter가 읽는다.
+        /// 프리뷰 줄은 통째로 세지 않는다 — 기획대로 일부만 드러나기 때문이다.
+        /// </summary>
+        public Vector2 BoardWorldSize
+        {
+            get
+            {
+                if (_loop == null)
+                {
+                    return Vector2.zero;
+                }
 
-        /// <summary>보드 중심의 월드 좌표.</summary>
-        public Vector3 BoardWorldCenter => cellRoot != null ? cellRoot.position : transform.position;
+                float visibleRows = _loop.Grid.Rows - HiddenRows;
+                return new Vector2(_loop.Grid.Cols * cellSize, visibleRows * cellSize);
+            }
+        }
+
+        /// <summary>보이는 영역 중심의 월드 좌표. 프리뷰가 잘린 만큼 아래로 내려간다.</summary>
+        public Vector3 BoardWorldCenter
+        {
+            get
+            {
+                Vector3 origin = cellRoot != null ? cellRoot.position : transform.position;
+                return _loop == null
+                    ? origin
+                    : origin + new Vector3(0f, -HiddenRows * cellSize * 0.5f, 0f);
+            }
+        }
+
+        /// <summary>화면 위쪽에서 잘려 나간 행 수(소수). 프리뷰 줄 중 안 보이는 부분이다.</summary>
+        private float HiddenRows =>
+            _loop == null ? 0f : _loop.FirstPlayableRow * (1f - previewVisibleFraction);
+
+        /// <summary>플레이 영역의 윗변(로컬 y). 프리뷰 블록은 이 선 위로 조금만 삐져나온다.</summary>
+        private float PlayAreaTopLocalY =>
+            _loop == null
+                ? 0f
+                : ((_loop.Grid.Rows - 1) * 0.5f - _loop.FirstPlayableRow + 0.5f) * cellSize;
 
         private void OnEnable()
         {
@@ -98,16 +147,46 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            // Dictionary 열거자는 struct라 매 프레임 돌아도 할당이 없다.
-            foreach (KeyValuePair<Entity, SpriteRenderer> pair in _views)
-            {
-                Vector3 target = CellToLocal(pair.Key.Position);
-                Transform view = pair.Value.transform;
+            float revealLine = PlayAreaTopLocalY + previewVisibleFraction * cellSize;
+            float fullSize = cellSize * cellFill;
+            float t = moveSmoothing <= 0f ? 1f : 1f - Mathf.Exp(-moveSmoothing * Time.deltaTime);
 
-                view.localPosition = moveSmoothing <= 0f
-                    ? target
-                    : Vector3.Lerp(view.localPosition, target, 1f - Mathf.Exp(-moveSmoothing * Time.deltaTime));
+            // Dictionary 열거자는 struct고 값(ViewSlot)은 참조형이라, 매 프레임 돌아도 할당이 없다.
+            foreach (KeyValuePair<Entity, ViewSlot> pair in _views)
+            {
+                ViewSlot slot = pair.Value;
+                Vector3 target = CellToLocal(pair.Key.Position);
+
+                slot.Position = Vector3.Lerp(slot.Position, target, t);
+                ApplyReveal(slot, revealLine, fullSize);
             }
+        }
+
+        /// <summary>
+        /// 프리뷰 줄에 대기 중인 블록을 "천장 밑으로 살짝만" 보이게 깎는다(기획: 1/6 노출).
+        ///
+        /// SpriteMask 없이 스프라이트를 직접 자르는 이유는 씬에 오브젝트를 더 심지 않기 위함이다
+        /// (Hard Rule 2: 배치는 씬에서, 코드는 상태만).
+        /// 잘리는 양을 논리 행이 아니라 <b>보간된 y</b>로 계산해서, 블록이 내려오는 동안
+        /// 천장 밑에서 서서히 모습을 드러내게 한다 — 줄이 바뀌는 순간 튀지 않는다.
+        /// </summary>
+        private void ApplyReveal(ViewSlot slot, float revealLine, float fullSize)
+        {
+            Transform view = slot.Renderer.transform;
+
+            float half = fullSize * 0.5f;
+            float bottom = slot.Position.y - half;
+            float visible = Mathf.Clamp(revealLine - bottom, 0f, fullSize);
+
+            if (visible >= fullSize)
+            {
+                view.localScale = new Vector3(fullSize, fullSize, 1f);
+                view.localPosition = slot.Position;
+                return;
+            }
+
+            view.localScale = new Vector3(fullSize, visible, 1f);
+            view.localPosition = new Vector3(slot.Position.x, bottom + visible * 0.5f, slot.Position.z);
         }
 
         private void HandleRunStarted(GameLoop loop)
@@ -118,7 +197,7 @@ namespace RecycleLife.Unity
             Sync(snap: true);
         }
 
-        /// <summary>시작 연출 중 줄 하나가 떨어졌거나 플레이어가 등장했을 때.</summary>
+        /// <summary>시작 연출 중 줄이 한 칸 내려왔거나 플레이어가 등장했을 때.</summary>
         private void HandleBoardChanged()
         {
             Sync(snap: false);
@@ -152,28 +231,27 @@ namespace RecycleLife.Unity
 
                     _alive.Add(entity);
 
-                    if (!_views.TryGetValue(entity, out SpriteRenderer view))
+                    if (!_views.TryGetValue(entity, out ViewSlot slot))
                     {
-                        view = Rent();
-                        _views.Add(entity, view);
-                        ApplyVisual(entity, view);
+                        slot = Rent();
+                        _views.Add(entity, slot);
+                        ApplyVisual(entity, slot.Renderer);
 
-                        // 로직은 이미 정착까지 끝낸 상태를 준다(WEEK1 §4).
-                        // 보드 위쪽 바깥에서 시작시켜야 "떨어져 내리는" 것으로 보인다.
+                        // 새 쓰레기는 보드 위쪽 바깥에서 시작해야 "떨어져 내리는" 것으로 보인다.
                         bool fallsIn = dropFromAbove && entity.Kind != EntityKind.Player;
-                        view.transform.localPosition = fallsIn
+                        slot.Position = fallsIn
                             ? CellToLocal(new Vector2Int(entity.Position.x, -1))
                             : CellToLocal(entity.Position);
                     }
                     else if (snap)
                     {
-                        view.transform.localPosition = CellToLocal(entity.Position);
+                        slot.Position = CellToLocal(entity.Position);
                     }
                 }
             }
 
             _stale.Clear();
-            foreach (KeyValuePair<Entity, SpriteRenderer> pair in _views)
+            foreach (KeyValuePair<Entity, ViewSlot> pair in _views)
             {
                 if (!_alive.Contains(pair.Key))
                 {
@@ -217,23 +295,28 @@ namespace RecycleLife.Unity
             view.name = entity.Kind == EntityKind.Player ? "Player" : $"Trash_{((Trash)entity).Type}";
         }
 
-        private SpriteRenderer Rent()
+        private ViewSlot Rent()
         {
-            SpriteRenderer view = _pool.Count > 0 ? _pool.Pop() : Instantiate(entityViewPrefab, cellRoot);
-            view.transform.SetParent(cellRoot, worldPositionStays: false);
-            view.gameObject.SetActive(true);
-            return view;
+            ViewSlot slot = _pool.Count > 0 ? _pool.Pop() : new ViewSlot();
+            if (slot.Renderer == null)
+            {
+                slot.Renderer = Instantiate(entityViewPrefab, cellRoot);
+            }
+
+            slot.Renderer.transform.SetParent(cellRoot, worldPositionStays: false);
+            slot.Renderer.gameObject.SetActive(true);
+            return slot;
         }
 
-        private void Release(SpriteRenderer view)
+        private void Release(ViewSlot slot)
         {
-            view.gameObject.SetActive(false);
-            _pool.Push(view);
+            slot.Renderer.gameObject.SetActive(false);
+            _pool.Push(slot);
         }
 
         private void ReleaseAll()
         {
-            foreach (KeyValuePair<Entity, SpriteRenderer> pair in _views)
+            foreach (KeyValuePair<Entity, ViewSlot> pair in _views)
             {
                 Release(pair.Value);
             }
@@ -253,8 +336,10 @@ namespace RecycleLife.Unity
                 boardBackground.sprite = PlaceholderSprite.Square;
             }
 
-            boardBackground.transform.localPosition = Vector3.zero;
-            boardBackground.transform.localScale = new Vector3(BoardWorldSize.x, BoardWorldSize.y, 1f);
+            // 배경도 보이는 영역에만 깔아야 프리뷰 줄이 판 위에 떠 있는 것처럼 보인다.
+            Vector2 size = BoardWorldSize;
+            boardBackground.transform.localPosition = new Vector3(0f, -HiddenRows * cellSize * 0.5f, 0f);
+            boardBackground.transform.localScale = new Vector3(size.x, size.y, 1f);
         }
     }
 }

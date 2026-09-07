@@ -28,7 +28,8 @@ MonoBehaviour·코루틴·연출은 이 계층에 두지 않는다 (테스트 �
 ## 1. 데이터 모델
 
 ```
-Grid          : Cell[cols, rows]        // 크기는 GridConfig(SO)에서 읽음. 기본 8 x 12 (Week1과 동일 소스). 리터럴 금지
+Grid          : Cell[cols, rows]        // GridConfig(SO): 8열 × 9행(상단 1줄=프리뷰, 플레이 8×8=64). 리터럴 금지
+                                        //   좌표·프리뷰 규칙은 WEEK1_MOVEMENT_FALLING.md §1 참조
 Cell          : Entity? occupant        // null = 빈 칸
 Entity        : abstract { EntityKind Kind }
   ├ Player    : { int hp, int maxHp, int attack, Vector2Int pos }
@@ -181,7 +182,7 @@ public sealed class CombatSystem {
    - 기본값은 **종류 기준**으로 진행하고, 재질 콤보는 §5 훅에서 "시간축 보너스"로 얹는 방향 추천(원작 재미 유지 + 테마 확보). 확정 시 이 문단만 갱신.
 2. **그룹 반격**: "처치 안 된 적만 반격"(현재안) vs "목표 1마리 기준만"(원작 원형).
 3. **대각선 인접** 포함 여부 (난이도·가독성 영향).
-4. ~~보드 크기·비율~~ → **확정: 8 × 12 (`GridConfig` SO).** 팀 변경 시 SO 값만 수정.
+4. ~~보드 크기·비율~~ → **확정: 8열 × 9행 (플레이 8×8=64 + 상단 프리뷰 1줄, `GridConfig` SO).** 상세 = WEEK1 §1.
 
 ---
 

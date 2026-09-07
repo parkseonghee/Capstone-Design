@@ -3,7 +3,8 @@ using UnityEngine;
 namespace RecycleLife.Unity
 {
     /// <summary>
-    /// 8x12 세로 보드가 기기 화면 비율에 상관없이 화면 안에 들어오게 카메라를 맞춘다.
+    /// 세로 보드가 기기 화면 비율에 상관없이 화면 안에 들어오게 카메라를 맞춘다.
+    /// 크기는 BoardView가 알려주는 <b>보이는 영역</b>(플레이 8줄 + 프리뷰 1/6)을 쓴다.
     ///
     /// 건드리는 것은 <b>카메라의 orthographicSize와 위치뿐</b>이다.
     /// Canvas·RectTransform·앵커·해상도는 절대 손대지 않는다(Hard Rule 2).

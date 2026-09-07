@@ -24,7 +24,7 @@ namespace RecycleLife.Core
         private readonly IMoveResolver _move;
         private readonly GravityResolver _gravity;
         private readonly ITrashSpawner _stepSpawner;
-        private readonly ITrashSpawner _seedSpawner;
+        private readonly ISeedSpawner _seedSpawner;
         private readonly GameOverChecker _gameOver;
 
         public GameLoop(
@@ -34,7 +34,7 @@ namespace RecycleLife.Core
             IMoveResolver move,
             GravityResolver gravity,
             ITrashSpawner stepSpawner,
-            ITrashSpawner seedSpawner,
+            ISeedSpawner seedSpawner,
             GameOverChecker gameOver)
         {
             Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -55,6 +55,12 @@ namespace RecycleLife.Core
 
         /// <summary>이번 런에서 보드가 실제로 진행한 횟수(거부된 입력은 세지 않는다).</summary>
         public int StepCount { get; private set; }
+
+        /// <summary>
+        /// 프리뷰 줄 바로 아래, 플레이 가능한 첫 행. 뷰가 프리뷰 줄을 다르게 그릴 때 읽는다 —
+        /// 뷰가 설정 에셋을 따로 참조하지 않게 하려고 여기서 흘려준다.
+        /// </summary>
+        public int FirstPlayableRow => _config.FirstPlayableRow;
 
         public GameOverReason Reason { get; private set; }
 
@@ -80,7 +86,7 @@ namespace RecycleLife.Core
                 return 0;
             }
 
-            int placed = _seedSpawner.SpawnImmediate();
+            int placed = _seedSpawner.SpawnRow();
             PendingSeedRows--;
 
             return placed;
@@ -103,7 +109,7 @@ namespace RecycleLife.Core
                 return Player.Position;
             }
 
-            Vector2Int at = ResolveStart(Grid, _config.PlayerStart);
+            Vector2Int at = ResolveStart(Grid, _config.PlayerStart, _config.FirstPlayableRow);
             Grid.Place(Player, at);
             IsPlayerPlaced = true;
 
@@ -138,13 +144,13 @@ namespace RecycleLife.Core
             // 준비가 끝나기 전(시작 연출 중)이거나 이미 끝난 런이면 아무 일도 하지 않는다.
             if (!IsReady || IsOver)
             {
-                return new StepResult(MoveOutcome.BlockedByEntity, false, 0, 0, Reason);
+                return new StepResult(MoveOutcome.BlockedByEntity, false, 0, 0, false, Reason);
             }
 
             // ── 페이즈 1: 이동 ────────────────────────────────────────────────
             MoveOutcome move = _move.Resolve(direction);
 
-            // §7-2: 경계 밖(무효 입력)은 언제나 무시한다.
+            // §3: 무효 입력(경계 밖 · 프리뷰 줄)은 언제나 무시한다.
             // 쓰레기에 막힌 경우만 AdvanceOnBlocked 설정을 따른다.
             bool advance = move == MoveOutcome.Moved
                            || (move == MoveOutcome.BlockedByEntity && _config.AdvanceOnBlocked);
@@ -158,31 +164,39 @@ namespace RecycleLife.Core
                     Reason = GameOverReason.PlayerTrapped;
                 }
 
-                return new StepResult(move, false, 0, 0, Reason);
+                return new StepResult(move, false, 0, 0, false, Reason);
             }
 
-            // ── 페이즈 2~4 ───────────────────────────────────────────────────
-            // 중력은 한 스텝에 한 칸씩만 내린다. 떠 있는 쓰레기는 여러 스텝에 걸쳐 내려온다.
+            // ── 페이즈 2: 중력 ───────────────────────────────────────────────
+            // 스텝당 한 칸씩만 내린다(기획 확정). 프리뷰 줄에 대기하던 블록도
+            // 여기서 한 칸 내려와 플레이 영역으로 들어간다.
             int settled = _gravity.Step();
+
+            // ── 페이즈 3: 스폰 ───────────────────────────────────────────────
+            // 중력 뒤에 도는 이유: 프리뷰 칸을 먼저 비워야 이번 턴 블록이 들어갈 자리가 생긴다.
             int spawned = _stepSpawner.Spawn();
-            Reason = _gameOver.Evaluate();
+            bool spawnBlocked = _stepSpawner.LastSpawnBlocked;
+
+            // ── 페이즈 4: 패배 판정 ──────────────────────────────────────────
+            Reason = _gameOver.Evaluate(spawnBlocked);
 
             StepCount++;
-            return new StepResult(move, true, settled, spawned, Reason);
+            return new StepResult(move, true, settled, spawned, spawnBlocked, Reason);
         }
 
         /// <summary>
         /// 설정된 시작 칸이 이미 차 있으면(초기 줄이 높게 쌓인 경우) 같은 컬럼에서 위로 올라가며
         /// 첫 빈 칸을 찾는다. 그것도 없으면 보드 전체에서 아무 빈 칸이나 쓴다.
+        /// 프리뷰 줄은 어느 경우에도 후보가 아니다 — 플레이어가 들어갈 수 없는 영역이다(§3).
         /// </summary>
-        private static Vector2Int ResolveStart(BoardGrid grid, Vector2Int preferred)
+        private static Vector2Int ResolveStart(BoardGrid grid, Vector2Int preferred, int firstPlayableRow)
         {
-            if (grid.IsEmpty(preferred))
+            if (preferred.y >= firstPlayableRow && grid.IsEmpty(preferred))
             {
                 return preferred;
             }
 
-            for (int row = preferred.y - 1; row >= 0; row--)
+            for (int row = preferred.y - 1; row >= firstPlayableRow; row--)
             {
                 var candidate = new Vector2Int(preferred.x, row);
                 if (grid.IsEmpty(candidate))
@@ -191,7 +205,7 @@ namespace RecycleLife.Core
                 }
             }
 
-            for (int row = 0; row < grid.Rows; row++)
+            for (int row = firstPlayableRow; row < grid.Rows; row++)
             {
                 for (int col = 0; col < grid.Cols; col++)
                 {

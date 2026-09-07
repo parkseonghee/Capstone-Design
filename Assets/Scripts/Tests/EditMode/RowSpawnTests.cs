@@ -5,36 +5,20 @@ using RecycleLife.Core;
 namespace RecycleLife.Tests
 {
     /// <summary>
-    /// 줄 단위 낙하(원작 레퍼런스 방식): 가로 한 줄이 통째로 내려오고,
-    /// 런 시작에는 여러 줄이 먼저 쏟아진다.
+    /// 시작 줄(WEEK1 §5 "하단 3줄이 채워진 상태로 시작")을 깔아 주는 RowTrashSpawner.
+    /// 진행 중 스폰과는 다른 스포너다 — 이쪽은 한 줄을 통째로 프리뷰 줄에 얹고,
+    /// 낙하는 GameLoop이 중력으로 시킨다.
     /// </summary>
     public sealed class RowSpawnTests
     {
         [Test]
-        public void SpawnImmediate_FillsTheWholeTopRowMinusGaps()
+        public void SpawnRow_FillsTheWholeTopRow()
         {
-            var grid = new BoardGrid(8, 12);
-            var config = new FakeBoardConfig { Mode = SpawnMode.FullRow, GapsPerRow = 1 };
+            var config = new FakeBoardConfig { GapsPerRow = 0 };
+            var grid = new BoardGrid(config.Cols, config.Rows);
             var spawner = new RowTrashSpawner(grid, config, new MinRandom());
 
-            int spawned = spawner.SpawnImmediate();
-
-            Assert.AreEqual(7, spawned, "8칸 중 1칸은 비어야 한다.");
-            Assert.IsTrue(grid.IsEmpty(new Vector2Int(0, 0)), "MinRandom은 첫 컬럼을 빈 칸으로 고른다.");
-            for (int col = 1; col < grid.Cols; col++)
-            {
-                Assert.IsFalse(grid.IsEmpty(new Vector2Int(col, 0)), "col " + col + "은 채워져야 한다.");
-            }
-        }
-
-        [Test]
-        public void ZeroGaps_FillsEveryColumn()
-        {
-            var grid = new BoardGrid(8, 12);
-            var config = new FakeBoardConfig { Mode = SpawnMode.FullRow, GapsPerRow = 0 };
-            var spawner = new RowTrashSpawner(grid, config, new MinRandom());
-
-            Assert.AreEqual(8, spawner.SpawnImmediate());
+            Assert.AreEqual(8, spawner.SpawnRow(), "시작 줄은 갭 없이 꽉 찬다.");
             for (int col = 0; col < grid.Cols; col++)
             {
                 Assert.IsFalse(grid.IsEmpty(new Vector2Int(col, 0)));
@@ -42,113 +26,64 @@ namespace RecycleLife.Tests
         }
 
         [Test]
-        public void Spawn_OnlyEmitsARowEveryStepsPerRow()
+        public void GapsPerRow_LeavesThatManyColumnsEmpty()
         {
-            var grid = new BoardGrid(8, 12);
-            var config = new FakeBoardConfig { Mode = SpawnMode.FullRow, GapsPerRow = 0, StepsPerRow = 3 };
+            // 확정값은 0이지만 값으로 남겨 둔다 — 난이도 실험용(Hard Rule 1).
+            var config = new FakeBoardConfig { GapsPerRow = 1 };
+            var grid = new BoardGrid(config.Cols, config.Rows);
             var spawner = new RowTrashSpawner(grid, config, new MinRandom());
 
-            Assert.AreEqual(0, spawner.Spawn(), "1번째 스텝: 아직 아니다.");
-            Assert.AreEqual(0, spawner.Spawn(), "2번째 스텝: 아직 아니다.");
-            Assert.AreEqual(8, spawner.Spawn(), "3번째 스텝에 한 줄이 내려온다.");
-            Assert.AreEqual(0, spawner.Spawn(), "주기가 다시 시작된다.");
+            Assert.AreEqual(7, spawner.SpawnRow(), "8칸 중 1칸은 비어야 한다.");
+            Assert.IsTrue(grid.IsEmpty(new Vector2Int(0, 0)), "MinRandom은 첫 컬럼을 빈 칸으로 고른다.");
         }
 
         [Test]
         public void OccupiedColumns_AreSkippedInsteadOfThrowing()
         {
-            var grid = new BoardGrid(4, 6);
+            var config = new FakeBoardConfig { Cols = 4, PlayableRows = 5, GapsPerRow = 0 };
+            var grid = new BoardGrid(config.Cols, config.Rows);
             grid.Place(new Trash(TrashType.A), new Vector2Int(2, 0));
 
-            var config = new FakeBoardConfig { Cols = 4, Rows = 6, Mode = SpawnMode.FullRow, GapsPerRow = 0 };
             var spawner = new RowTrashSpawner(grid, config, new MinRandom());
 
-            Assert.AreEqual(3, spawner.SpawnImmediate(), "이미 차 있던 한 칸은 건너뛴다.");
+            Assert.AreEqual(3, spawner.SpawnRow(), "이미 차 있던 한 칸은 건너뛴다.");
         }
 
         [Test]
-        public void SeedInitialBoard_StacksRowsFromTheFloorUp()
+        public void ThreeSeedRows_StackOnTheFloor()
         {
-            // 시작하자마자 3줄이 바닥부터 차곡차곡 쌓여 있어야 한다.
+            // 시작하자마자 하단 3줄이 바닥부터 차곡차곡 쌓여 있어야 한다.
             var config = new FakeBoardConfig
             {
-                Cols = 4,
-                Rows = 6,
-                Mode = SpawnMode.FullRow,
-                GapsPerRow = 1,
                 RowsOnStart = 3,
-                PlayerStart = new Vector2Int(0, 0),
+                GapsPerRow = 0,
+                PlayerStart = new Vector2Int(4, 5),
             };
 
-            GameLoop loop = GameLoopFactory.CreateWeek1(config, new MinRandom());
+            GameLoop loop = Make.Week1(config, new MinRandom());
 
-            // MinRandom은 항상 첫 컬럼을 빈 칸으로 고르므로 col 0은 비어 있다.
-            for (int row = 3; row <= 5; row++)
+            for (int row = 6; row <= 8; row++)
             {
-                Assert.IsTrue(loop.Grid.IsEmpty(new Vector2Int(0, row)), "col 0 row " + row + "은 빈 칸이어야 한다.");
-                for (int col = 1; col < config.Cols; col++)
+                for (int col = 0; col < config.Cols; col++)
                 {
-                    Assert.IsFalse(loop.Grid.IsEmpty(new Vector2Int(col, row)), "col " + col + " row " + row);
+                    Assert.IsFalse(
+                        loop.Grid.IsEmpty(new Vector2Int(col, row)),
+                        "하단 3줄은 꽉 차야 한다: (" + col + ", " + row + ")");
                 }
             }
 
-            // 그 위는 플레이어를 빼고 전부 비어 있어야 한다.
-            Assert.IsTrue(loop.Grid.IsEmpty(new Vector2Int(1, 2)));
-            Assert.AreEqual(new Vector2Int(0, 0), loop.Player.Position);
-            Assert.AreEqual(9, config.Cols * config.Rows - loop.Grid.CountEmpty() - 1, "쓰레기 3줄 x 3칸");
+            Assert.AreEqual(new Vector2Int(4, 5), loop.Player.Position, "플레이어는 그 바로 위다.");
+            Assert.AreEqual(config.Cols * config.Rows - 24 - 1, loop.Grid.CountEmpty(), "쓰레기 24 + 플레이어 1");
         }
 
         [Test]
         public void RowsOnStartZero_LeavesTheBoardEmpty()
         {
-            var config = new FakeBoardConfig { Mode = SpawnMode.FullRow, RowsOnStart = 0 };
+            var config = new FakeBoardConfig { RowsOnStart = 0 };
 
-            GameLoop loop = GameLoopFactory.CreateWeek1(config, new MinRandom());
+            GameLoop loop = Make.Week1(config, new MinRandom());
 
             Assert.AreEqual(config.Cols * config.Rows - 1, loop.Grid.CountEmpty(), "플레이어 한 칸만 차 있어야 한다.");
-        }
-
-        [Test]
-        public void FullRowRun_StaysDeterministicForTheSameSeed()
-        {
-            Assert.AreEqual(RunRows(20260903), RunRows(20260903));
-            Assert.AreNotEqual(RunRows(20260903), RunRows(7));
-        }
-
-        private static string RunRows(int seed)
-        {
-            var config = new FakeBoardConfig
-            {
-                Mode = SpawnMode.FullRow,
-                RowsOnStart = 3,
-                StepsPerRow = 3,
-                GapsPerRow = 1,
-                PlayerStart = new Vector2Int(4, 6),
-            };
-
-            GameLoop loop = GameLoopFactory.CreateWeek1(config, new SystemRandomSource(seed));
-
-            Direction[] script = { Direction.Left, Direction.Up, Direction.Right, Direction.Up, Direction.Down };
-            for (int i = 0; i < script.Length; i++)
-            {
-                loop.Step(script[i]);
-            }
-
-            var builder = new System.Text.StringBuilder();
-            for (int row = 0; row < loop.Grid.Rows; row++)
-            {
-                for (int col = 0; col < loop.Grid.Cols; col++)
-                {
-                    Entity entity = loop.Grid[col, row];
-                    if (entity == null) builder.Append('.');
-                    else if (entity.Kind == EntityKind.Player) builder.Append('@');
-                    else builder.Append((char)('A' + (int)((Trash)entity).Type));
-                }
-
-                builder.Append('\n');
-            }
-
-            return builder.ToString();
         }
     }
 }

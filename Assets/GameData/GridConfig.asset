@@ -13,11 +13,9 @@ MonoBehaviour:
   m_Name: GridConfig
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.GridConfig
   cols: 8
-  rows: 12
-  spawnMode: 0
+  playableRows: 8
+  previewRows: 1
   rowsOnStart: 3
-  stepsPerRow: 3
-  gapsPerRow: 1
-  spawnPerStep: 1
+  gapsPerRow: 0
+  playerStart: {x: 4, y: 5}
   advanceOnBlocked: 0
-  playerStart: {x: 4, y: 6}

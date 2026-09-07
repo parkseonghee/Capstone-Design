@@ -12,9 +12,9 @@ namespace RecycleLife.Core
         /// 초기 줄과 플레이어 배치까지 끝난 상태로 만들어 준다.
         /// 시작 연출 없이 바로 플레이 가능한 보드가 필요할 때(테스트 등) 쓴다.
         /// </summary>
-        public static GameLoop CreateWeek1(IBoardConfig config, IRandomSource random)
+        public static GameLoop CreateWeek1(IBoardConfig board, ISpawnConfig spawn, IRandomSource random)
         {
-            GameLoop loop = CreateStaged(config, random);
+            GameLoop loop = CreateStaged(board, spawn, random);
             loop.CompleteSetup();
             return loop;
         }
@@ -23,38 +23,38 @@ namespace RecycleLife.Core
         /// 보드가 빈 상태로 만들어 준다. 초기 줄은 호출자가 SeedNextRow()로 한 줄씩 떨어뜨리고,
         /// 다 떨어진 뒤 PlacePlayer()를 부른다 — 그 간격이 시작 연출이 된다.
         /// </summary>
-        public static GameLoop CreateStaged(IBoardConfig config, IRandomSource random)
+        public static GameLoop CreateStaged(IBoardConfig board, ISpawnConfig spawn, IRandomSource random)
         {
-            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (board == null) throw new ArgumentNullException(nameof(board));
+            if (spawn == null) throw new ArgumentNullException(nameof(spawn));
             if (random == null) throw new ArgumentNullException(nameof(random));
 
-            var grid = new BoardGrid(config.Cols, config.Rows);
+            var grid = new BoardGrid(board.Cols, board.Rows);
             var player = new Player();
 
-            if (!grid.InBounds(config.PlayerStart))
+            if (!grid.InBounds(board.PlayerStart))
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(config),
-                    $"PlayerStart {config.PlayerStart} is outside the {config.Cols}x{config.Rows} board.");
+                    nameof(board),
+                    $"PlayerStart {board.PlayerStart} is outside the {board.Cols}x{board.Rows} board.");
             }
 
-            // 진행 중 스폰 전략은 설정으로 갈아끼운다(Hard Rule 3).
-            ITrashSpawner stepSpawner = config.Mode == SpawnMode.FullRow
-                ? (ITrashSpawner)new RowTrashSpawner(grid, config, random)
-                : new RandomTopRowSpawner(grid, config, random);
+            // 진행 중 스폰: 언제나 프리뷰 줄로만 들어온다(WEEK1 §5 확정).
+            // 캐이던스와 컬럼 잠금은 PreviewRowSpawner가 갖는다.
+            ITrashSpawner stepSpawner = new PreviewRowSpawner(grid, board, spawn, random);
 
-            // 시작 연출은 진행 중 스폰 방식과 무관하게 언제나 줄 단위다.
-            ITrashSpawner seedSpawner = new RowTrashSpawner(grid, config, random);
+            // 시작 3줄은 줄 단위로 통째로 깔린다. GapsPerRow = 0이면 완전히 꽉 찬 줄이다.
+            ISeedSpawner seedSpawner = new RowTrashSpawner(grid, board, random);
 
             return new GameLoop(
                 grid,
                 player,
-                config,
-                new BlockingMoveResolver(grid, player),
+                board,
+                new BlockingMoveResolver(grid, player, board),
                 new GravityResolver(grid),
                 stepSpawner,
                 seedSpawner,
-                new GameOverChecker(grid, player));
+                new GameOverChecker(grid, player, board));
         }
     }
 }

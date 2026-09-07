@@ -15,8 +15,11 @@ namespace RecycleLife.Unity
     public sealed class GameSession : MonoBehaviour
     {
         [Header("데이터")]
-        [SerializeField, Tooltip("보드 크기·스폰 규칙·진행 규칙. 값은 전부 이 에셋에서 읽는다.")]
+        [SerializeField, Tooltip("보드 규격(8x9, 프리뷰 1줄)과 시작 상태. 값은 전부 이 에셋에서 읽는다.")]
         private GridConfig config;
+
+        [SerializeField, Tooltip("스폰 캐이던스(15개까지 매 턴 → 이후 2턴당 1개). 밸런스 전용 에셋.")]
+        private SpawnConfig spawnConfig;
 
         [Header("입력")]
         [SerializeField, Tooltip("방향 입력을 흘려보내는 라우터. 씬에서 연결한다.")]
@@ -113,9 +116,15 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            if (spawnConfig == null)
+            {
+                Debug.LogError($"{nameof(GameSession)}: SpawnConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
+                return;
+            }
+
             CurrentSeed = useFixedSeed ? fixedSeed : Environment.TickCount;
 
-            Loop = GameLoopFactory.CreateStaged(config, new SystemRandomSource(CurrentSeed));
+            Loop = GameLoopFactory.CreateStaged(config, spawnConfig, new SystemRandomSource(CurrentSeed));
 
             // 첫 줄은 아래의 introRowInterval 대기만 거치고 바로 나오게 한다
             // (빈 보드에서 쉬는 박자를 한 번 더 먹지 않도록).
