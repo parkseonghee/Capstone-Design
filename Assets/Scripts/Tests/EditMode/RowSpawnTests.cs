@@ -16,7 +16,7 @@ namespace RecycleLife.Tests
         {
             var config = new FakeBoardConfig { GapsPerRow = 0 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            var spawner = new RowTrashSpawner(grid, config, new MinRandom());
+            var spawner = new RowTrashSpawner(grid, config, config, new MinRandom());
 
             Assert.AreEqual(8, spawner.SpawnRow(), "시작 줄은 갭 없이 꽉 찬다.");
             for (int col = 0; col < grid.Cols; col++)
@@ -31,7 +31,7 @@ namespace RecycleLife.Tests
             // 확정값은 0이지만 값으로 남겨 둔다 — 난이도 실험용(Hard Rule 1).
             var config = new FakeBoardConfig { GapsPerRow = 1 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            var spawner = new RowTrashSpawner(grid, config, new MinRandom());
+            var spawner = new RowTrashSpawner(grid, config, config, new MinRandom());
 
             Assert.AreEqual(7, spawner.SpawnRow(), "8칸 중 1칸은 비어야 한다.");
             Assert.IsTrue(grid.IsEmpty(new Vector2Int(0, 0)), "MinRandom은 첫 컬럼을 빈 칸으로 고른다.");
@@ -42,9 +42,9 @@ namespace RecycleLife.Tests
         {
             var config = new FakeBoardConfig { Cols = 4, PlayableRows = 5, GapsPerRow = 0 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            grid.Place(new Trash(TrashType.A), new Vector2Int(2, 0));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(2, 0));
 
-            var spawner = new RowTrashSpawner(grid, config, new MinRandom());
+            var spawner = new RowTrashSpawner(grid, config, config, new MinRandom());
 
             Assert.AreEqual(3, spawner.SpawnRow(), "이미 차 있던 한 칸은 건너뛴다.");
         }

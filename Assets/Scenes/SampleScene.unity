@@ -660,13 +660,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.HudView
   session: {fileID: 758893680}
   stepLabel: {fileID: 1535422}
+  hpLabel: {fileID: 0}
   statusLabel: {fileID: 1652993653}
   gameOverPanel: {fileID: 159268586}
   gameOverLabel: {fileID: 1381373096}
   restartButton: {fileID: 2135067172}
   stepFormat: STEP {0}
+  hpFormat: HP {0}/{1}
   boardFullText: "\uBCF4\uB4DC\uAC00 \uAC00\uB4DD \uCC3C\uC2B5\uB2C8\uB2E4"
   trappedText: "\uBE60\uC838\uB098\uAC08 \uACF3\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+  playerDeadText: "\uCCB4\uB825\uC774 \uBC14\uB2E5\uB0AC\uC2B5\uB2C8\uB2E4"
   blockedHint: "\uB9C9\uD614\uC2B5\uB2C8\uB2E4"
   outOfBoundsHint: "\uBCF4\uB4DC \uBC16\uC785\uB2C8\uB2E4"
 --- !u!114 &497831919
@@ -701,9 +704,9 @@ MonoBehaviour:
   m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ReferenceResolution: {x: 1080, y: 2340}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0.5
+  m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -909,8 +912,8 @@ MonoBehaviour:
   fitOnStart: 1
   refitOnAspectChange: 1
   centerOnBoard: 1
-  padding: 1.2
-  verticalOffset: -2
+  padding: 0.5
+  verticalOffset: -1.75
 --- !u!1 &617175226
 GameObject:
   m_ObjectHideFlags: 0
@@ -1037,6 +1040,7 @@ GameObject:
   - component: {fileID: 758893682}
   - component: {fileID: 758893681}
   - component: {fileID: 758893680}
+  - component: {fileID: 758893683}
   m_Layer: 0
   m_Name: GameSession
   m_TagString: Untagged
@@ -1058,6 +1062,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.GameSession
   config: {fileID: 11400000, guid: 665a2a283ad4e764aac9493f0ea847b0, type: 2}
   spawnConfig: {fileID: 11400000, guid: 5c9e2a71d4b8f3e6a72c05b981fd3e47, type: 2}
+  trashStats: {fileID: 11400000, guid: 9f41c7d305b84a62b8e37150ad9c2e68, type: 2}
+  character: {fileID: 11400000, guid: 8e3c17a9b45d2f60c9a83e14d572b6f8, type: 2}
   input: {fileID: 758893681}
   introFallInterval: 0.06
   introRowInterval: 0.3
@@ -1096,6 +1102,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &758893683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 758893679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9f12896ff08cbc4a80ca75048c492c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.FramePacer
+  targetFrameRate: 60
+  disableVSync: 1
+  allowScreenDimming: 1
 --- !u!1 &856727681
 GameObject:
   m_ObjectHideFlags: 0
@@ -1547,6 +1568,13 @@ MonoBehaviour:
   previewVisibleFraction: 0.16666667
   moveSmoothing: 16
   dropFromAbove: 1
+  showHealthHearts: 1
+  heartSize: 0.2
+  heartSpacing: 0.04
+  heartYOffset: -0.36
+  heartRowMaxWidth: 0.95
+  heartSortingOrder: 1
+  snapDistance: 0.002
 --- !u!4 &1443541777
 Transform:
   m_ObjectHideFlags: 0

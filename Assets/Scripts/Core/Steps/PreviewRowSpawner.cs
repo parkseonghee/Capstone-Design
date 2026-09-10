@@ -23,12 +23,11 @@ namespace RecycleLife.Core
     /// </summary>
     public sealed class PreviewRowSpawner : ITrashSpawner
     {
-        /// <summary>Enum.GetValues는 배열을 할당하므로 최초 1회만 세어 캐시한다(Hard Rule 8).</summary>
-        private static readonly int TrashTypeCount = Enum.GetValues(typeof(TrashType)).Length;
-
         private readonly BoardGrid _grid;
         private readonly IBoardConfig _board;
         private readonly ISpawnConfig _spawn;
+        private readonly ITrashStatsProvider _stats;
+        private readonly TrashTypePicker _types;
         private readonly IRandomSource _random;
 
         /// <summary>매 스텝 재사용하는 후보 컬럼 버퍼(Hard Rule 8).</summary>
@@ -36,11 +35,18 @@ namespace RecycleLife.Core
 
         private int _turnsSinceSpawn;
 
-        public PreviewRowSpawner(BoardGrid grid, IBoardConfig board, ISpawnConfig spawn, IRandomSource random)
+        public PreviewRowSpawner(
+            BoardGrid grid,
+            IBoardConfig board,
+            ISpawnConfig spawn,
+            ITrashStatsProvider stats,
+            IRandomSource random)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _spawn = spawn ?? throw new ArgumentNullException(nameof(spawn));
+            _stats = stats ?? throw new ArgumentNullException(nameof(stats));
+            _types = new TrashTypePicker(stats, random);
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _candidates = new List<int>(grid.Cols);
         }
@@ -88,11 +94,11 @@ namespace RecycleLife.Core
                 }
 
                 int column = _candidates[_random.NextInt(0, _candidates.Count)];
-                var type = (TrashType)_random.NextInt(0, TrashTypeCount);
+                TrashType type = _types.Next();
 
                 // 스텝당 최대 BlocksPerSpawn번의 불가피한 할당.
-                // 전투 단계에서 제거가 생기면 그때 풀링을 검토한다.
-                _grid.Place(new Trash(type), new Vector2Int(column, SpawnRow));
+                // 전투로 제거가 잦아지면 그때 풀링을 검토한다.
+                _grid.Place(new Trash(type, _stats.For(type)), new Vector2Int(column, SpawnRow));
                 placed++;
                 SpawnedTotal++;
             }

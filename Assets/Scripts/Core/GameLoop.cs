@@ -144,16 +144,19 @@ namespace RecycleLife.Core
             // 준비가 끝나기 전(시작 연출 중)이거나 이미 끝난 런이면 아무 일도 하지 않는다.
             if (!IsReady || IsOver)
             {
-                return new StepResult(MoveOutcome.BlockedByEntity, false, 0, 0, false, Reason);
+                return new StepResult(MoveResult.Simple(MoveOutcome.BlockedByEntity), false, 0, 0, false, Reason);
             }
 
-            // ── 페이즈 1: 이동 ────────────────────────────────────────────────
-            MoveOutcome move = _move.Resolve(direction);
+            // ── 페이즈 1: 이동 또는 공격 ──────────────────────────────────────
+            MoveResult move = _move.Resolve(direction);
 
             // §3: 무효 입력(경계 밖 · 프리뷰 줄)은 언제나 무시한다.
+            // 공격은 이동과 똑같이 한 턴을 쓴다(CORE_COMBAT.md §3).
             // 쓰레기에 막힌 경우만 AdvanceOnBlocked 설정을 따른다.
-            bool advance = move == MoveOutcome.Moved
-                           || (move == MoveOutcome.BlockedByEntity && _config.AdvanceOnBlocked);
+            bool advance = move.Outcome == MoveOutcome.Moved
+                           || move.Outcome == MoveOutcome.Attacked
+                           || move.Outcome == MoveOutcome.Consumed
+                           || (move.Outcome == MoveOutcome.BlockedByEntity && _config.AdvanceOnBlocked);
 
             if (!advance)
             {
@@ -165,6 +168,14 @@ namespace RecycleLife.Core
                 }
 
                 return new StepResult(move, false, 0, 0, false, Reason);
+            }
+
+            // 반격으로 죽었다면 여기서 끝난다. 이미 진 판에 블록을 더 떨어뜨릴 이유가 없다.
+            if (Player.IsDead)
+            {
+                Reason = _gameOver.Evaluate();
+                StepCount++;
+                return new StepResult(move, true, 0, 0, false, Reason);
             }
 
             // ── 페이즈 2: 중력 ───────────────────────────────────────────────

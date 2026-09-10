@@ -30,14 +30,32 @@ namespace RecycleLife.Unity
         [SerializeField]
         private TrashEntry[] trash =
         {
-            new TrashEntry { type = TrashType.A, color = new Color(0.36f, 0.72f, 0.94f) },
-            new TrashEntry { type = TrashType.B, color = new Color(0.47f, 0.82f, 0.51f) },
-            new TrashEntry { type = TrashType.C, color = new Color(0.94f, 0.52f, 0.42f) },
-            new TrashEntry { type = TrashType.D, color = new Color(0.76f, 0.62f, 0.93f) },
+            // 스프라이트가 들어오기 전까지 쓰는 임시 색. 재질이 구분되게 골랐다.
+            new TrashEntry { type = TrashType.Paper, color = new Color(0.87f, 0.85f, 0.78f) },
+            new TrashEntry { type = TrashType.Plastic, color = new Color(0.36f, 0.72f, 0.94f) },
+            new TrashEntry { type = TrashType.Glass, color = new Color(0.45f, 0.85f, 0.80f) },
+            new TrashEntry { type = TrashType.Potion, color = new Color(0.98f, 0.62f, 0.68f) },
+            new TrashEntry { type = TrashType.Wood, color = new Color(0.60f, 0.44f, 0.28f) },
+            new TrashEntry { type = TrashType.Concrete, color = new Color(0.55f, 0.56f, 0.58f) },
+            new TrashEntry { type = TrashType.Steel, color = new Color(0.33f, 0.36f, 0.42f) },
         };
 
         [Header("미지정 종류 폴백")]
         [SerializeField] private Color fallbackColor = Color.gray;
+
+        [Header("체력 하트 (CORE_COMBAT.md §1)")]
+        [SerializeField, Tooltip("남아 있는 체력 한 칸. 비워 두면 하트를 아예 그리지 않는다.")]
+        private Sprite heartFull;
+
+        [SerializeField, Tooltip("잃은 체력 한 칸.")]
+        private Sprite heartEmpty;
+
+        public Sprite HeartFull => heartFull;
+
+        public Sprite HeartEmpty => heartEmpty;
+
+        /// <summary>둘 다 꽂혀 있어야 하트를 그린다. 하나만 있으면 표시가 반쪽이라 아예 끈다.</summary>
+        public bool HasHeartSprites => heartFull != null && heartEmpty != null;
 
         public void Resolve(Entity entity, out Color color, out Sprite sprite)
         {

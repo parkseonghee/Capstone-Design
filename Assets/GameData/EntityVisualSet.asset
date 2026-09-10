@@ -16,15 +16,26 @@ MonoBehaviour:
   playerSprite: {fileID: 0}
   trash:
   - type: 0
-    color: {r: 0.36, g: 0.72, b: 0.94, a: 1}
+    color: {r: 0.87, g: 0.85, b: 0.78, a: 1}
     sprite: {fileID: 0}
   - type: 1
-    color: {r: 0.47, g: 0.82, b: 0.51, a: 1}
+    color: {r: 0.36, g: 0.72, b: 0.94, a: 1}
     sprite: {fileID: 0}
   - type: 2
-    color: {r: 0.94, g: 0.52, b: 0.42, a: 1}
+    color: {r: 0.45, g: 0.85, b: 0.8, a: 1}
     sprite: {fileID: 0}
   - type: 3
-    color: {r: 0.76, g: 0.62, b: 0.93, a: 1}
+    color: {r: 0.98, g: 0.62, b: 0.68, a: 1}
+    sprite: {fileID: 0}
+  - type: 4
+    color: {r: 0.6, g: 0.44, b: 0.28, a: 1}
+    sprite: {fileID: 0}
+  - type: 5
+    color: {r: 0.55, g: 0.56, b: 0.58, a: 1}
+    sprite: {fileID: 0}
+  - type: 6
+    color: {r: 0.33, g: 0.36, b: 0.42, a: 1}
     sprite: {fileID: 0}
   fallbackColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  heartFull: {fileID: 4606908045521496030, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}
+  heartEmpty: {fileID: 615023859997206797, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}

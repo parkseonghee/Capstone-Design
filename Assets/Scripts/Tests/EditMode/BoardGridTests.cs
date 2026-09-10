@@ -22,7 +22,7 @@ namespace RecycleLife.Tests
         public void Place_StoresEntityAndSyncsItsPosition()
         {
             var grid = new BoardGrid(8, 12);
-            var trash = new Trash(TrashType.B);
+            var trash = Make.Trash(TrashType.Plastic);
             var at = new Vector2Int(3, 5);
 
             grid.Place(trash, at);
@@ -36,7 +36,7 @@ namespace RecycleLife.Tests
         public void Move_UpdatesBothCellsAndPosition()
         {
             var grid = new BoardGrid(8, 12);
-            var trash = new Trash(TrashType.A);
+            var trash = Make.Trash(TrashType.Paper);
             grid.Place(trash, new Vector2Int(2, 2));
 
             grid.Move(new Vector2Int(2, 2), new Vector2Int(2, 9));
@@ -52,8 +52,8 @@ namespace RecycleLife.Tests
             var grid = new BoardGrid(4, 4);
             Assert.AreEqual(16, grid.CountEmpty());
 
-            grid.Place(new Trash(TrashType.A), new Vector2Int(0, 0));
-            grid.Place(new Trash(TrashType.A), new Vector2Int(1, 0));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 0));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(1, 0));
 
             Assert.AreEqual(14, grid.CountEmpty());
         }

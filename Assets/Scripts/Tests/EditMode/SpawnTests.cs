@@ -11,7 +11,7 @@ namespace RecycleLife.Tests
     public sealed class SpawnTests
     {
         private static PreviewRowSpawner Build(BoardGrid grid, FakeBoardConfig config, IRandomSource random)
-            => new PreviewRowSpawner(grid, config, config, random);
+            => new PreviewRowSpawner(grid, config, config, config, random);
 
         // ── 스폰 위치 ───────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ namespace RecycleLife.Tests
 
             Assert.AreEqual(1, spawner.Spawn());
             Assert.IsFalse(grid.IsEmpty(new Vector2Int(0, 0)), "MinRandom은 가장 왼쪽 후보를 고른다.");
-            Assert.AreEqual(TrashType.A, ((Trash)grid[new Vector2Int(0, 0)]).Type);
+            Assert.AreEqual(TrashType.Paper, ((Trash)grid[new Vector2Int(0, 0)]).Type);
             Assert.IsTrue(grid.IsEmpty(new Vector2Int(0, 1)), "낙하는 다음 스텝의 중력이 시킨다.");
         }
 
@@ -39,7 +39,7 @@ namespace RecycleLife.Tests
             spawner.Spawn();
 
             Assert.IsTrue(grid.IsEmpty(new Vector2Int(0, 0)));
-            Assert.AreEqual(TrashType.C, ((Trash)grid[new Vector2Int(5, 0)]).Type);
+            Assert.AreEqual(TrashType.Glass, ((Trash)grid[new Vector2Int(5, 0)]).Type);
         }
 
         // ── 캐이던스 ────────────────────────────────────────────────────────
@@ -99,8 +99,8 @@ namespace RecycleLife.Tests
             // 세로 8칸(여기선 2칸)이 찬 열에는 더 이상 쌓지 않는다.
             var config = new FakeBoardConfig { Cols = 2, PlayableRows = 2 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            grid.Place(new Trash(TrashType.A), new Vector2Int(0, 1));
-            grid.Place(new Trash(TrashType.A), new Vector2Int(0, 2));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 1));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 2));
 
             PreviewRowSpawner spawner = Build(grid, config, new MinRandom());
 
@@ -119,7 +119,7 @@ namespace RecycleLife.Tests
             {
                 for (int row = config.FirstPlayableRow; row < config.Rows; row++)
                 {
-                    grid.Place(new Trash(TrashType.A), new Vector2Int(col, row));
+                    grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(col, row));
                 }
             }
 
@@ -139,7 +139,7 @@ namespace RecycleLife.Tests
             {
                 for (int row = 0; row < config.Rows; row++)
                 {
-                    grid.Place(new Trash(TrashType.A), new Vector2Int(col, row));
+                    grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(col, row));
                 }
             }
 

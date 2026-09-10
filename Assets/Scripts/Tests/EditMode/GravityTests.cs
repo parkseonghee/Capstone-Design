@@ -16,7 +16,7 @@ namespace RecycleLife.Tests
         public void Step_MovesFloatingTrashExactlyOneCell()
         {
             var grid = new BoardGrid(8, 12);
-            var trash = new Trash(TrashType.A);
+            var trash = Make.Trash(TrashType.Paper);
             grid.Place(trash, new Vector2Int(3, 0));
 
             var gravity = new GravityResolver(grid);
@@ -32,7 +32,7 @@ namespace RecycleLife.Tests
         public void Step_TakesOneCallPerCellToReachTheFloor()
         {
             var grid = new BoardGrid(8, 12);
-            var trash = new Trash(TrashType.A);
+            var trash = Make.Trash(TrashType.Paper);
             grid.Place(trash, new Vector2Int(3, 0));
 
             var gravity = new GravityResolver(grid);
@@ -50,8 +50,8 @@ namespace RecycleLife.Tests
         {
             // 붙어 있는 덩어리는 통째로 한 칸 내려간다.
             var grid = new BoardGrid(8, 12);
-            var upper = new Trash(TrashType.A);
-            var lower = new Trash(TrashType.B);
+            var upper = Make.Trash(TrashType.Paper);
+            var lower = Make.Trash(TrashType.Plastic);
             grid.Place(upper, new Vector2Int(2, 4));
             grid.Place(lower, new Vector2Int(2, 5));
 
@@ -64,8 +64,8 @@ namespace RecycleLife.Tests
         public void Step_LeavesSettledTrashAlone()
         {
             var grid = new BoardGrid(8, 12);
-            grid.Place(new Trash(TrashType.A), new Vector2Int(0, 11));
-            grid.Place(new Trash(TrashType.A), new Vector2Int(0, 10));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 11));
+            grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 10));
 
             Assert.AreEqual(0, new GravityResolver(grid).Step());
         }
@@ -75,8 +75,8 @@ namespace RecycleLife.Tests
         {
             // §7-1 확정: 플레이어 위로 낙하하면 막힌다. 게임오버가 아니다.
             var grid = new BoardGrid(8, 12);
-            var player = new Player();
-            var trash = new Trash(TrashType.D);
+            var player = Make.Player();
+            var trash = Make.Trash(TrashType.Glass);
             grid.Place(player, new Vector2Int(5, 8));
             grid.Place(trash, new Vector2Int(5, 6));
 
@@ -95,7 +95,7 @@ namespace RecycleLife.Tests
         public void Settle_DropsTrashAllTheWayDown()
         {
             var grid = new BoardGrid(8, 12);
-            var trash = new Trash(TrashType.A);
+            var trash = Make.Trash(TrashType.Paper);
             grid.Place(trash, new Vector2Int(3, 0));
 
             Assert.AreEqual(11, new GravityResolver(grid).Settle());
@@ -107,9 +107,9 @@ namespace RecycleLife.Tests
         public void Settle_KeepsRelativeOrder()
         {
             var grid = new BoardGrid(8, 12);
-            var top = new Trash(TrashType.A);
-            var middle = new Trash(TrashType.B);
-            var bottom = new Trash(TrashType.C);
+            var top = Make.Trash(TrashType.Paper);
+            var middle = Make.Trash(TrashType.Plastic);
+            var bottom = Make.Trash(TrashType.Glass);
 
             grid.Place(top, new Vector2Int(2, 1));
             grid.Place(middle, new Vector2Int(2, 4));
@@ -126,8 +126,8 @@ namespace RecycleLife.Tests
         public void Settle_TrashBelowPlayerStillReachesTheFloor()
         {
             var grid = new BoardGrid(8, 12);
-            var player = new Player();
-            var trash = new Trash(TrashType.A);
+            var player = Make.Player();
+            var trash = Make.Trash(TrashType.Paper);
             grid.Place(player, new Vector2Int(5, 4));
             grid.Place(trash, new Vector2Int(5, 6));
 
@@ -141,8 +141,8 @@ namespace RecycleLife.Tests
         public void Settle_ColumnsAreIndependent()
         {
             var grid = new BoardGrid(8, 12);
-            var left = new Trash(TrashType.A);
-            var right = new Trash(TrashType.B);
+            var left = Make.Trash(TrashType.Paper);
+            var right = Make.Trash(TrashType.Plastic);
             grid.Place(left, new Vector2Int(0, 3));
             grid.Place(right, new Vector2Int(7, 5));
 

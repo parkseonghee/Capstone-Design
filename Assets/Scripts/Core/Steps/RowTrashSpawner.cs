@@ -13,19 +13,22 @@ namespace RecycleLife.Core
     /// </summary>
     public sealed class RowTrashSpawner : ISeedSpawner
     {
-        private static readonly int TrashTypeCount = Enum.GetValues(typeof(TrashType)).Length;
-
         private readonly BoardGrid _grid;
         private readonly IBoardConfig _config;
+        private readonly ITrashStatsProvider _stats;
+        private readonly TrashTypePicker _types;
         private readonly IRandomSource _random;
 
         /// <summary>컬럼 순서 셔플용 재사용 버퍼(Hard Rule 8).</summary>
         private readonly List<int> _columns;
 
-        public RowTrashSpawner(BoardGrid grid, IBoardConfig config, IRandomSource random)
+        public RowTrashSpawner(
+            BoardGrid grid, IBoardConfig config, ITrashStatsProvider stats, IRandomSource random)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _stats = stats ?? throw new ArgumentNullException(nameof(stats));
+            _types = new TrashTypePicker(stats, random);
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _columns = new List<int>(grid.Cols);
         }
@@ -61,7 +64,8 @@ namespace RecycleLife.Core
                     continue;
                 }
 
-                _grid.Place(new Trash((TrashType)_random.NextInt(0, TrashTypeCount)), position);
+                TrashType type = _types.Next();
+                _grid.Place(new Trash(type, _stats.For(type)), position);
                 spawned++;
             }
 

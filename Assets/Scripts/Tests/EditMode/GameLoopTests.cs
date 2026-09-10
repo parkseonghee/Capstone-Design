@@ -41,7 +41,7 @@ namespace RecycleLife.Tests
             var config = new FakeBoardConfig { BlocksPerSpawn = 0, PlayerStart = new Vector2Int(4, 8) };
             GameLoop loop = Make.Week1(config, new MinRandom());
 
-            var trash = new Trash(TrashType.A);
+            var trash = Make.Trash(TrashType.Paper);
             loop.Grid.Place(trash, new Vector2Int(0, 0));
 
             for (int i = 1; i <= 5; i++)
@@ -84,9 +84,11 @@ namespace RecycleLife.Tests
         [Test]
         public void BlockedInput_DoesNotAdvance_WhenAdvanceOnBlockedIsFalse()
         {
+            // 전투가 꽂히면 쓰레기는 막는 게 아니라 때리는 대상이 된다.
+            // AdvanceOnBlocked 규칙 자체는 남아 있으므로 전투 없는 배선으로 검사한다.
             var config = new FakeBoardConfig { AdvanceOnBlocked = false, PlayerStart = new Vector2Int(4, 8) };
-            GameLoop loop = Make.Week1(config, new MinRandom());
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(5, 8));
+            GameLoop loop = Make.Blocking(config, new MinRandom());
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(5, 8));
 
             StepResult result = loop.Step(Direction.Right);
 
@@ -100,8 +102,8 @@ namespace RecycleLife.Tests
         public void BlockedInput_Advances_WhenAdvanceOnBlockedIsTrue()
         {
             var config = new FakeBoardConfig { AdvanceOnBlocked = true, PlayerStart = new Vector2Int(4, 8) };
-            GameLoop loop = Make.Week1(config, new MinRandom());
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(5, 8));
+            GameLoop loop = Make.Blocking(config, new MinRandom());
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(5, 8));
 
             StepResult result = loop.Step(Direction.Right);
 
@@ -134,7 +136,7 @@ namespace RecycleLife.Tests
             // 판정만 떼어 검사한다 — 루프로 이 상태를 만들면 그 전에 갇힘이 먼저 잡힌다(아래 주석).
             var config = new FakeBoardConfig { Cols = 2, PlayableRows = 2 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            var player = new Player();
+            var player = Make.Player();
             grid.Place(player, new Vector2Int(0, 2));
 
             for (int col = 0; col < config.Cols; col++)
@@ -144,14 +146,14 @@ namespace RecycleLife.Tests
                     var cell = new Vector2Int(col, row);
                     if (grid.IsEmpty(cell))
                     {
-                        grid.Place(new Trash(TrashType.A), cell);
+                        grid.Place(Make.Trash(TrashType.Paper), cell);
                     }
                 }
             }
 
             Assert.AreEqual(0, grid.CountEmpty(), "보드가 완전히 찼다.");
 
-            var checker = new GameOverChecker(grid, player, config);
+            var checker = new GameOverChecker(grid, player, new BlockingMoveResolver(grid, player, config));
 
             Assert.AreEqual(GameOverReason.BoardFull, checker.Evaluate(true));
 
@@ -166,10 +168,10 @@ namespace RecycleLife.Tests
             // 스폰이 막혔다고 바로 지는 게 아니다 — 빈 칸이 남아 있으면 그 턴은 그냥 넘어간다.
             var config = new FakeBoardConfig { Cols = 2, PlayableRows = 3 };
             var grid = new BoardGrid(config.Cols, config.Rows);
-            var player = new Player();
+            var player = Make.Player();
             grid.Place(player, new Vector2Int(0, 2));
 
-            var checker = new GameOverChecker(grid, player, config);
+            var checker = new GameOverChecker(grid, player, new BlockingMoveResolver(grid, player, config));
 
             Assert.AreEqual(GameOverReason.None, checker.Evaluate(true));
         }
@@ -186,11 +188,13 @@ namespace RecycleLife.Tests
                 PlayerStart = new Vector2Int(1, 1),
                 AdvanceOnBlocked = false,
             };
-            GameLoop loop = Make.Week1(config, new MinRandom());
+            // 갇힘은 '막힘'이 존재해야 성립한다 — 전투가 붙으면 사라지는 조건이다
+            // (CombatTests.SurroundedPlayer_IsNotTrappedBecauseEveryNeighbourIsAttackable 참조).
+            GameLoop loop = Make.Blocking(config, new MinRandom());
 
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(0, 1));
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(2, 1));
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(1, 2));
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 1));
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(2, 1));
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(1, 2));
 
             StepResult result = loop.Step(Direction.Right);
 
@@ -208,10 +212,10 @@ namespace RecycleLife.Tests
                 PlayableRows = 2,
                 PlayerStart = new Vector2Int(1, 1),
             };
-            GameLoop loop = Make.Week1(config, new MinRandom());
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(0, 1));
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(2, 1));
-            loop.Grid.Place(new Trash(TrashType.A), new Vector2Int(1, 2));
+            GameLoop loop = Make.Blocking(config, new MinRandom());
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(0, 1));
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(2, 1));
+            loop.Grid.Place(Make.Trash(TrashType.Paper), new Vector2Int(1, 2));
 
             loop.Step(Direction.Right);
             Assert.IsTrue(loop.IsOver);

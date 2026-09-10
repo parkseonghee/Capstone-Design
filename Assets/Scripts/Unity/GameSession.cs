@@ -21,6 +21,13 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("스폰 캐이던스(15개까지 매 턴 → 이후 2턴당 1개). 밸런스 전용 에셋.")]
         private SpawnConfig spawnConfig;
 
+        [SerializeField, Tooltip("쓰레기 종류별 HP·공격력. 전투 밸런스는 전부 이 에셋에서 잡는다.")]
+        private TrashStatsConfig trashStats;
+
+        [SerializeField, Tooltip("플레이할 캐릭터. 체력·공격력·공격 범위를 담는다. " +
+                                 "캐릭터를 바꾸려면 다른 CharacterConfig 에셋을 꽂으면 된다.")]
+        private CharacterConfig character;
+
         [Header("입력")]
         [SerializeField, Tooltip("방향 입력을 흘려보내는 라우터. 씬에서 연결한다.")]
         private InputRouter input;
@@ -122,9 +129,22 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            if (trashStats == null)
+            {
+                Debug.LogError($"{nameof(GameSession)}: TrashStatsConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
+                return;
+            }
+
+            if (character == null)
+            {
+                Debug.LogError($"{nameof(GameSession)}: CharacterConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
+                return;
+            }
+
             CurrentSeed = useFixedSeed ? fixedSeed : Environment.TickCount;
 
-            Loop = GameLoopFactory.CreateStaged(config, spawnConfig, new SystemRandomSource(CurrentSeed));
+            Loop = GameLoopFactory.CreateStaged(
+                config, spawnConfig, trashStats, character, new SystemRandomSource(CurrentSeed));
 
             // 첫 줄은 아래의 introRowInterval 대기만 거치고 바로 나오게 한다
             // (빈 보드에서 쉬는 박자를 한 번 더 먹지 않도록).

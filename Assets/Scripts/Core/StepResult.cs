@@ -2,18 +2,21 @@ namespace RecycleLife.Core
 {
     /// <summary>
     /// 한 스텝의 결과. 스텝당 1회만 만들어지고 struct라 GC를 만들지 않는다(Hard Rule 8).
+    /// 전투 수치는 페이즈 1의 MoveResult를 그대로 감싸 흘려보낸다.
     /// </summary>
     public readonly struct StepResult
     {
+        private readonly MoveResult _move;
+
         public StepResult(
-            MoveOutcome move,
+            MoveResult move,
             bool advanced,
             int settled,
             int spawned,
             bool spawnBlocked,
             GameOverReason gameOver)
         {
-            Move = move;
+            _move = move;
             Advanced = advanced;
             Settled = settled;
             Spawned = spawned;
@@ -21,8 +24,20 @@ namespace RecycleLife.Core
             GameOver = gameOver;
         }
 
-        /// <summary>페이즈 1의 결과.</summary>
-        public MoveOutcome Move { get; }
+        /// <summary>페이즈 1의 결과 종류.</summary>
+        public MoveOutcome Move => _move.Outcome;
+
+        /// <summary>이번 공격에 함께 맞은 쓰레기 수. 공격이 아니면 0.</summary>
+        public int ChainSize => _move.ChainSize;
+
+        /// <summary>이번 공격으로 사라진 쓰레기 수.</summary>
+        public int Killed => _move.Killed;
+
+        /// <summary>반격으로 플레이어가 받은 피해량.</summary>
+        public int DamageTaken => _move.DamageTaken;
+
+        /// <summary>아이템으로 실제로 회복한 체력.</summary>
+        public int Healed => _move.Healed;
 
         /// <summary>페이즈 2~4가 실제로 돌았는지(= 보드가 한 스텝 진행했는지).</summary>
         public bool Advanced { get; }

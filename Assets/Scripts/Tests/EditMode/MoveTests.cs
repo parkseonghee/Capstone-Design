@@ -13,7 +13,7 @@ namespace RecycleLife.Tests
         private static BlockingMoveResolver Build(
             BoardGrid grid, IBoardConfig config, Vector2Int start, out Player player)
         {
-            player = new Player();
+            player = Make.Player();
             grid.Place(player, start);
             return new BlockingMoveResolver(grid, player, config);
         }
@@ -25,16 +25,16 @@ namespace RecycleLife.Tests
             var grid = new BoardGrid(config.Cols, config.Rows);
             var resolver = Build(grid, config, new Vector2Int(4, 5), out Player player);
 
-            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Up));
+            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Up).Outcome);
             Assert.AreEqual(new Vector2Int(4, 4), player.Position);
 
-            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Down));
+            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Down).Outcome);
             Assert.AreEqual(new Vector2Int(4, 5), player.Position);
 
-            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Left));
+            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Left).Outcome);
             Assert.AreEqual(new Vector2Int(3, 5), player.Position);
 
-            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Right));
+            Assert.AreEqual(MoveOutcome.Moved, resolver.Resolve(Direction.Right).Outcome);
             Assert.AreEqual(new Vector2Int(4, 5), player.Position);
         }
 
@@ -45,8 +45,8 @@ namespace RecycleLife.Tests
             var grid = new BoardGrid(config.Cols, config.Rows);
             var resolver = Build(grid, config, new Vector2Int(0, 8), out Player player);
 
-            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Left));
-            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Down));
+            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Left).Outcome);
+            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Down).Outcome);
             Assert.AreEqual(new Vector2Int(0, 8), player.Position);
         }
 
@@ -59,7 +59,7 @@ namespace RecycleLife.Tests
             var resolver = Build(grid, config, new Vector2Int(4, 1), out Player player);
 
             Assert.AreEqual(1, config.FirstPlayableRow, "row 0이 프리뷰, row 1이 첫 플레이 줄이다.");
-            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Up));
+            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Up).Outcome);
             Assert.AreEqual(new Vector2Int(4, 1), player.Position, "프리뷰 줄로 올라가면 안 된다.");
         }
 
@@ -75,7 +75,7 @@ namespace RecycleLife.Tests
             var resolver = Build(grid, config, new Vector2Int(2, 1), out Player _);
 
             Assert.IsTrue(grid.IsEmpty(new Vector2Int(2, 0)), "프리뷰 칸은 비어 있다.");
-            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Up));
+            Assert.AreEqual(MoveOutcome.OutOfBounds, resolver.Resolve(Direction.Up).Outcome);
         }
 
         [Test]
@@ -84,9 +84,9 @@ namespace RecycleLife.Tests
             FakeBoardConfig config = BoardConfig();
             var grid = new BoardGrid(config.Cols, config.Rows);
             var resolver = Build(grid, config, new Vector2Int(4, 5), out Player player);
-            grid.Place(new Trash(TrashType.C), new Vector2Int(5, 5));
+            grid.Place(Make.Trash(TrashType.Glass), new Vector2Int(5, 5));
 
-            Assert.AreEqual(MoveOutcome.BlockedByEntity, resolver.Resolve(Direction.Right));
+            Assert.AreEqual(MoveOutcome.BlockedByEntity, resolver.Resolve(Direction.Right).Outcome);
             Assert.AreEqual(new Vector2Int(4, 5), player.Position);
         }
     }
