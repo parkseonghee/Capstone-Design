@@ -265,25 +265,75 @@ namespace RecycleLife.Tests
         }
 
         [Test]
-        public void CharacterB_DoesNotEatPotionsInSideCells()
+        public void CharacterB_EatsPotionsCaughtInItsSideCells()
         {
-            // 포션은 때리는 대상이 아니다. 부딪혀서 먹는 것만 소비된다.
+            // 확정: 공격 범위 안의 칸은 각자 성격대로 처리된다 — 적은 맞고, 포션은 먹힌다.
+            //   row 5  . . . @ .
+            //   row 6  . . H G .     H=포션(옆칸), G=유리조각(부딪힌 칸)
             var config = new FakeBoardConfig();
             Player player = Make.Player(4, 1);
-            player.TakeDamage(2);
+            player.TakeDamage(3);                       // 1/4 에서 시작
             BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
 
             grid.Place(Make.Trash(TrashType.Glass, 3, 1), new Vector2Int(4, 6));
-            Trash potion = Make.Potion(TrashType.Potion, 2);
-            grid.Place(potion, new Vector2Int(3, 6));
+            grid.Place(Make.Potion(TrashType.Potion, 2), new Vector2Int(3, 6));
 
             MoveResult result = Build(grid, config, player, Offsets.BumpedAndSides).Resolve(Direction.Down);
 
-            Assert.AreEqual(1, result.ChainSize, "포션은 타격 대상에서 빠진다.");
-            Assert.AreEqual(0, result.Healed, "회복되지 않는다.");
-            Assert.AreEqual(1, result.DamageTaken, "부딪힌 유리조각의 반격만 들어온다.");
-            Assert.AreEqual(1, player.Hp, "2 - 반격 1. 포션을 먹었다면 올라갔을 것이다.");
-            Assert.IsFalse(grid.IsEmpty(new Vector2Int(3, 6)), "포션은 그대로 남는다.");
+            Assert.AreEqual(2, result.ChainSize, "적 1 + 포션 1이 함께 처리된다.");
+            Assert.AreEqual(2, result.Healed, "옆칸 포션을 먹는다.");
+            Assert.AreEqual(1, result.DamageTaken, "반격은 부딪힌 유리조각만.");
+            Assert.AreEqual(2, player.Hp, "1 + 회복 2 - 반격 1");
+            Assert.IsTrue(grid.IsEmpty(new Vector2Int(3, 6)), "먹은 포션은 사라진다.");
+        }
+
+        [Test]
+        public void CharacterB_BumpingAPotion_StillAttacksTheSides()
+        {
+            // 확정: 부딪힌 게 포션이어도 공격 범위는 그대로 펼쳐진다.
+            //   row 5  . . . @ . .
+            //   row 6  . . E H E .     H=포션(메인), 양옆은 적
+            var config = new FakeBoardConfig();
+            Player player = Make.Player(4, 1);
+            player.TakeDamage(3);
+            BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
+
+            grid.Place(Make.Potion(TrashType.Potion, 2), new Vector2Int(4, 6));
+            Trash left = Make.Trash(TrashType.Plastic, 3, 2);
+            Trash right = Make.Trash(TrashType.Paper, 3, 2);
+            grid.Place(left, new Vector2Int(3, 6));
+            grid.Place(right, new Vector2Int(5, 6));
+
+            MoveResult result = Build(grid, config, player, Offsets.BumpedAndSides).Resolve(Direction.Down);
+
+            Assert.AreEqual(MoveOutcome.Consumed, result.Outcome, "부딪힌 건 포션이다.");
+            Assert.AreEqual(3, result.ChainSize, "포션 1 + 적 2");
+            Assert.AreEqual(2, result.Healed);
+            Assert.AreEqual(2, left.Hp, "3 - 공격력 1");
+            Assert.AreEqual(2, right.Hp);
+            Assert.AreEqual(0, result.DamageTaken, "포션을 부딪혔으니 반격이 없다.");
+            Assert.AreEqual(3, player.Hp, "1 + 2");
+        }
+
+        [Test]
+        public void CharacterB_BumpingAPotion_AlsoEatsPotionsOnBothSides()
+        {
+            // 포션 세 개가 나란히 있으면 한 번에 다 먹는다.
+            var config = new FakeBoardConfig();
+            Player player = Make.Player(10, 1);
+            player.TakeDamage(9);                       // 1/10
+            BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
+
+            grid.Place(Make.Potion(TrashType.Potion, 2), new Vector2Int(4, 6));
+            grid.Place(Make.Potion(TrashType.Potion, 2), new Vector2Int(3, 6));
+            grid.Place(Make.Potion(TrashType.Potion, 2), new Vector2Int(5, 6));
+
+            MoveResult result = Build(grid, config, player, Offsets.BumpedAndSides).Resolve(Direction.Down);
+
+            Assert.AreEqual(3, result.ChainSize);
+            Assert.AreEqual(6, result.Healed, "2 x 3");
+            Assert.AreEqual(7, player.Hp, "1 + 6");
+            Assert.AreEqual(config.Cols * config.Rows - 1, grid.CountEmpty(), "셋 다 사라진다.");
         }
 
         // ── 밸런싱 문서의 전제 확인 ─────────────────────────────────────────

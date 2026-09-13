@@ -11,8 +11,9 @@ namespace RecycleLife.Unity
     /// 저긴 아트, 여긴 밸런스다(Hard Rule 4).
     ///
     /// 한 표에 <b>적과 아이템이 같이</b> 들어간다. 무엇인지는 별도 종류 칸이 아니라 값이 정한다:
-    ///  · Heal = 0  → 때려서 없애는 적 (Max Hp / Attack 사용)
-    ///  · Heal &gt; 0 → 부딪히면 먹는 아이템 (Max Hp / Attack 은 0으로 강제)
+    ///  · Heal = 0, Attack &gt; 0 → 때려서 없애는 적
+    ///  · Heal = 0, Attack = 0 → 벽 (때릴 수는 있지만 반격이 없다)
+    ///  · Heal &gt; 0            → 부딪히면 먹는 아이템 (Max Hp / Attack 은 0으로 강제)
     ///
     /// 새 아이템을 넣을 때 코드에 분기를 더하지 않고 이 표에 줄만 더하게 하려는 구조다(Hard Rule 3).
     ///
@@ -42,9 +43,10 @@ namespace RecycleLife.Unity
                              "다른 종류와의 상대값이라 전부 10이면 균등하다.")]
             public int spawnWeight;
 
-            [Tooltip("같은 종류끼리 연쇄로 묶이는지. 적과 아이템은 켜고, 벽은 끈다. " +
-                     "벽을 끄는 이유: 붙어 있는 벽 여러 개가 한 방에 같이 맞으면 " +
-                     "'때리면 손해'라는 설계와 벽 하나당 타격 횟수 계산이 깨진다(밸런싱 v1 3장).")]
+            [Tooltip("같은 종류끼리 연쇄로 묶이는지. 기본은 전부 켬 — 벽도 포함이다. " +
+                     "'이동·연쇄 차단'은 벽이 길을 막아 다른 블록의 연쇄를 끊는다는 뜻이고, " +
+                     "그건 종류가 다르면 자동으로 성립하므로 이 값과 무관하다. " +
+                     "끄면 그 종류는 같은 종류끼리도 안 묶인다.")]
             public bool chainsWithSameType;
         }
 
@@ -57,9 +59,9 @@ namespace RecycleLife.Unity
             new Entry { type = TrashType.Plastic, maxHp = 2, attack = 1, heal = 0, spawnWeight = 10, chainsWithSameType = true },
             new Entry { type = TrashType.Glass, maxHp = 3, attack = 2, heal = 0, spawnWeight = 10, chainsWithSameType = true },
             new Entry { type = TrashType.Potion, maxHp = 0, attack = 0, heal = 2, spawnWeight = 3, chainsWithSameType = true },
-            new Entry { type = TrashType.Wood, maxHp = 3, attack = 0, heal = 0, spawnWeight = 3, chainsWithSameType = false },
-            new Entry { type = TrashType.Concrete, maxHp = 5, attack = 0, heal = 0, spawnWeight = 2, chainsWithSameType = false },
-            new Entry { type = TrashType.Steel, maxHp = 6, attack = 0, heal = 0, spawnWeight = 1, chainsWithSameType = false },
+            new Entry { type = TrashType.Wood, maxHp = 3, attack = 0, heal = 0, spawnWeight = 3, chainsWithSameType = true },
+            new Entry { type = TrashType.Concrete, maxHp = 5, attack = 0, heal = 0, spawnWeight = 2, chainsWithSameType = true },
+            new Entry { type = TrashType.Steel, maxHp = 6, attack = 0, heal = 0, spawnWeight = 1, chainsWithSameType = true },
         };
 
         [Header("미지정 종류 폴백")]

@@ -93,11 +93,11 @@ namespace RecycleLife.Tests
             return this;
         }
 
-        /// <summary>벽 한 종류를 정의한다. 공격력이 없고 서로 연쇄되지 않는다.</summary>
+        /// <summary>벽 한 종류를 정의한다. 공격력이 없을 뿐 연쇄는 다른 블록과 똑같이 한다.</summary>
         public FakeTrashStats SetWall(TrashType type, int maxHp)
         {
             TrashStats old = _stats[(int)type];
-            _stats[(int)type] = new TrashStats(maxHp, 0, 0, old.SpawnWeight, false);
+            _stats[(int)type] = new TrashStats(maxHp, 0, 0, old.SpawnWeight, true);
             return this;
         }
 
@@ -163,9 +163,9 @@ namespace RecycleLife.Tests
         public static RecycleLife.Core.Trash Potion(TrashType type, int heal)
             => new RecycleLife.Core.Trash(type, new TrashStats(0, 0, heal, 1, true));
 
-        /// <summary>벽. 공격력이 없고 같은 벽끼리도 연쇄되지 않는다.</summary>
+        /// <summary>벽. 공격력이 없어 반격하지 않을 뿐, 연쇄는 다른 블록과 똑같이 한다.</summary>
         public static RecycleLife.Core.Trash Wall(TrashType type, int maxHp)
-            => new RecycleLife.Core.Trash(type, new TrashStats(maxHp, 0, 0, 1, false));
+            => new RecycleLife.Core.Trash(type, new TrashStats(maxHp, 0, 0, 1, true));
 
         /// <summary>전투를 보지 않는 테스트용 플레이어.</summary>
         public static RecycleLife.Core.Player Player()

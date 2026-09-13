@@ -42,18 +42,18 @@ MonoBehaviour:
     attack: 0
     heal: 0
     spawnWeight: 3
-    chainsWithSameType: 0
+    chainsWithSameType: 1
   - type: 5
     maxHp: 5
     attack: 0
     heal: 0
     spawnWeight: 2
-    chainsWithSameType: 0
+    chainsWithSameType: 1
   - type: 6
     maxHp: 6
     attack: 0
     heal: 0
     spawnWeight: 1
-    chainsWithSameType: 0
+    chainsWithSameType: 1
   fallbackMaxHp: 1
   fallbackAttack: 1

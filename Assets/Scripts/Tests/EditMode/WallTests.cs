@@ -10,12 +10,13 @@ namespace RecycleLife.Tests
     /// 벽은 데미지를 주지 않는 대신 <b>시간과 동선을 빼앗는</b> 존재다.
     ///  · 공격력 0 — 때려도 반격이 없다.
     ///  · 체력이 잡몹보다 높다 (나무 3 / 콘크리트 5 / 철제 6).
-    ///  · 서로 연쇄되는지는 <b>종류마다 따로</b> 정한다(TrashStatsConfig의 Chains With Same Type).
+    ///  · <b>연쇄는 다른 블록과 똑같이 한다</b>(기획 확인 완료).
     ///
-    /// <b>어느 벽이 연쇄하는지는 아직 기획 미확정</b>이다(나무만? 전부?).
-    /// 그래서 이 테스트들은 에셋 설정을 고정하지 않는다 — 페이크로 직접 만든 벽을 써서
-    /// "끄면 안 묶이고 켜면 묶인다"는 <b>동작</b>만 검사한다.
-    /// 기획이 어느 쪽으로 정해지든 이 테스트들은 그대로 통과한다.
+    /// 밸런싱 v1 §3의 "이동·연쇄 차단"은 벽이 <b>길을 막아</b> 다른 블록의 연쇄를 끊는다는
+    /// 뜻이었다. 그건 종류가 다르면 자동으로 성립하므로 벽 자신의 연쇄와는 무관하다.
+    ///
+    /// 연쇄 여부 자체는 여전히 종류별 설정값이라(TrashStatsConfig의 Chains With Same Type),
+    /// 나중에 "연쇄에 안 끼는 블록"이 필요하면 그 체크박스만 끄면 된다.
     /// </summary>
     public sealed class WallTests
     {
@@ -53,10 +54,9 @@ namespace RecycleLife.Tests
         }
 
         [Test]
-        public void AdjacentWallsOfTheSameKind_DoNotChain()
+        public void AdjacentWallsOfTheSameKind_ChainLikeAnyOtherBlock()
         {
-            // 이게 깨지면 콘크리트 벽 세 개를 한 방에 같이 깎을 수 있어
-            // "우회 유도"라는 설계 의도가 사라진다.
+            // 기획 확인 완료: 벽끼리도 연쇄된다.
             //   row 5  . . . @ .
             //   row 6  . . W W .     둘 다 콘크리트
             var config = new FakeBoardConfig();
@@ -70,27 +70,28 @@ namespace RecycleLife.Tests
 
             MoveResult result = Build(grid, config, player).Resolve(Direction.Down);
 
-            Assert.AreEqual(1, result.ChainSize, "벽은 자기 혼자만 맞는다.");
+            Assert.AreEqual(2, result.ChainSize, "붙어 있는 같은 벽은 같이 맞는다.");
             Assert.AreEqual(3, bumped.Hp);
-            Assert.AreEqual(5, neighbour.Hp, "옆 벽은 멀쩡하다.");
+            Assert.AreEqual(3, neighbour.Hp, "옆 벽도 같은 피해를 받는다.");
         }
 
         [Test]
-        public void OrdinaryEnemiesStillChain_SoTheFlagIsPerType()
+        public void DifferentWallKinds_StillBreakTheChain()
         {
-            // 벽만 연쇄가 꺼져 있다는 걸 대조로 확인한다.
+            // 벽이 "연쇄를 끊는다"는 건 이 경우다 — 종류가 다르면 길이 끊긴다.
+            //   row 6  . . W S .     콘크리트 옆에 철제
             var config = new FakeBoardConfig();
             Player player = Make.Player(3, 2);
             BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
 
-            grid.Place(Make.Trash(TrashType.Plastic, 5, 0), new Vector2Int(4, 6));
-            Trash neighbour = Make.Trash(TrashType.Plastic, 5, 0);
-            grid.Place(neighbour, new Vector2Int(5, 6));
+            grid.Place(Make.Wall(TrashType.Concrete, 5), new Vector2Int(4, 6));
+            Trash other = Make.Wall(TrashType.Steel, 6);
+            grid.Place(other, new Vector2Int(5, 6));
 
             MoveResult result = Build(grid, config, player).Resolve(Direction.Down);
 
-            Assert.AreEqual(2, result.ChainSize, "적은 여전히 연쇄된다.");
-            Assert.AreEqual(3, neighbour.Hp);
+            Assert.AreEqual(1, result.ChainSize, "종류가 다르면 안 묶인다.");
+            Assert.AreEqual(6, other.Hp, "철제는 멀쩡하다.");
         }
 
         [Test]
@@ -130,16 +131,16 @@ namespace RecycleLife.Tests
         [Test]
         public void ChainingIsDecidedPerType_NotForWallsAsAWhole()
         {
-            // "나무만 연쇄 금지"와 "모든 벽 연쇄 금지" 중 무엇으로 정해지든
-            // 코드 수정 없이 설정만으로 갈린다는 걸 고정한다.
+            // 연쇄 여부는 벽이냐 아니냐가 아니라 종류별 설정값이라는 걸 고정한다.
+            // 지금은 전부 켜져 있지만, 특정 종류만 빼야 할 일이 생기면 체크박스로 된다.
             //   row 5  . . @ . . @ .       왼쪽은 나무(연쇄 끔), 오른쪽은 콘크리트(연쇄 켬)
             //   row 6  . . W W . C C .
             var config = new FakeBoardConfig();
 
-            Assert.AreEqual(1, ChainSizeForPair(config, TrashType.Wood, 3, chains: false),
-                "연쇄를 끈 종류는 혼자만 맞는다.");
             Assert.AreEqual(2, ChainSizeForPair(config, TrashType.Concrete, 5, chains: true),
-                "같은 벽이라도 연쇄를 켜면 옆까지 같이 맞는다.");
+                "지금 확정값 — 벽도 연쇄한다.");
+            Assert.AreEqual(1, ChainSizeForPair(config, TrashType.Wood, 3, chains: false),
+                "끄면 그 종류만 혼자 맞는다 — 나중에 필요하면 쓸 수 있는 장치다.");
         }
 
         [Test]
