@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c30a0272b430734a8df33c7633b1bf7, type: 3}
+  m_Name: Wave08
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.WaveConfig
+  stageNumber: 3
+  waveNumber: 8
+  killGoal: 15
+  spawns:
+  - type: 9
+    weight: 10
+  - type: 11
+    weight: 10
+  - type: 12
+    weight: 10
+  - type: 3
+    weight: 3
+  - type: 4
+    weight: 3
+  - type: 5
+    weight: 2
+  - type: 6
+    weight: 1

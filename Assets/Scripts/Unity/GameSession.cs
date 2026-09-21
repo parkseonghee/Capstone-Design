@@ -28,6 +28,16 @@ namespace RecycleLife.Unity
                                  "캐릭터를 바꾸려면 다른 CharacterConfig 에셋을 꽂으면 된다.")]
         private CharacterConfig character;
 
+        [SerializeField, Tooltip("폭탄 설정 — 폭발 범위·피해·기폭 턴·시작 보유 개수.")]
+        private BombConfig bombConfig;
+
+        [SerializeField, Tooltip("웨이브 목록(3스테이지 × 3웨이브). 비워 두면 웨이브 없이 무한히 돈다.")]
+        private WaveSet waveSet;
+
+        [SerializeField, Tooltip("마을 지도에서 고른 스테이지를 읽어 올 곳. " +
+                                 "비워 두면 항상 첫 웨이브부터 연속으로 달린다(지도 없이 바로 플레이할 때).")]
+        private RunProgress runProgress;
+
         [Header("입력")]
         [SerializeField, Tooltip("방향 입력을 흘려보내는 라우터. 씬에서 연결한다.")]
         private InputRouter input;
@@ -141,10 +151,29 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            if (bombConfig == null)
+            {
+                Debug.LogError($"{nameof(GameSession)}: BombConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
+                return;
+            }
+
             CurrentSeed = useFixedSeed ? fixedSeed : Environment.TickCount;
 
+            // 웨이브는 선택이다. 안 꽂으면 기존처럼 전역 스폰 표로 무한히 돈다.
+            //
+            // RunProgress가 꽂혀 있으면 마을 지도에서 고른 스테이지 하나만 플레이한다.
+            // 깨면 거기서 멈추고(StageClearView가 받는다), 다음으로 넘어갈지는 플레이어가 고른다.
+            WaveRunner waves = null;
+            if (waveSet != null)
+            {
+                waves = runProgress != null
+                    ? waveSet.CreateRunner(runProgress.SelectedIndex, stopAfterEachWave: true)
+                    : waveSet.CreateRunner();
+            }
+
             Loop = GameLoopFactory.CreateStaged(
-                config, spawnConfig, trashStats, character, new SystemRandomSource(CurrentSeed));
+                config, spawnConfig, trashStats, character, bombConfig,
+                new SystemRandomSource(CurrentSeed), waves);
 
             // 첫 줄은 아래의 introRowInterval 대기만 거치고 바로 나오게 한다
             // (빈 보드에서 쉬는 박자를 한 번 더 먹지 않도록).
@@ -199,6 +228,44 @@ namespace RecycleLife.Unity
             Loop.EvaluateInitialState();
             BoardChanged?.Invoke();
             IntroFinished?.Invoke();
+        }
+
+        /// <summary>
+        /// 폭탄을 설치한다. 방향 입력과 같은 경로로 결과를 알리므로 뷰들이 똑같이 갱신된다.
+        /// </summary>
+        /// <returns>설치돼서 보드가 진행했으면 true.</returns>
+        public bool TryPlaceBomb(UnityEngine.Vector2Int cell)
+        {
+            if (Loop == null || (blockInputDuringIntro && IsIntroPlaying))
+            {
+                return false;
+            }
+
+            StepResult result = Loop.PlaceBomb(cell);
+            Stepped?.Invoke(result);
+            return result.Advanced;
+        }
+
+        /// <summary>
+        /// 제자리에서 한 턴을 넘긴다. 대기(빨리 내리기) 버튼이 부른다.
+        /// 방향 입력과 똑같이 한 턴을 쓰고 Stepped를 띄운다.
+        /// </summary>
+        /// <returns>실제로 턴이 진행됐으면 true. 인트로 중이거나 끝난 판이면 false.</returns>
+        public bool Wait()
+        {
+            if (Loop == null || !Loop.IsReady || Loop.IsOver)
+            {
+                return false;
+            }
+
+            if (blockInputDuringIntro && IsIntroPlaying)
+            {
+                return false;
+            }
+
+            StepResult result = Loop.Wait();
+            Stepped?.Invoke(result);
+            return result.Advanced;
         }
 
         private void HandleDirection(Direction direction)

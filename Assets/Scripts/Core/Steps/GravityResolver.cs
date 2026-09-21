@@ -13,6 +13,7 @@ namespace RecycleLife.Core
     /// 한 번에 끝까지 떨어뜨려야 하는 곳(시작 연출을 건너뛸 때 등)은 Settle()을 쓴다.
     ///
     /// §7-1 확정: 플레이어는 낙하 대상이 아니며 벽 역할을 한다.
+    /// 갓 설치된 폭탄도 그 턴 한 번은 제자리에 머문다(IGravityHold).
     /// 임시 컬렉션 없이 격자만 훑으므로 할당이 0이다(Hard Rule 8).
     /// </summary>
     public sealed class GravityResolver
@@ -42,6 +43,15 @@ namespace RecycleLife.Core
                     Entity entity = _grid[col, row];
                     if (entity == null || entity.Kind == EntityKind.Player)
                     {
+                        continue;
+                    }
+
+                    // 이번 턴만 제자리에 머무는 것(갓 설치된 폭탄). 건너뛰면서 유예를 풀어 줘서
+                    // 다음 턴부터는 다른 블록과 똑같이 떨어지게 한다.
+                    var hold = entity as IGravityHold;
+                    if (hold != null && hold.HoldsPosition)
+                    {
+                        hold.ReleaseHold();
                         continue;
                     }
 

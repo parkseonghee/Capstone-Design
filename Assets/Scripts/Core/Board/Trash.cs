@@ -18,6 +18,7 @@ namespace RecycleLife.Core
             Type = type;
             Heal = Mathf.Max(0, stats.Heal);
             ChainsWithSameType = stats.ChainsWithSameType;
+            Gold = Mathf.Max(0, stats.Gold);
 
             // 아이템은 체력·공격력을 쓰지 않는다. MaxHp 0이면 뷰가 하트를 그리지 않는다.
             MaxHp = Mathf.Max(0, stats.MaxHp);
@@ -39,11 +40,26 @@ namespace RecycleLife.Core
         /// <summary>같은 종류끼리 연쇄로 묶이는지. 벽은 false다(TrashStats 주석 참조).</summary>
         public bool ChainsWithSameType { get; }
 
+        /// <summary>처치했을 때 떨어뜨리는 골드. 0이면 안 떨어진다.</summary>
+        public int Gold { get; }
+
         /// <summary>
         /// 부딪히면 때리는 게 아니라 <b>먹는</b> 대상인지.
         /// 체력이 아니라 회복량이 기준이다 — 체력 0짜리 적을 만들 이유가 없기 때문이다.
         /// </summary>
         public bool IsConsumable => Heal > 0;
+
+        /// <summary>
+        /// 웨이브 진행도에 들어가는 <b>적</b>인지. 값이 역할을 정한다는 규칙 그대로다:
+        /// 회복량이 있으면 아이템, 공격력이 0이면 벽, 나머지가 적이다.
+        ///
+        /// 공격력 0짜리 적을 만들면 벽으로 취급되니 주의할 것.
+        /// 잡몹 9종은 전부 공격력 1 이상이라 현재는 문제가 없다(밸런싱 v1 §2).
+        /// </summary>
+        public bool IsEnemy => !IsConsumable && Attack > 0;
+
+        /// <summary>벽인지. 때릴 수는 있지만 반격이 없는 장애물이다(밸런싱 v1 §3).</summary>
+        public bool IsWall => !IsConsumable && Attack <= 0;
 
         public int Hp { get; private set; }
 

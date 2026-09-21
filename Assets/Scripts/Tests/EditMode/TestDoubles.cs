@@ -13,7 +13,8 @@ namespace RecycleLife.Tests
     /// 런타임에서는 GridConfig / SpawnConfig / TrashStatsConfig / PlayerStatsConfig
     /// 네 에셋으로 갈라져 있다.
     /// </summary>
-    internal sealed class FakeBoardConfig : IBoardConfig, ISpawnConfig, ITrashStatsProvider, ICharacterConfig
+    internal sealed class FakeBoardConfig
+        : IBoardConfig, ISpawnConfig, ITrashStatsProvider, ICharacterConfig, IBombConfig
     {
         // ── 보드 (WEEK1 §1 확정값) ──────────────────────────────────────────
         public int Cols { get; set; } = 8;
@@ -62,6 +63,19 @@ namespace RecycleLife.Tests
         public int Attack { get; set; } = 1;
 
         public IReadOnlyList<Vector2Int> AttackOffsets { get; set; } = Offsets.BumpedOnly;
+
+        // ── 폭탄 (폭탄 기획 §1 확정값) ──────────────────────────────────────
+        public int FuseTurns { get; set; } = 3;
+
+        public int Damage { get; set; } = 5;
+
+        public int BlastRadius { get; set; } = 1;      // 1 = 3x3
+
+        public int StartingCount { get; set; } = 3;
+
+        public bool DamagesPlayer { get; set; } = true;
+
+        public bool ChainDetonates { get; set; } = true;
     }
 
     /// <summary>종류별로 다른 값을 주고 싶을 때 쓴다(연쇄·반격·포션·가중치 테스트).</summary>
@@ -103,9 +117,16 @@ namespace RecycleLife.Tests
 
         public FakeTrashStats SetWeight(TrashType type, int weight)
         {
+            _stats[(int)type] = _stats[(int)type].WithSpawnWeight(weight);
+            return this;
+        }
+
+        /// <summary>처치 보상만 바꾼다. 다른 값은 그대로 둔다.</summary>
+        public FakeTrashStats SetGold(TrashType type, int gold)
+        {
             TrashStats old = _stats[(int)type];
             _stats[(int)type] = new TrashStats(
-                old.MaxHp, old.Attack, old.Heal, weight, old.ChainsWithSameType);
+                old.MaxHp, old.Attack, old.Heal, old.SpawnWeight, old.ChainsWithSameType, gold);
             return this;
         }
 
@@ -119,13 +140,13 @@ namespace RecycleLife.Tests
     internal static class Make
     {
         public static GameLoop Week1(FakeBoardConfig config, IRandomSource random)
-            => GameLoopFactory.CreateWeek1(config, config, config, config, random);
+            => GameLoopFactory.CreateWeek1(config, config, config, config, config, random);
 
         public static GameLoop Week1(FakeBoardConfig config, IRandomSource random, ITrashStatsProvider stats)
-            => GameLoopFactory.CreateWeek1(config, config, stats, config, random);
+            => GameLoopFactory.CreateWeek1(config, config, stats, config, config, random);
 
         public static GameLoop Staged(FakeBoardConfig config, IRandomSource random)
-            => GameLoopFactory.CreateStaged(config, config, config, config, random);
+            => GameLoopFactory.CreateStaged(config, config, config, config, config, random);
 
         /// <summary>
         /// 전투 <b>없이</b> "쓰레기에 막힘"이 살아 있는 보드.
@@ -135,7 +156,7 @@ namespace RecycleLife.Tests
         public static GameLoop Blocking(FakeBoardConfig config, IRandomSource random)
         {
             var grid = new BoardGrid(config.Cols, config.Rows);
-            var player = new RecycleLife.Core.Player(config.MaxHp, config.Attack);
+            var player = new RecycleLife.Core.Player(config.MaxHp, config.Attack, config.StartingCount);
             IMoveResolver move = new BlockingMoveResolver(grid, player, config);
 
             var loop = new GameLoop(
@@ -146,6 +167,7 @@ namespace RecycleLife.Tests
                 new GravityResolver(grid),
                 new PreviewRowSpawner(grid, config, config, config, random),
                 new RowTrashSpawner(grid, config, config, random),
+                new BombResolver(grid, player, config, config),
                 new GameOverChecker(grid, player, move));
 
             loop.CompleteSetup();
@@ -173,6 +195,10 @@ namespace RecycleLife.Tests
 
         public static RecycleLife.Core.Player Player(int maxHp, int attack)
             => new RecycleLife.Core.Player(maxHp, attack);
+
+        /// <summary>폭탄을 들고 있는 플레이어.</summary>
+        public static RecycleLife.Core.Player Player(int maxHp, int attack, int bombs)
+            => new RecycleLife.Core.Player(maxHp, attack, bombs);
     }
 
     /// <summary>기획서가 정의한 캐릭터별 공격 범위.</summary>

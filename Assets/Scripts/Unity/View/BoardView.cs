@@ -52,6 +52,20 @@ namespace RecycleLife.Unity
                                  "런 시작의 초기 줄도 이 경로로 쏟아져 내린다.")]
         private bool dropFromAbove = true;
 
+        [Header("폭탄 카운트다운")]
+        [SerializeField, Tooltip("불이 붙은 폭탄 위에 남은 턴 숫자를 띄울지.")]
+        private bool showFuseNumber = true;
+
+        [SerializeField, Tooltip("숫자 색.")]
+        private Color fuseTextColor = Color.white;
+
+        [SerializeField, Min(0.001f), Tooltip("숫자 크기. 칸 크기에 맞춰 조절한다. " +
+                                              "TextMesh는 글리프 단위가 픽셀이라 이 값으로 월드 크기를 맞춘다.")]
+        private float fuseTextScale = 0.05f;
+
+        [SerializeField, Tooltip("숫자의 정렬 순서. 폭탄보다 위여야 보인다.")]
+        private int fuseSortingOrder = 3;
+
         [Header("체력 하트")]
         [SerializeField, Tooltip("엔티티 밑에 체력 하트를 그릴지. 끄면 하트를 아예 만들지 않는다.")]
         private bool showHealthHearts = true;
@@ -100,11 +114,54 @@ namespace RecycleLife.Unity
 
             /// <summary>마지막으로 그린 체력. 값이 그대로면 스프라이트를 다시 안 바꾼다.</summary>
             public int ShownHp;
+
+            /// <summary>폭탄 위에 뜨는 남은 턴 숫자. 폭탄이 아닌 칸은 null이다.</summary>
+            public TextMesh Fuse;
+
+            /// <summary>마지막으로 찍은 숫자. 같으면 문자열을 새로 만들지 않는다(Hard Rule 8).</summary>
+            public int ShownFuse;
         }
 
         private readonly Dictionary<Entity, ViewSlot> _views = new Dictionary<Entity, ViewSlot>(128);
         private readonly Stack<ViewSlot> _pool = new Stack<ViewSlot>(64);
         private readonly Stack<SpriteRenderer> _heartPool = new Stack<SpriteRenderer>(128);
+        private readonly Stack<TextMesh> _fusePool = new Stack<TextMesh>(8);
+
+        /// <summary>
+        /// 숫자를 미리 문자열로 만들어 둔다. int.ToString()은 부를 때마다 할당을 만드는데,
+        /// 카운트다운은 매 스텝 바뀌므로 그걸 피한다(Hard Rule 8).
+        /// 범위를 넘는 값은 드물어서 그때만 ToString을 쓴다.
+        /// </summary>
+        private static readonly string[] FuseLabels = BuildFuseLabels();
+
+        private static string[] BuildFuseLabels()
+        {
+            var labels = new string[10];
+            for (int i = 0; i < labels.Length; i++)
+            {
+                labels[i] = i.ToString();
+            }
+
+            return labels;
+        }
+
+        /// <summary>내장 폰트. 에셋을 따로 임포트하지 않으려고 런타임 기본 폰트를 쓴다.</summary>
+        private static Font _builtinFont;
+
+        private static Font BuiltinFont
+        {
+            get
+            {
+                if (_builtinFont == null)
+                {
+                    // TextMeshPro는 필수 리소스를 프로젝트에 임포트해야 해서 피했다.
+                    // 이건 엔진에 내장된 폰트라 추가 에셋이 없다.
+                    _builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                }
+
+                return _builtinFont;
+            }
+        }
         private readonly HashSet<Entity> _alive = new HashSet<Entity>();
         private readonly List<Entity> _stale = new List<Entity>(32);
 
@@ -143,6 +200,47 @@ namespace RecycleLife.Unity
                     ? origin
                     : origin + new Vector3(0f, -HiddenRows * cellSize * 0.5f, 0f);
             }
+        }
+
+        /// <summary>
+        /// 칸 스프라이트가 들어가는 부모. 폭탄 설치 표시처럼 보드 위에 무언가를 더 얹을 때
+        /// 같은 좌표계를 쓰라고 열어 둔다.
+        /// </summary>
+        public Transform CellRoot => cellRoot;
+
+        /// <summary>한 칸의 월드 크기.</summary>
+        public float CellSize => cellSize;
+
+        /// <summary>칸 좌표 -> cellRoot 기준 로컬 위치. 보드 위에 마커를 놓을 때 쓴다.</summary>
+        public Vector3 CellToLocalPosition(Vector2Int cell) => CellToLocal(cell);
+
+        /// <summary>
+        /// 화면에서 찍은 월드 좌표가 어느 칸인지 되돌린다. 보드를 탭해서 고를 때 쓴다.
+        /// </summary>
+        /// <returns>보드 안이면 true.</returns>
+        public bool TryWorldToCell(Vector3 world, out Vector2Int cell)
+        {
+            cell = default;
+
+            if (_loop == null || cellRoot == null || cellSize <= 0f)
+            {
+                return false;
+            }
+
+            Vector3 local = cellRoot.InverseTransformPoint(world);
+
+            // CellToLocal의 역산이다. 좌상단 원점이라 y는 부호가 뒤집힌다.
+            float x = (local.x / cellSize) + ((_loop.Grid.Cols - 1) * 0.5f);
+            float y = ((_loop.Grid.Rows - 1) * 0.5f) - (local.y / cellSize);
+
+            var candidate = new Vector2Int(Mathf.RoundToInt(x), Mathf.RoundToInt(y));
+            if (!_loop.Grid.InBounds(candidate))
+            {
+                return false;
+            }
+
+            cell = candidate;
+            return true;
         }
 
         /// <summary>화면 위쪽에서 잘려 나간 행 수(소수). 프리뷰 줄 중 안 보이는 부분이다.</summary>
@@ -232,6 +330,7 @@ namespace RecycleLife.Unity
 
                 bool fullyRevealed = ApplyReveal(slot, revealLine, fullSize);
                 LayoutHearts(slot, fullyRevealed);
+                LayoutFuse(slot, fullyRevealed);
             }
         }
 
@@ -396,6 +495,117 @@ namespace RecycleLife.Unity
             return new Vector3(k, k, 1f);
         }
 
+        // ── 폭탄 카운트다운 ──────────────────────────────────────────────
+
+        /// <summary>
+        /// 불이 붙은 폭탄에 남은 턴 숫자를 붙이고, 그 외에는 떼어 낸다.
+        /// 아직 안 붙은 폭탄은 숫자가 없다 — 카운트가 돌지 않으니 보여 줄 게 없다.
+        /// </summary>
+        private void UpdateFuse(ViewSlot slot, Entity entity)
+        {
+            var bomb = entity as Bomb;
+            bool wanted = showFuseNumber && bomb != null && bomb.IsArmed;
+
+            if (!wanted)
+            {
+                ReleaseFuse(slot);
+                return;
+            }
+
+            if (slot.Fuse == null)
+            {
+                slot.Fuse = RentFuse();
+                slot.ShownFuse = -1;
+                slot.Settled = false;   // 배치가 필요하므로 LateUpdate를 한 번 깨운다
+            }
+
+            if (slot.Fuse == null || slot.ShownFuse == bomb.FuseRemaining)
+            {
+                return;
+            }
+
+            slot.ShownFuse = bomb.FuseRemaining;
+            int value = bomb.FuseRemaining;
+            slot.Fuse.text = value >= 0 && value < FuseLabels.Length
+                ? FuseLabels[value]
+                : value.ToString();
+        }
+
+        /// <summary>숫자를 폭탄 칸 한가운데에 올린다.</summary>
+        private void LayoutFuse(ViewSlot slot, bool visible)
+        {
+            if (slot.Fuse == null)
+            {
+                return;
+            }
+
+            if (!visible)
+            {
+                // 프리뷰 줄에서 아직 잘려 있는 칸. 숫자만 먼저 떠 있으면 어색하다.
+                if (slot.Fuse.gameObject.activeSelf)
+                {
+                    slot.Fuse.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            Transform tr = slot.Fuse.transform;
+            if (!slot.Fuse.gameObject.activeSelf)
+            {
+                slot.Fuse.gameObject.SetActive(true);
+            }
+
+            tr.localPosition = slot.Position;
+            tr.localScale = new Vector3(fuseTextScale, fuseTextScale, 1f);
+        }
+
+        private TextMesh RentFuse()
+        {
+            if (_fusePool.Count > 0)
+            {
+                TextMesh pooled = _fusePool.Pop();
+                pooled.gameObject.SetActive(true);
+                return pooled;
+            }
+
+            if (cellRoot == null || BuiltinFont == null)
+            {
+                return null;
+            }
+
+            var go = new GameObject("BombFuseLabel");
+            go.transform.SetParent(cellRoot, worldPositionStays: false);
+
+            TextMesh text = go.AddComponent<TextMesh>();
+            text.font = BuiltinFont;
+            text.fontSize = 64;                 // 크게 렌더하고 스케일로 줄여야 또렷하다
+            text.characterSize = 1f;
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.color = fuseTextColor;
+
+            // 폰트가 자기 머티리얼을 들고 있다. 이걸 안 물리면 분홍색으로 나온다.
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = BuiltinFont.material;
+            renderer.sortingOrder = fuseSortingOrder;
+
+            return text;
+        }
+
+        private void ReleaseFuse(ViewSlot slot)
+        {
+            if (slot.Fuse == null)
+            {
+                return;
+            }
+
+            slot.Fuse.gameObject.SetActive(false);
+            _fusePool.Push(slot.Fuse);
+            slot.Fuse = null;
+            slot.ShownFuse = -1;
+        }
+
         private SpriteRenderer RentHeart()
         {
             SpriteRenderer heart = _heartPool.Count > 0 ? _heartPool.Pop() : null;
@@ -494,8 +704,16 @@ namespace RecycleLife.Unity
                         slot.Settled = false;
                     }
 
-                    // 체력은 스텝 단위로만 바뀐다. 매 프레임이 아니라 여기서만 맞춘다.
+                    // 폭탄은 도화선이 줄면 색이 달라진다. 뷰를 만들 때 한 번 칠하고 끝내면
+                    // 카운트다운이 화면에 안 보이므로, 폭탄만 매번 다시 칠한다(몇 개 안 된다).
+                    if (entity.Kind == EntityKind.Bomb)
+                    {
+                        ApplyVisual(entity, slot.Renderer);
+                    }
+
+                    // 체력과 도화선은 스텝 단위로만 바뀐다. 매 프레임이 아니라 여기서만 맞춘다.
                     UpdateHearts(slot, entity);
+                    UpdateFuse(slot, entity);
                 }
             }
 
@@ -604,6 +822,7 @@ namespace RecycleLife.Unity
         private void Release(ViewSlot slot)
         {
             ReleaseHearts(slot);
+            ReleaseFuse(slot);
             slot.Renderer.gameObject.SetActive(false);
             _pool.Push(slot);
         }

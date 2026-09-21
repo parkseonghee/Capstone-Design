@@ -36,6 +36,27 @@ MonoBehaviour:
   - type: 6
     color: {r: 0.33, g: 0.36, b: 0.42, a: 1}
     sprite: {fileID: 0}
+  - type: 7
+    color: {r: 0.78, g: 0.79, b: 0.52, a: 1}
+    sprite: {fileID: 0}
+  - type: 8
+    color: {r: 0.72, g: 0.66, b: 0.88, a: 1}
+    sprite: {fileID: 0}
+  - type: 9
+    color: {r: 0.94, g: 0.94, b: 0.9, a: 1}
+    sprite: {fileID: 0}
+  - type: 10
+    color: {r: 0.22, g: 0.22, b: 0.24, a: 1}
+    sprite: {fileID: 0}
+  - type: 11
+    color: {r: 0.3, g: 0.62, b: 0.55, a: 1}
+    sprite: {fileID: 0}
+  - type: 12
+    color: {r: 0.44, g: 0.55, b: 0.2, a: 1}
+    sprite: {fileID: 0}
   fallbackColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  bombColor: {r: 0.25, g: 0.25, b: 0.3, a: 1}
+  bombArmedColor: {r: 1, g: 0.42, b: 0.12, a: 1}
+  bombSprite: {fileID: 0}
   heartFull: {fileID: 4606908045521496030, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}
   heartEmpty: {fileID: 615023859997206797, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}

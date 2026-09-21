@@ -43,6 +43,11 @@ namespace RecycleLife.Unity
                              "다른 종류와의 상대값이라 전부 10이면 균등하다.")]
             public int spawnWeight;
 
+            [Min(0), Tooltip("처치했을 때 떨어뜨리는 골드. 종류마다 다르게 준다. " +
+                             "0이면 돈을 안 떨어뜨린다(벽·포션이 기본 0). " +
+                             "폭탄으로 죽여도 똑같이 나온다.")]
+            public int gold;
+
             [Tooltip("같은 종류끼리 연쇄로 묶이는지. 기본은 전부 켬 — 벽도 포함이다. " +
                      "'이동·연쇄 차단'은 벽이 길을 막아 다른 블록의 연쇄를 끊는다는 뜻이고, " +
                      "그건 종류가 다르면 자동으로 성립하므로 이 값과 무관하다. " +
@@ -55,13 +60,28 @@ namespace RecycleLife.Unity
         private Entry[] entries =
         {
             // 잡몹 수치는 밸런싱 v1 §2, 벽 수치는 §3 표 그대로다.
-            new Entry { type = TrashType.Paper, maxHp = 1, attack = 1, heal = 0, spawnWeight = 10, chainsWithSameType = true },
-            new Entry { type = TrashType.Plastic, maxHp = 2, attack = 1, heal = 0, spawnWeight = 10, chainsWithSameType = true },
-            new Entry { type = TrashType.Glass, maxHp = 3, attack = 2, heal = 0, spawnWeight = 10, chainsWithSameType = true },
-            new Entry { type = TrashType.Potion, maxHp = 0, attack = 0, heal = 2, spawnWeight = 3, chainsWithSameType = true },
-            new Entry { type = TrashType.Wood, maxHp = 3, attack = 0, heal = 0, spawnWeight = 3, chainsWithSameType = true },
-            new Entry { type = TrashType.Concrete, maxHp = 5, attack = 0, heal = 0, spawnWeight = 2, chainsWithSameType = true },
-            new Entry { type = TrashType.Steel, maxHp = 6, attack = 0, heal = 0, spawnWeight = 1, chainsWithSameType = true },
+            //
+            // gold는 기획서에 값이 없어 임시로 넣었다. 근거는 "체력 + 공격력 - 1" —
+            // 단단하고 아픈 적일수록 값이 크다. 벽과 포션은 0이다(벽 파괴 보상은 미정).
+            // 플레이해 보고 인스펙터에서 조절할 값이다(Hard Rule 1·11).
+            new Entry { type = TrashType.Paper, maxHp = 1, attack = 1, heal = 0, spawnWeight = 10, gold = 1, chainsWithSameType = true },
+            new Entry { type = TrashType.Plastic, maxHp = 2, attack = 1, heal = 0, spawnWeight = 10, gold = 2, chainsWithSameType = true },
+            new Entry { type = TrashType.Glass, maxHp = 3, attack = 2, heal = 0, spawnWeight = 10, gold = 4, chainsWithSameType = true },
+            new Entry { type = TrashType.Potion, maxHp = 0, attack = 0, heal = 2, spawnWeight = 3, gold = 0, chainsWithSameType = true },
+            new Entry { type = TrashType.Wood, maxHp = 3, attack = 0, heal = 0, spawnWeight = 3, gold = 0, chainsWithSameType = true },
+            new Entry { type = TrashType.Concrete, maxHp = 5, attack = 0, heal = 0, spawnWeight = 2, gold = 0, chainsWithSameType = true },
+            new Entry { type = TrashType.Steel, maxHp = 6, attack = 0, heal = 0, spawnWeight = 1, gold = 0, chainsWithSameType = true },
+
+            // 나중에 추가된 잡몹 6종. 수치는 밸런싱 v1 §2 표 그대로다.
+            // 가중치가 0인 건 의도다 — 어느 웨이브에 나오는지는 §2-1 웨이브 표가 정하므로,
+            // 전역 랜덤 스폰에 섞여 버리면 웨이브 구성이 무의미해진다.
+            // 웨이브 시스템이 붙으면 거기서 종류별 가중치를 넘겨받는다.
+            new Entry { type = TrashType.Can, maxHp = 2, attack = 1, heal = 0, spawnWeight = 0, gold = 2, chainsWithSameType = true },
+            new Entry { type = TrashType.Vinyl, maxHp = 2, attack = 1, heal = 0, spawnWeight = 0, gold = 2, chainsWithSameType = true },
+            new Entry { type = TrashType.Styrofoam, maxHp = 3, attack = 1, heal = 0, spawnWeight = 0, gold = 3, chainsWithSameType = true },
+            new Entry { type = TrashType.Tire, maxHp = 3, attack = 2, heal = 0, spawnWeight = 0, gold = 4, chainsWithSameType = true },
+            new Entry { type = TrashType.Net, maxHp = 4, attack = 1, heal = 0, spawnWeight = 0, gold = 4, chainsWithSameType = true },
+            new Entry { type = TrashType.Sludge, maxHp = 4, attack = 2, heal = 0, spawnWeight = 0, gold = 5, chainsWithSameType = true },
         };
 
         [Header("미지정 종류 폴백")]
@@ -88,13 +108,14 @@ namespace RecycleLife.Unity
                             entries[i].attack,
                             entries[i].heal,
                             entries[i].spawnWeight,
-                            entries[i].chainsWithSameType);
+                            entries[i].chainsWithSameType,
+                            entries[i].gold);
                     }
                 }
             }
 
             // 표에 없는 종류는 스폰되면 안 되므로 가중치 0이다.
-            return new TrashStats(fallbackMaxHp, fallbackAttack, 0, 0, true);
+            return new TrashStats(fallbackMaxHp, fallbackAttack, 0, 0, true, 0);
         }
 
         private void OnValidate()

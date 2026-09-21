@@ -12,10 +12,26 @@ namespace RecycleLife.Core
     public readonly struct MoveResult
     {
         public MoveResult(MoveOutcome outcome, int chainSize, int killed, int damageTaken, int healed)
+            : this(outcome, chainSize, killed, killed, 0, damageTaken, healed, 0)
         {
+        }
+
+        public MoveResult(
+            MoveOutcome outcome,
+            int chainSize,
+            int killed,
+            int enemiesKilled,
+            int wallsDestroyed,
+            int damageTaken,
+            int healed,
+            int gold)
+        {
+            Gold = gold;
             Outcome = outcome;
             ChainSize = chainSize;
             Killed = killed;
+            EnemiesKilled = enemiesKilled;
+            WallsDestroyed = wallsDestroyed;
             DamageTaken = damageTaken;
             Healed = healed;
         }
@@ -28,8 +44,17 @@ namespace RecycleLife.Core
         /// </summary>
         public int ChainSize { get; }
 
-        /// <summary>이번 공격으로 사라진 쓰레기 수.</summary>
+        /// <summary>이번 공격으로 사라진 쓰레기 수(적 + 벽).</summary>
         public int Killed { get; }
+
+        /// <summary>그중 <b>적</b>만 센 수. 웨이브 진행도가 이 값으로 찬다.</summary>
+        public int EnemiesKilled { get; }
+
+        /// <summary>그중 <b>벽</b>만 센 수. 진행도에 넣을지는 설정으로 정한다.</summary>
+        public int WallsDestroyed { get; }
+
+        /// <summary>이번 공격으로 떨어진 골드 합계.</summary>
+        public int Gold { get; }
 
         /// <summary>반격으로 플레이어가 받은 피해량.</summary>
         public int DamageTaken { get; }
@@ -41,6 +66,7 @@ namespace RecycleLife.Core
         public int Healed { get; }
 
         /// <summary>전투가 없는 결과(이동·막힘·무효 입력)를 만든다.</summary>
-        public static MoveResult Simple(MoveOutcome outcome) => new MoveResult(outcome, 0, 0, 0, 0);
+        public static MoveResult Simple(MoveOutcome outcome)
+            => new MoveResult(outcome, 0, 0, 0, 0, 0, 0, 0);
     }
 }

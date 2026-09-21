@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 280d6ca675f97054382d8556b378f127, type: 3}
+  m_Name: WaveSet
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.WaveSet
+  waves:
+  - {fileID: 11400000, guid: faedf9c5c42f9f50fa7695e91b678d85, type: 2}
+  - {fileID: 11400000, guid: 8efb4d57fd225736228ce0642ea43184, type: 2}
+  - {fileID: 11400000, guid: d159afe92acbe134e1b2e10db14a32f7, type: 2}
+  - {fileID: 11400000, guid: e56a00dabafe41a1d6c963287c5ea40b, type: 2}
+  - {fileID: 11400000, guid: 30ed8e3aab2510229e37bb7d07f05da0, type: 2}
+  - {fileID: 11400000, guid: c5b3160b18c9c9ae54a3daedb0a71b5c, type: 2}
+  - {fileID: 11400000, guid: d623685a3c702b44ff640f715b1bcd44, type: 2}
+  - {fileID: 11400000, guid: b66e11a5711b609c52e38bb28b9bc2f4, type: 2}
+  - {fileID: 11400000, guid: 2754a37aa14acdf2c6f3ab40f54a0127, type: 2}
+  countWallsTowardProgress: 0

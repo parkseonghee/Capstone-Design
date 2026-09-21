@@ -20,9 +20,11 @@ namespace RecycleLife.Core
             ISpawnConfig spawn,
             ITrashStatsProvider trashStats,
             ICharacterConfig character,
-            IRandomSource random)
+            IBombConfig bomb,
+            IRandomSource random,
+            WaveRunner waves = null)
         {
-            GameLoop loop = CreateStaged(board, spawn, trashStats, character, random);
+            GameLoop loop = CreateStaged(board, spawn, trashStats, character, bomb, random, waves);
             loop.CompleteSetup();
             return loop;
         }
@@ -36,16 +38,25 @@ namespace RecycleLife.Core
             ISpawnConfig spawn,
             ITrashStatsProvider trashStats,
             ICharacterConfig character,
-            IRandomSource random)
+            IBombConfig bomb,
+            IRandomSource random,
+            WaveRunner waves = null)
         {
             if (board == null) throw new ArgumentNullException(nameof(board));
             if (spawn == null) throw new ArgumentNullException(nameof(spawn));
             if (trashStats == null) throw new ArgumentNullException(nameof(trashStats));
             if (character == null) throw new ArgumentNullException(nameof(character));
+            if (bomb == null) throw new ArgumentNullException(nameof(bomb));
             if (random == null) throw new ArgumentNullException(nameof(random));
 
+            // 웨이브가 있으면 스폰 가중치만 현재 웨이브 값으로 갈아끼운다.
+            // 스포너·피커는 이 교체를 모른 채 평소대로 ITrashStatsProvider를 읽는다.
+            ITrashStatsProvider spawnStats = waves == null
+                ? trashStats
+                : new WaveSpawnWeights(trashStats, waves);
+
             var grid = new BoardGrid(board.Cols, board.Rows);
-            var player = new Player(character.MaxHp, character.Attack);
+            var player = new Player(character.MaxHp, character.Attack, bomb.StartingCount);
 
             if (!grid.InBounds(board.PlayerStart))
             {
@@ -56,10 +67,10 @@ namespace RecycleLife.Core
 
             // 진행 중 스폰: 언제나 프리뷰 줄로만 들어온다(WEEK1 §5 확정).
             // 캐이던스와 컬럼 잠금은 PreviewRowSpawner가 갖는다.
-            ITrashSpawner stepSpawner = new PreviewRowSpawner(grid, board, spawn, trashStats, random);
+            ITrashSpawner stepSpawner = new PreviewRowSpawner(grid, board, spawn, spawnStats, random);
 
             // 시작 3줄은 줄 단위로 통째로 깔린다. GapsPerRow = 0이면 완전히 꽉 찬 줄이다.
-            ISeedSpawner seedSpawner = new RowTrashSpawner(grid, board, trashStats, random);
+            ISeedSpawner seedSpawner = new RowTrashSpawner(grid, board, spawnStats, random);
 
             // 연쇄 기준은 "같은 종류"로 확정됐다(CORE_COMBAT.md §8-1).
             // 재질 기준으로 바꾸려면 이 한 줄만 다른 IChainRule로 갈아끼우면 된다.
@@ -76,7 +87,9 @@ namespace RecycleLife.Core
                 new GravityResolver(grid),
                 stepSpawner,
                 seedSpawner,
-                new GameOverChecker(grid, player, move));
+                new BombResolver(grid, player, board, bomb),
+                new GameOverChecker(grid, player, move),
+                waves);
         }
     }
 }

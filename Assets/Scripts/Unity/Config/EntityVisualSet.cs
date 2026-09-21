@@ -38,10 +38,31 @@ namespace RecycleLife.Unity
             new TrashEntry { type = TrashType.Wood, color = new Color(0.60f, 0.44f, 0.28f) },
             new TrashEntry { type = TrashType.Concrete, color = new Color(0.55f, 0.56f, 0.58f) },
             new TrashEntry { type = TrashType.Steel, color = new Color(0.33f, 0.36f, 0.42f) },
+
+            // 나중에 추가된 잡몹 6종. 기존 7종과 섞이지 않게 색상환에서 떨어뜨렸다.
+            new TrashEntry { type = TrashType.Can, color = new Color(0.78f, 0.79f, 0.52f) },
+            new TrashEntry { type = TrashType.Vinyl, color = new Color(0.72f, 0.66f, 0.88f) },
+            new TrashEntry { type = TrashType.Styrofoam, color = new Color(0.94f, 0.94f, 0.90f) },
+            new TrashEntry { type = TrashType.Tire, color = new Color(0.22f, 0.22f, 0.24f) },
+            new TrashEntry { type = TrashType.Net, color = new Color(0.30f, 0.62f, 0.55f) },
+            new TrashEntry { type = TrashType.Sludge, color = new Color(0.44f, 0.55f, 0.20f) },
         };
 
         [Header("미지정 종류 폴백")]
         [SerializeField] private Color fallbackColor = Color.gray;
+
+        [Header("폭탄")]
+        [SerializeField, Tooltip("설치만 하고 아직 불이 안 붙은 폭탄.")]
+        private Color bombColor = new Color(0.25f, 0.25f, 0.30f);
+
+        [SerializeField, Tooltip("불이 붙어 카운트다운 중인 폭탄. 위험 신호라 눈에 띄게.")]
+        private Color bombArmedColor = new Color(1f, 0.42f, 0.12f);
+
+        [SerializeField, Tooltip("터지기 직전의 폭탄. 남은 턴이 줄수록 이 색으로 물든다.")]
+        private Color bombImminentColor = new Color(0.95f, 0.15f, 0.15f);
+
+        [SerializeField, Tooltip("(선택) 폭탄 스프라이트. 비우면 단색 사각형.")]
+        private Sprite bombSprite;
 
         [Header("체력 하트 (CORE_COMBAT.md §1)")]
         [SerializeField, Tooltip("남아 있는 체력 한 칸. 비워 두면 하트를 아예 그리지 않는다.")]
@@ -63,6 +84,27 @@ namespace RecycleLife.Unity
             {
                 color = playerColor;
                 sprite = playerSprite;
+                return;
+            }
+
+            var bomb = entity as Bomb;
+            if (bomb != null)
+            {
+                // 불이 붙었는지, 그리고 얼마나 급한지가 한눈에 보여야 한다.
+                // 숫자를 띄우려면 월드 텍스트가 필요해서, 우선 색으로 남은 턴을 읽게 했다.
+                if (!bomb.IsArmed)
+                {
+                    color = bombColor;
+                }
+                else
+                {
+                    float t = bomb.FuseTurns <= 1
+                        ? 1f
+                        : 1f - ((bomb.FuseRemaining - 1f) / (bomb.FuseTurns - 1f));
+                    color = Color.Lerp(bombArmedColor, bombImminentColor, Mathf.Clamp01(t));
+                }
+
+                sprite = bombSprite;
                 return;
             }
 

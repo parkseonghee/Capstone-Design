@@ -17,12 +17,19 @@ namespace RecycleLife.Core
     public readonly struct TrashStats
     {
         public TrashStats(int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType)
+            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, 0)
+        {
+        }
+
+        public TrashStats(
+            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold)
         {
             MaxHp = maxHp;
             Attack = attack;
             Heal = heal;
             SpawnWeight = spawnWeight;
             ChainsWithSameType = chainsWithSameType;
+            Gold = gold;
         }
 
         /// <summary>체력. 아이템은 0이며 하트도 그리지 않는다.</summary>
@@ -54,7 +61,25 @@ namespace RecycleLife.Core
         /// </summary>
         public bool ChainsWithSameType { get; }
 
+        /// <summary>
+        /// 처치했을 때 떨어뜨리는 골드. 종류마다 다르며 전부 인스펙터 값이다(Hard Rule 1).
+        ///
+        /// 역할을 따로 묻지 않는 것도 같은 이유다 — 벽에 돈을 주고 싶으면 표에서 값만 올리면 되고,
+        /// 0이면 아무것도 안 떨어진다. 코드에 "벽은 제외" 같은 분기를 두지 않았다(Hard Rule 3).
+        /// </summary>
+        public int Gold { get; }
+
         /// <summary>부딪히면 때리는 게 아니라 먹는 대상인지.</summary>
         public bool IsConsumable => Heal > 0;
+
+        /// <summary>
+        /// 스폰 가중치만 바꾼 사본. 웨이브가 전역 표를 덮어쓸 때 쓴다.
+        ///
+        /// 생성자를 직접 부르지 말고 이걸 쓸 것. 필드를 손으로 다시 나열하면
+        /// 새 필드가 생겼을 때 조용히 0으로 떨어진다 —
+        /// 실제로 골드를 추가했을 때 이 경로에서 그 사고가 났다.
+        /// </summary>
+        public TrashStats WithSpawnWeight(int spawnWeight)
+            => new TrashStats(MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, Gold);
     }
 }

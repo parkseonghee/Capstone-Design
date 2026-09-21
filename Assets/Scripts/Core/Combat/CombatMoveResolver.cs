@@ -19,6 +19,8 @@ namespace RecycleLife.Core
     ///    위·아래·좌·우 어디를 쳐도 같은 모양으로 들어간다(기획 확정).
     ///  - 반격은 <b>부딪힌 그 한 마리</b>만 한다. 그 마리를 처치했으면 무피해(§8-2: 원작 원형).
     ///    옆으로 같이 맞은 적은 반격하지 않는다.
+    ///  - 범위 안에 <b>폭탄</b>이 있으면 불이 붙는다. 설치된 폭탄은 때려야 카운트다운이 시작된다
+    ///    (폭탄 기획 §1-2). 폭탄은 체력이 없어 피해를 받지 않는다.
     ///
     /// 프리뷰 줄은 손댈 수 없다 — 이동도 공격도 대상이 아니다(WEEK1 §1).
     /// BlockedByEntity는 이 구현에서 나오지 않는다. 막는 지형이 생기면 그때 쓴다.
@@ -36,6 +38,9 @@ namespace RecycleLife.Core
 
         /// <summary>이번 행동에 먹힐 아이템 칸들.</summary>
         private readonly List<Vector2Int> _eats;
+
+        /// <summary>이번 행동에 불이 붙을 폭탄 칸들.</summary>
+        private readonly List<Vector2Int> _arms;
 
         /// <summary>같은 칸이 두 번 들어오지 않게 하는 표시. 인덱스는 row * Cols + col.</summary>
         private readonly bool[] _marked;
@@ -55,6 +60,7 @@ namespace RecycleLife.Core
 
             _hits = new List<Vector2Int>(grid.CellCount);
             _eats = new List<Vector2Int>(grid.CellCount);
+            _arms = new List<Vector2Int>(grid.CellCount);
             _marked = new bool[grid.CellCount];
         }
 
@@ -68,7 +74,7 @@ namespace RecycleLife.Core
                 return MoveResult.Simple(MoveOutcome.OutOfBounds);
             }
 
-            var bumped = _grid[target] as Trash;
+            Entity bumped = _grid[target];
             if (bumped == null)
             {
                 _grid.Move(_player.Position, target);
@@ -97,7 +103,7 @@ namespace RecycleLife.Core
         /// 적을 치든 포션을 먹든 <b>같은 경로</b>를 탄다. 공격 범위는 부딪힌 대상이 무엇인지와
         /// 무관하게 그대로 펼쳐지고, 각 칸이 자기 성격대로 처리될 뿐이다(기획 확정).
         /// </summary>
-        private MoveResult Strike(Vector2Int target, Trash bumped, Direction direction)
+        private MoveResult Strike(Vector2Int target, Entity bumped, Direction direction)
         {
             CollectCells(target, direction);
 
@@ -113,14 +119,21 @@ namespace RecycleLife.Core
             }
 
             // 2) 죽은 것만 걷어낸다. 생긴 빈 칸은 다음 페이즈의 중력이 메운다.
+            //    적과 벽을 나눠 세는 건 웨이브 진행도가 적만 세기 때문이다(밸런싱 v1 §2-1-4).
             int killed = 0;
+            int enemiesKilled = 0;
+            int wallsDestroyed = 0;
+            int gold = 0;
             for (int i = 0; i < _hits.Count; i++)
             {
                 Vector2Int cell = _hits[i];
-                if (((Trash)_grid[cell]).IsDead)
+                var hit = (Trash)_grid[cell];
+                if (hit.IsDead)
                 {
                     _grid.Remove(cell);
                     killed++;
+                    gold += hit.Gold;
+                    if (hit.IsEnemy) { enemiesKilled++; } else { wallsDestroyed++; }
                 }
             }
 
@@ -136,20 +149,39 @@ namespace RecycleLife.Core
 
             int healed = _player.Heal(restores);
 
-            // 4) 반격. 부딪힌 게 <b>적</b>이고 살아남았을 때만, 그 한 마리의 공격력만큼.
-            //    포션을 부딪혔다면 반격은 없다.
-            int damage = 0;
-            if (!bumped.IsConsumable && !bumped.IsDead)
+            // 4) 폭탄에 불을 붙인다. 폭탄은 피해를 받지 않고 카운트다운만 시작한다.
+            for (int i = 0; i < _arms.Count; i++)
             {
-                damage = bumped.Attack;
+                ((Bomb)_grid[_arms[i]]).Arm();
+            }
+
+            // 5) 반격. 부딪힌 게 <b>적</b>이고 살아남았을 때만, 그 한 마리의 공격력만큼.
+            //    포션이나 폭탄을 부딪혔다면 반격은 없다.
+            int damage = 0;
+            var bumpedTrash = bumped as Trash;
+            if (bumpedTrash != null && !bumpedTrash.IsConsumable && !bumpedTrash.IsDead)
+            {
+                damage = bumpedTrash.Attack;
                 _player.TakeDamage(damage);
             }
 
-            // 결과 이름은 "부딪힌 것"을 따른다 — 포션을 먹으러 간 턴인지 때리러 간 턴인지는
-            // 플레이어의 의도이고, 옆에 무엇이 딸려 왔는지는 부수적이다.
-            MoveOutcome outcome = bumped.IsConsumable ? MoveOutcome.Consumed : MoveOutcome.Attacked;
+            // 결과 이름은 "부딪힌 것"을 따른다 — 무엇을 하러 간 턴인지는 플레이어의 의도이고,
+            // 옆에 무엇이 딸려 왔는지는 부수적이다.
+            MoveOutcome outcome = bumped.Kind == EntityKind.Bomb
+                ? MoveOutcome.Armed
+                : (bumpedTrash.IsConsumable ? MoveOutcome.Consumed : MoveOutcome.Attacked);
 
-            return new MoveResult(outcome, _hits.Count + _eats.Count, killed, damage, healed);
+            _player.AddGold(gold);
+
+            return new MoveResult(
+                outcome,
+                _hits.Count + _eats.Count + _arms.Count,
+                killed,
+                enemiesKilled,
+                wallsDestroyed,
+                damage,
+                healed,
+                gold);
         }
 
         /// <summary>
@@ -164,6 +196,7 @@ namespace RecycleLife.Core
         {
             _hits.Clear();
             _eats.Clear();
+            _arms.Clear();
             Array.Clear(_marked, 0, _marked.Length);
 
             IReadOnlyList<Vector2Int> offsets = _character.AttackOffsets;
@@ -172,7 +205,26 @@ namespace RecycleLife.Core
                 Vector2Int start = target + Rotate(offsets[o], direction);
 
                 // 보드 밖·프리뷰 줄·빈 칸은 그냥 무시한다(기획서: "공허 타격").
-                if (!CanAct(start) || !(_grid[start] is Trash))
+                if (!CanAct(start))
+                {
+                    continue;
+                }
+
+                int startIndex = (start.y * _grid.Cols) + start.x;
+
+                // 폭탄은 연쇄를 타지 않는다. 한 칸짜리로 불만 붙인다.
+                if (_grid[start] is Bomb)
+                {
+                    if (!_marked[startIndex])
+                    {
+                        _marked[startIndex] = true;
+                        _arms.Add(start);
+                    }
+
+                    continue;
+                }
+
+                if (!(_grid[start] is Trash))
                 {
                     continue;
                 }
