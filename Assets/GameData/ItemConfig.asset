@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3e9174ca05d284d9f62c8a0e71b45d3, type: 3}
+  m_Name: ItemConfig
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.ItemConfig
+  items:
+  - id: R01
+    displayName: 튼튼한 몸
+    kind: 0
+    effect: 0
+    amount: 1
+    chance: 0
+    price: 25
+    confirmed: 1
+    description: 최대 체력 +1
+  - id: R02
+    displayName: 강인한 몸
+    kind: 0
+    effect: 0
+    amount: 2
+    chance: 0
+    price: 45
+    confirmed: 1
+    description: 최대 체력 +2
+  - id: R03
+    displayName: 황금 손
+    kind: 0
+    effect: 1
+    amount: 25
+    chance: 0
+    price: 30
+    confirmed: 0
+    description: 골드 획득량 +25% (수치 미정)
+  - id: R04
+    displayName: 재생의 씨앗
+    kind: 0
+    effect: 2
+    amount: 2
+    chance: 0
+    price: 60
+    confirmed: 0
+    description: 사망 시 1회 부활, 체력 2로 복귀 (회복량 미정)
+  - id: R05
+    displayName: 대형 폭약
+    kind: 0
+    effect: 3
+    amount: 1
+    chance: 0
+    price: 50
+    confirmed: 1
+    description: 폭탄 폭발 범위 3x3 에서 5x5 로
+  - id: R06
+    displayName: 진한 포션
+    kind: 0
+    effect: 4
+    amount: 1
+    chance: 0
+    price: 30
+    confirmed: 1
+    description: 포션 회복량 2 에서 3 으로
+  - id: R07
+    displayName: 정화의 씨앗
+    kind: 0
+    effect: 5
+    amount: 1
+    chance: 25
+    price: 35
+    confirmed: 0
+    description: 벽을 부수면 25% 확률로 체력 1 회복 (확률·회복량 미정)
+  - id: R08
+    displayName: 폭탄 주머니
+    kind: 0
+    effect: 6
+    amount: 5
+    chance: 0
+    price: 40
+    confirmed: 0
+    description: 폭탄 +5 (조정 예정)
+  - id: R09
+    displayName: 방폭 장비
+    kind: 0
+    effect: 7
+    amount: 0
+    chance: 0
+    price: 55
+    confirmed: 1
+    description: 폭발 피해 면역. 자기 폭탄에도 안 맞는다
+  - id: R10
+    displayName: 정화 필터
+    kind: 0
+    effect: 8
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: 상태이상 피해 면역 (기믹 미구현이라 현재 무효과)
+  - id: C01
+    displayName: 정화의 물약
+    kind: 1
+    effect: 9
+    amount: 1
+    chance: 0
+    price: 15
+    confirmed: 1
+    description: 맵 전체 적에게 1 피해
+  - id: C02
+    displayName: 대청소 물약
+    kind: 1
+    effect: 10
+    amount: 5
+    chance: 0
+    price: 35
+    confirmed: 0
+    description: 가까운 일반 몬스터 5마리 처치 (선정 기준 미정)

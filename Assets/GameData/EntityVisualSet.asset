@@ -16,11 +16,11 @@ MonoBehaviour:
   playerSprite: {fileID: 0}
   trash:
   - type: 0
-    color: {r: 0.87, g: 0.85, b: 0.78, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: dd35761b5f567f24180dfb0ceba4e4c5, type: 3}
   - type: 1
-    color: {r: 0.36, g: 0.72, b: 0.94, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: b40f8f37381192b4a8fd2b2f4aee60ec, type: 3}
   - type: 2
     color: {r: 0.45, g: 0.85, b: 0.8, a: 1}
     sprite: {fileID: 0}
@@ -28,23 +28,23 @@ MonoBehaviour:
     color: {r: 0.98, g: 0.62, b: 0.68, a: 1}
     sprite: {fileID: 0}
   - type: 4
-    color: {r: 0.6, g: 0.44, b: 0.28, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 83ee9e32f0074d84281a3c80819377a1, type: 3}
   - type: 5
-    color: {r: 0.55, g: 0.56, b: 0.58, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 7ce78a025fbf10343b7e53140732cef6, type: 3}
   - type: 6
-    color: {r: 0.33, g: 0.36, b: 0.42, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: cd93b3babc3fb244da244d110256ccd3, type: 3}
   - type: 7
-    color: {r: 0.78, g: 0.79, b: 0.52, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 4a4dbdcdd6eed8347b9ee14589254ad1, type: 3}
   - type: 8
-    color: {r: 0.72, g: 0.66, b: 0.88, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 1fce5139aefd817419c3671f59a30a88, type: 3}
   - type: 9
-    color: {r: 0.94, g: 0.94, b: 0.9, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 02e3bed7d6a611546afb4e2662388add, type: 3}
   - type: 10
     color: {r: 0.22, g: 0.22, b: 0.24, a: 1}
     sprite: {fileID: 0}
@@ -52,11 +52,15 @@ MonoBehaviour:
     color: {r: 0.3, g: 0.62, b: 0.55, a: 1}
     sprite: {fileID: 0}
   - type: 12
-    color: {r: 0.44, g: 0.55, b: 0.2, a: 1}
-    sprite: {fileID: 0}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: c61f767b4a11c0b45bb0a31d2dddec8b, type: 3}
   fallbackColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  bombColor: {r: 0.25, g: 0.25, b: 0.3, a: 1}
-  bombArmedColor: {r: 1, g: 0.42, b: 0.12, a: 1}
-  bombSprite: {fileID: 0}
+  bombColor: {r: 1, g: 1, b: 1, a: 1}
+  bombArmedColor: {r: 1, g: 0.72, b: 0.45, a: 1}
+  bombImminentColor: {r: 1, g: 0.35, b: 0.3, a: 1}
+  bombSprite: {fileID: 21300000, guid: bff8d2201ff9b3943aca9bc6cd001870, type: 3}
+  shopItemColor: {r: 0.98, g: 0.78, b: 0.28, a: 1}
+  shopItemUnaffordableColor: {r: 0.45, g: 0.42, b: 0.35, a: 1}
+  shopItemSprite: {fileID: 0}
   heartFull: {fileID: 4606908045521496030, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}
   heartEmpty: {fileID: 615023859997206797, guid: ce266e4fac7dcd144bf1660ffa31fef9, type: 3}

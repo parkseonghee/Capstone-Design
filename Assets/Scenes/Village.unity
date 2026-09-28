@@ -742,7 +742,7 @@ MonoBehaviour:
   unlockedColor: {r: 0.2, g: 0.45, b: 0.75, a: 1}
   clearedColor: {r: 0.2, g: 0.6, b: 0.35, a: 1}
   lockedColor: {r: 0.25, g: 0.27, b: 0.32, a: 1}
-  gameSceneName: SampleScene
+  gameSceneName: GameScene
   hintLabel: {fileID: 780700004}
   lockedHint: 이전 스테이지를 먼저 클리어하세요
   unlockedHint: 눌러서 시작

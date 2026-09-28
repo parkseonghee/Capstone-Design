@@ -64,6 +64,28 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("(선택) 폭탄 스프라이트. 비우면 단색 사각형.")]
         private Sprite bombSprite;
 
+        [Header("상점 상품")]
+        [SerializeField, Tooltip("상점 방 바닥에 놓인 상품의 색. 살 수 있을 때.")]
+        private Color shopItemColor = new Color(0.98f, 0.78f, 0.28f);
+
+        [SerializeField, Tooltip("골드가 모자라 못 사는 상품의 색.")]
+        private Color shopItemUnaffordableColor = new Color(0.45f, 0.42f, 0.35f);
+
+        [SerializeField, Tooltip("(선택) 상품 스프라이트. 비우면 단색 사각형.")]
+        private Sprite shopItemSprite;
+
+        /// <summary>
+        /// 색을 "살 수 있는가"로 가르려면 플레이어의 골드를 알아야 한다.
+        /// 뷰가 매번 넘겨주는 대신 여기 한 번 꽂아 둔다.
+        /// </summary>
+        private System.Func<int> _goldSource;
+
+        /// <summary>보유 골드를 읽는 통로를 꽂는다. 안 꽂으면 상품이 늘 살 수 있는 색으로 보인다.</summary>
+        public void BindGoldSource(System.Func<int> goldSource)
+        {
+            _goldSource = goldSource;
+        }
+
         [Header("체력 하트 (CORE_COMBAT.md §1)")]
         [SerializeField, Tooltip("남아 있는 체력 한 칸. 비워 두면 하트를 아예 그리지 않는다.")]
         private Sprite heartFull;
@@ -105,6 +127,15 @@ namespace RecycleLife.Unity
                 }
 
                 sprite = bombSprite;
+                return;
+            }
+
+            var shopItem = entity as ShopItem;
+            if (shopItem != null)
+            {
+                int gold = _goldSource != null ? _goldSource() : int.MaxValue;
+                color = gold >= shopItem.Price ? shopItemColor : shopItemUnaffordableColor;
+                sprite = shopItemSprite;
                 return;
             }
 

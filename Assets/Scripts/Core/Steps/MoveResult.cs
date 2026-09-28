@@ -24,9 +24,11 @@ namespace RecycleLife.Core
             int wallsDestroyed,
             int damageTaken,
             int healed,
-            int gold)
+            int gold,
+            string purchasedId = null)
         {
             Gold = gold;
+            PurchasedId = purchasedId;
             Outcome = outcome;
             ChainSize = chainSize;
             Killed = killed;
@@ -55,6 +57,12 @@ namespace RecycleLife.Core
 
         /// <summary>이번 공격으로 떨어진 골드 합계.</summary>
         public int Gold { get; }
+
+        /// <summary>
+        /// 이번에 산 상점 상품의 id. 안 샀으면 null이다.
+        /// Unity 계층이 이 꼬리표로 효과를 먹인다.
+        /// </summary>
+        public string PurchasedId { get; }
 
         /// <summary>반격으로 플레이어가 받은 피해량.</summary>
         public int DamageTaken { get; }

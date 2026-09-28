@@ -81,5 +81,9 @@ namespace RecycleLife.Core
         /// </summary>
         public TrashStats WithSpawnWeight(int spawnWeight)
             => new TrashStats(MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, Gold);
+
+        /// <summary>회복량만 바꾼 사본. 유물이 포션을 강화할 때 쓴다(R06 진한 포션).</summary>
+        public TrashStats WithHeal(int heal)
+            => new TrashStats(MaxHp, Attack, heal, SpawnWeight, ChainsWithSameType, Gold);
     }
 }

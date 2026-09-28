@@ -124,6 +124,35 @@ namespace RecycleLife.Unity
             AdvanceIntro();
         }
 
+        /// <summary>
+        /// 다음 웨이브로 넘어간다. 상점에서 "다음 웨이브"를 눌렀을 때 부른다.
+        ///
+        /// 보드는 새로 깔리지만 <b>플레이어는 그대로다</b> — 체력·폭탄·골드가 이어진다.
+        /// 스테이지 안에서 상태가 이어져야 상점이 의미를 갖기 때문이다
+        /// (팀 확정 구조: 1스테이지 = 3웨이브 + 상점 2회).
+        /// </summary>
+        /// <returns>넘어갔으면 true. 스테이지의 마지막 웨이브였으면 false.</returns>
+        public bool StartNextWave()
+        {
+            if (Loop == null || Loop.Waves == null || !Loop.Waves.AdvanceToNext())
+            {
+                return false;
+            }
+
+            _carryOver = Loop.Player;
+            StartNewRun();
+            return true;
+        }
+
+        /// <summary>다음 런에 물려줄 직전 플레이어. StartNewRun이 한 번 쓰고 비운다.</summary>
+        private Player _carryOver;
+
+        /// <summary>
+        /// 이번 <b>스테이지</b>에 걸린 유물 효과. 웨이브 사이에는 유지되고,
+        /// 마을에서 새 스테이지로 들어올 때 비워진다(유물은 런 한정이다).
+        /// </summary>
+        public RunModifiers Modifiers { get; private set; } = new RunModifiers();
+
         /// <summary>재시작 버튼이 호출한다.</summary>
         public void StartNewRun()
         {
@@ -163,17 +192,39 @@ namespace RecycleLife.Unity
             //
             // RunProgress가 꽂혀 있으면 마을 지도에서 고른 스테이지 하나만 플레이한다.
             // 깨면 거기서 멈추고(StageClearView가 받는다), 다음으로 넘어갈지는 플레이어가 고른다.
+            //
+            // 웨이브 사이 인계 중이면 지도에서 고른 스테이지가 아니라
+            // <b>직전 러너가 가리키던 웨이브</b>에서 이어야 한다.
+            int startIndex = runProgress != null ? runProgress.SelectedIndex : 0;
+            if (_carryOver != null && Loop != null && Loop.Waves != null)
+            {
+                startIndex = Loop.Waves.Index;
+            }
+
             WaveRunner waves = null;
             if (waveSet != null)
             {
                 waves = runProgress != null
-                    ? waveSet.CreateRunner(runProgress.SelectedIndex, stopAfterEachWave: true)
+                    ? waveSet.CreateRunner(startIndex, stopAfterEachWave: true)
                     : waveSet.CreateRunner();
+            }
+
+            // 웨이브 인계가 아니면 새 스테이지 = 유물 초기화.
+            if (_carryOver == null)
+            {
+                Modifiers = new RunModifiers();
             }
 
             Loop = GameLoopFactory.CreateStaged(
                 config, spawnConfig, trashStats, character, bombConfig,
-                new SystemRandomSource(CurrentSeed), waves);
+                new SystemRandomSource(CurrentSeed), waves, Modifiers);
+
+            // 웨이브 사이 인계: 체력·폭탄·골드를 그대로 물려받는다.
+            if (_carryOver != null)
+            {
+                Loop.Player.CarryOver(_carryOver);
+                _carryOver = null;
+            }
 
             // 첫 줄은 아래의 introRowInterval 대기만 거치고 바로 나오게 한다
             // (빈 보드에서 쉬는 박자를 한 번 더 먹지 않도록).

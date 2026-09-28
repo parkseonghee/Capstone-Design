@@ -22,9 +22,11 @@ namespace RecycleLife.Core
             ICharacterConfig character,
             IBombConfig bomb,
             IRandomSource random,
-            WaveRunner waves = null)
+            WaveRunner waves = null,
+            RunModifiers modifiers = null)
         {
-            GameLoop loop = CreateStaged(board, spawn, trashStats, character, bomb, random, waves);
+            GameLoop loop = CreateStaged(
+                board, spawn, trashStats, character, bomb, random, waves, modifiers);
             loop.CompleteSetup();
             return loop;
         }
@@ -40,7 +42,8 @@ namespace RecycleLife.Core
             ICharacterConfig character,
             IBombConfig bomb,
             IRandomSource random,
-            WaveRunner waves = null)
+            WaveRunner waves = null,
+            RunModifiers modifiers = null)
         {
             if (board == null) throw new ArgumentNullException(nameof(board));
             if (spawn == null) throw new ArgumentNullException(nameof(spawn));
@@ -49,6 +52,13 @@ namespace RecycleLife.Core
             if (bomb == null) throw new ArgumentNullException(nameof(bomb));
             if (random == null) throw new ArgumentNullException(nameof(random));
 
+            // 유물 효과는 설정을 한 겹 덮어서 적용한다 — 스포너·폭탄·전투는 자기가 유물을 쓰는지 모른다.
+            if (modifiers != null)
+            {
+                bomb = new ModifiedBombConfig(bomb, modifiers);
+                trashStats = new ModifiedTrashStats(trashStats, modifiers);
+            }
+
             // 웨이브가 있으면 스폰 가중치만 현재 웨이브 값으로 갈아끼운다.
             // 스포너·피커는 이 교체를 모른 채 평소대로 ITrashStatsProvider를 읽는다.
             ITrashStatsProvider spawnStats = waves == null
@@ -56,7 +66,10 @@ namespace RecycleLife.Core
                 : new WaveSpawnWeights(trashStats, waves);
 
             var grid = new BoardGrid(board.Cols, board.Rows);
-            var player = new Player(character.MaxHp, character.Attack, bomb.StartingCount);
+            // 최대 체력 유물(R01·R02)은 생성 시점에 이미 반영돼야 하트가 맞게 그려진다.
+            int maxHp = character.MaxHp + (modifiers != null ? modifiers.BonusMaxHp : 0);
+            var player = new Player(maxHp, character.Attack, bomb.StartingCount);
+            player.AttachModifiers(modifiers);
 
             if (!grid.InBounds(board.PlayerStart))
             {
@@ -77,7 +90,7 @@ namespace RecycleLife.Core
             var chain = new ChainFinder(grid, new SameTypeChainRule(), board.FirstPlayableRow);
 
             // 패배 판정이 이동 규칙을 알아야 한다 — 순서상 리졸버를 먼저 만든다.
-            IMoveResolver move = new CombatMoveResolver(grid, player, board, character, chain);
+            IMoveResolver move = new CombatMoveResolver(grid, player, board, character, chain, random);
 
             return new GameLoop(
                 grid,

@@ -33,6 +33,9 @@ namespace RecycleLife.Core
         private readonly ICharacterConfig _character;
         private readonly ChainFinder _chain;
 
+        /// <summary>벽 처치 회복(R07)의 확률 판정에만 쓴다. 없으면 그 유물이 발동하지 않는다.</summary>
+        private readonly IRandomSource _random;
+
         /// <summary>이번 행동에 피해를 받을 칸들. 매번 재사용해 할당을 만들지 않는다(Hard Rule 8).</summary>
         private readonly List<Vector2Int> _hits;
 
@@ -50,8 +53,10 @@ namespace RecycleLife.Core
             Player player,
             IBoardConfig config,
             ICharacterConfig character,
-            ChainFinder chain)
+            ChainFinder chain,
+            IRandomSource random = null)
         {
+            _random = random;
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -79,6 +84,13 @@ namespace RecycleLife.Core
             {
                 _grid.Move(_player.Position, target);
                 return MoveResult.Simple(MoveOutcome.Moved);
+            }
+
+            // 상점 상품은 때리는 게 아니라 사는 것이다. 연쇄도 공격 범위도 타지 않는다.
+            var shopItem = bumped as ShopItem;
+            if (shopItem != null)
+            {
+                return Buy(shopItem);
             }
 
             return Strike(target, bumped, direction);
@@ -124,6 +136,7 @@ namespace RecycleLife.Core
             int enemiesKilled = 0;
             int wallsDestroyed = 0;
             int gold = 0;
+            int wallHeal = 0;
             for (int i = 0; i < _hits.Count; i++)
             {
                 Vector2Int cell = _hits[i];
@@ -133,7 +146,15 @@ namespace RecycleLife.Core
                     _grid.Remove(cell);
                     killed++;
                     gold += hit.Gold;
-                    if (hit.IsEnemy) { enemiesKilled++; } else { wallsDestroyed++; }
+                    if (hit.IsEnemy)
+                    {
+                        enemiesKilled++;
+                    }
+                    else
+                    {
+                        wallsDestroyed++;
+                        wallHeal += RollWallHeal();
+                    }
                 }
             }
 
@@ -147,7 +168,8 @@ namespace RecycleLife.Core
                 _grid.Remove(cell);
             }
 
-            int healed = _player.Heal(restores);
+            // R07 정화의 씨앗: 벽을 부술 때마다 확률적으로 회복한다. 포션 회복과 합쳐 센다.
+            int healed = _player.Heal(restores + wallHeal);
 
             // 4) 폭탄에 불을 붙인다. 폭탄은 피해를 받지 않고 카운트다운만 시작한다.
             for (int i = 0; i < _arms.Count; i++)
@@ -182,6 +204,41 @@ namespace RecycleLife.Core
                 damage,
                 healed,
                 gold);
+        }
+
+        /// <summary>
+        /// 상점 상품을 산다. 골드가 모자라면 아무 일도 일어나지 않는다.
+        ///
+        /// 플레이어는 <b>그 칸으로 움직이지 않는다</b> — 적을 때릴 때와 같다.
+        /// 산 자리는 비므로 다음 입력에 그리로 걸어 들어갈 수 있다.
+        /// </summary>
+        private MoveResult Buy(ShopItem item)
+        {
+            if (!_player.SpendGold(item.Price))
+            {
+                // 무효 입력. 턴을 쓰지 않으므로 상점에서 헛걸음으로 손해 보지 않는다.
+                return MoveResult.Simple(MoveOutcome.TooExpensive);
+            }
+
+            _grid.Remove(item.Position);
+
+            return new MoveResult(
+                MoveOutcome.Purchased, 1, 0, 0, 0, 0, 0, 0, item.Id);
+        }
+
+        /// <summary>
+        /// R07 정화의 씨앗. 유물이 없거나 확률이 0이면 언제나 0이다.
+        /// 난수원이 없으면(구형 배선) 발동하지 않는다 — 조용히 꺼질 뿐 예외는 내지 않는다.
+        /// </summary>
+        private int RollWallHeal()
+        {
+            RunModifiers mods = _player.Modifiers;
+            if (mods == null || mods.WallHealPercent <= 0 || _random == null)
+            {
+                return 0;
+            }
+
+            return _random.NextInt(0, 100) < mods.WallHealPercent ? mods.WallHealAmount : 0;
         }
 
         /// <summary>

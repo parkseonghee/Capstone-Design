@@ -17,7 +17,7 @@ namespace RecycleLife.Core
             Bombs = Mathf.Max(0, bombs);
         }
 
-        public int MaxHp { get; }
+        public int MaxHp { get; private set; }
 
         /// <summary>연쇄에 묶인 모든 적에게 각각 들어가는 피해량(§5-2).</summary>
         public int Attack { get; }
@@ -74,13 +74,81 @@ namespace RecycleLife.Core
         /// </summary>
         public int Gold { get; private set; }
 
-        /// <summary>골드를 얻는다. 유물 "골드 획득량 증가"가 붙으면 이 호출 앞에서 배율을 먹이면 된다.</summary>
+        /// <summary>
+        /// 이번 판에 걸린 유물 효과. 없으면 null이며 그때는 보너스가 전부 0이다.
+        /// 골드 배율(R03)과 부활(R04)이 여기서 걸린다.
+        /// </summary>
+        public RunModifiers Modifiers { get; private set; }
+
+        public void AttachModifiers(RunModifiers modifiers)
+        {
+            Modifiers = modifiers;
+        }
+
+        /// <summary>골드를 얻는다. R03 황금 손이 붙어 있으면 배율이 먹는다.</summary>
         public void AddGold(int amount)
         {
-            if (amount > 0)
+            if (amount <= 0)
             {
-                Gold += amount;
+                return;
             }
+
+            Gold += Modifiers != null ? Modifiers.ApplyGold(amount) : amount;
+        }
+
+        /// <summary>
+        /// 죽었을 때 부활 유물(R04 재생의 씨앗)이 남아 있으면 한 번 되살린다.
+        /// 패배 판정 직전에 불린다.
+        /// </summary>
+        /// <returns>되살아났으면 true.</returns>
+        public bool TryRevive()
+        {
+            if (!IsDead || Modifiers == null || !Modifiers.TrySpendRevive())
+            {
+                return false;
+            }
+
+            Hp = Mathf.Clamp(Modifiers.ReviveHp, 1, MaxHp);
+            return true;
+        }
+
+        /// <summary>
+        /// 최대 체력을 올린다(상점·유물). 늘어난 만큼 현재 체력도 같이 채워 준다 —
+        /// 돈을 내고 산 칸이 비어 있으면 산 느낌이 안 난다.
+        /// </summary>
+        public void IncreaseMaxHp(int amount)
+        {
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            MaxHp += amount;
+            Hp += amount;
+        }
+
+        /// <summary>
+        /// 웨이브 사이에 상태를 물려받는다. 스테이지 안에서는 체력·폭탄·골드가 이어져야
+        /// 상점이 의미를 갖기 때문이다(팀 확정 구조: 1스테이지 = 3웨이브 + 상점 2회).
+        ///
+        /// 보드는 새로 깔리지만 플레이어는 같은 사람이다.
+        /// </summary>
+        public void CarryOver(Player previous)
+        {
+            if (previous == null)
+            {
+                return;
+            }
+
+            // 상점에서 산 최대 체력 증가분까지 따라와야 한다.
+            if (previous.MaxHp > MaxHp)
+            {
+                MaxHp = previous.MaxHp;
+            }
+
+            Hp = Mathf.Clamp(previous.Hp, 1, MaxHp);
+            Bombs = Mathf.Max(0, previous.Bombs);
+            Gold = Mathf.Max(0, previous.Gold);
         }
 
         /// <summary>골드를 쓴다(상점). 모자라면 아무것도 안 하고 false.</summary>

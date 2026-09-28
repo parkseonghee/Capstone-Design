@@ -108,8 +108,41 @@ namespace RecycleLife.Core
         /// </summary>
         public bool IsWaveCleared { get; private set; }
 
-        /// <summary>뒤에 더 남은 웨이브가 있는지. 클리어 화면이 "다음 스테이지" 버튼을 켤지 정할 때 쓴다.</summary>
+        /// <summary>뒤에 더 남은 웨이브가 있는지.</summary>
         public bool HasNext => Index + 1 < _waves.Count;
+
+        /// <summary>
+        /// 지금 웨이브가 자기 스테이지의 <b>마지막</b> 웨이브인지.
+        ///
+        /// 팀 확정 구조(2026-09-22): 1스테이지 = 3웨이브이고 웨이브 사이마다 상점이 낀다.
+        ///   1스테이지 → 1웨이브 → 상점 → 2웨이브 → 상점 → 3웨이브 → 1스테이지 클리어
+        /// 그래서 "웨이브를 깼다"와 "스테이지를 깼다"를 구분해야 한다 —
+        /// 앞은 상점으로, 뒤는 클리어 화면으로 간다.
+        /// </summary>
+        public bool IsLastWaveOfStage
+        {
+            get
+            {
+                IWaveConfig wave = Current;
+                if (wave == null)
+                {
+                    return false;
+                }
+
+                int next = Index + 1;
+                return next >= _waves.Count || _waves[next].StageNumber != wave.StageNumber;
+            }
+        }
+
+        /// <summary>
+        /// 이번에 깬 웨이브가 스테이지의 마지막이었는지. 클리어 화면을 띄울 조건이다.
+        /// </summary>
+        public bool IsStageCleared => IsWaveCleared && IsLastWaveOfStage;
+
+        /// <summary>
+        /// 웨이브는 깼지만 스테이지는 아직 안 끝났는지. <b>상점을 띄울 조건</b>이다.
+        /// </summary>
+        public bool IsBetweenWaves => IsWaveCleared && !IsLastWaveOfStage;
 
         /// <summary>
         /// 다음 웨이브로 넘긴다. stopAfterEachWave 모드에서 "다음 스테이지로 이동"을 눌렀을 때 부른다.

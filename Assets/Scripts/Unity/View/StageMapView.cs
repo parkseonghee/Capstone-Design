@@ -13,8 +13,9 @@ namespace RecycleLife.Unity
     /// 미는 동작은 카드를 옮기는 게 아니라 <b>세 카드가 가리키는 스테이지를 바꿔 끼우는</b> 것이다.
     /// 덕분에 카드의 크기·위치를 코드가 계산하지 않는다 — 전부 씬에 잡혀 있다(Hard Rule 2).
     ///
-    /// 스테이지 목록은 챕터를 가로질러 쭉 이어진다(1-1 … 1-3 → 2-1 …).
-    /// 챕터 라벨은 지금 가운데 카드가 속한 챕터를 따라간다.
+    /// 카드 하나 = <b>스테이지 하나</b>다. 팀 확정 구조(2026-09-22)에서 한 스테이지는
+    /// 웨이브 3개 + 그 사이 상점 2번으로 이뤄지므로, 지도에서는 웨이브를 따로 고르지 않는다.
+    /// 스테이지에 들어가면 1웨이브부터 시작해 3웨이브까지 이어서 도전한다.
     ///
     /// 잠금·클리어 판정은 전부 RunProgress가 한다(Hard Rule 5).
     /// </summary>
@@ -55,7 +56,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("다음 스테이지 화살표.")]
         private Button nextButton;
 
-        [SerializeField] private string chapterFormat = "챕터 {0}";
+        [SerializeField] private string chapterFormat = "스테이지 {0}";
+
+        [SerializeField, Tooltip("카드에 찍을 글자. 카드 하나가 스테이지 하나다.")]
+        private string cardFormat = "{0}";
 
         [SerializeField, Tooltip("가운데 카드가 잠겨 있을 때 띄울 안내. 비우면 표시하지 않는다.")]
         private Text hintLabel;
@@ -75,7 +79,7 @@ namespace RecycleLife.Unity
 
         [Header("이동")]
         [SerializeField, Tooltip("게임 씬 이름. Build Settings에 등록돼 있어야 한다.")]
-        private string gameSceneName = "SampleScene";
+        private string gameSceneName = "GameScene";
 
         private int _index;
         private bool _wired;
@@ -147,7 +151,7 @@ namespace RecycleLife.Unity
             }
 
             // 열면 지금 도전할 스테이지가 가운데 오게 한다.
-            _index = runProgress.FurthestUnlockedIndex;
+            _index = runProgress.FurthestUnlockedChapter;
 
             Refresh();
             panel.SetActive(true);
@@ -173,7 +177,7 @@ namespace RecycleLife.Unity
             }
 
             int target = _index + delta;
-            if (target < 0 || target >= runProgress.StageCount)
+            if (target < 0 || target >= runProgress.ChapterCount)
             {
                 return;
             }
@@ -232,8 +236,7 @@ namespace RecycleLife.Unity
 
             if (chapterLabel != null)
             {
-                int chapter = runProgress.ChapterNumber(runProgress.ChapterIndexOfStage(_index));
-                chapterLabel.text = string.Format(chapterFormat, chapter);
+                chapterLabel.text = string.Format(chapterFormat, runProgress.ChapterNumber(_index));
             }
 
             if (prevButton != null)
@@ -243,12 +246,12 @@ namespace RecycleLife.Unity
 
             if (nextButton != null)
             {
-                nextButton.interactable = _index + 1 < runProgress.StageCount;
+                nextButton.interactable = _index + 1 < runProgress.ChapterCount;
             }
 
             if (hintLabel != null)
             {
-                hintLabel.text = runProgress.IsUnlocked(_index) ? unlockedHint : lockedHint;
+                hintLabel.text = runProgress.IsChapterUnlocked(_index) ? unlockedHint : lockedHint;
             }
         }
 
@@ -260,30 +263,31 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            if (index < 0 || index >= runProgress.StageCount)
+            if (index < 0 || index >= runProgress.ChapterCount)
             {
                 card.Hide();
                 return;
             }
 
-            bool cleared = runProgress.IsCleared(index);
-            bool unlocked = runProgress.IsUnlocked(index);
+            bool cleared = runProgress.IsChapterCleared(index);
+            bool unlocked = runProgress.IsChapterUnlocked(index);
 
             // 양옆 카드는 "넘기기"용이라 잠겨 있어도 눌러서 볼 수 있어야 한다.
             bool pressable = card == centerCard ? unlocked : true;
 
-            card.Bind(index, runProgress.LabelFor(index), pressable, cleared);
+            card.Bind(index, string.Format(cardFormat, runProgress.ChapterNumber(index)), pressable, cleared);
             card.Tint(cleared ? clearedColor : (unlocked ? unlockedColor : lockedColor));
         }
 
         private void EnterCurrent()
         {
-            if (runProgress == null || !runProgress.IsUnlocked(_index))
+            if (runProgress == null || !runProgress.IsChapterUnlocked(_index))
             {
                 return;
             }
 
-            runProgress.Select(_index);
+            // 스테이지의 첫 웨이브부터 시작한다.
+            runProgress.SelectChapter(_index);
 
             if (string.IsNullOrEmpty(gameSceneName))
             {

@@ -281,6 +281,86 @@ namespace RecycleLife.Tests
             Assert.IsFalse(runner.IsWaveCleared);
         }
 
+        // ── 스테이지 = 3웨이브 + 상점 (팀 확정 2026-09-22) ───────────────
+        //
+        //   1스테이지 → 1웨이브 → 상점 → 2웨이브 → 상점 → 3웨이브 → 1스테이지 클리어
+
+        private static WaveRunner Stage1()
+            => Selected(0,
+                new FakeWave(1, 1, 2), new FakeWave(1, 2, 2), new FakeWave(1, 3, 2),
+                new FakeWave(2, 4, 2));
+
+        [Test]
+        public void ClearingAMidWave_OpensTheShopNotTheClearScreen()
+        {
+            WaveRunner runner = Stage1();
+
+            runner.Report(2, 0);
+
+            Assert.IsTrue(runner.IsWaveCleared);
+            Assert.IsTrue(runner.IsBetweenWaves, "1웨이브 뒤에는 상점이 떠야 한다");
+            Assert.IsFalse(runner.IsStageCleared, "아직 스테이지가 끝난 게 아니다");
+        }
+
+        [Test]
+        public void ClearingTheLastWaveOfAStage_ShowsTheClearScreen()
+        {
+            WaveRunner runner = Stage1();
+
+            runner.Report(2, 0);            // 1웨이브
+            runner.AdvanceToNext();
+            runner.Report(2, 0);            // 2웨이브
+            runner.AdvanceToNext();
+            runner.Report(2, 0);            // 3웨이브 = 스테이지의 마지막
+
+            Assert.IsTrue(runner.IsStageCleared, "3웨이브를 깨면 스테이지 클리어다");
+            Assert.IsFalse(runner.IsBetweenWaves, "여기서는 상점이 뜨면 안 된다");
+        }
+
+        [Test]
+        public void AStageHasExactlyTwoShops()
+        {
+            // 팀장 메모: "2번이면 괜찮을지도? 한 게임 한 싸이클에"
+            WaveRunner runner = Stage1();
+
+            int shops = 0;
+            for (int wave = 0; wave < 3; wave++)
+            {
+                runner.Report(2, 0);
+                if (runner.IsBetweenWaves) { shops++; runner.AdvanceToNext(); }
+            }
+
+            Assert.AreEqual(2, shops, "3웨이브 사이에 상점은 두 번이다");
+            Assert.IsTrue(runner.IsStageCleared);
+        }
+
+        [Test]
+        public void TheLastWaveOfTheLastStage_IsAlsoAStageClear()
+        {
+            WaveRunner runner = Selected(0, new FakeWave(3, 9, 1));
+
+            runner.Report(1, 0);
+
+            Assert.IsTrue(runner.IsStageCleared);
+            Assert.IsFalse(runner.IsBetweenWaves, "뒤에 웨이브가 없으면 상점도 없다");
+        }
+
+        [Test]
+        public void IsLastWaveOfStage_TracksTheStageBoundary()
+        {
+            WaveRunner runner = Stage1();
+
+            Assert.IsFalse(runner.IsLastWaveOfStage, "1웨이브는 마지막이 아니다");
+
+            runner.Report(2, 0);
+            runner.AdvanceToNext();
+            Assert.IsFalse(runner.IsLastWaveOfStage, "2웨이브도 마지막이 아니다");
+
+            runner.Report(2, 0);
+            runner.AdvanceToNext();
+            Assert.IsTrue(runner.IsLastWaveOfStage, "3웨이브가 스테이지의 마지막이다");
+        }
+
         // ── 스폰 가중치 교체 ─────────────────────────────────────────────
 
         [Test]

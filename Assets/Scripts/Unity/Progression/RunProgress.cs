@@ -256,6 +256,57 @@ namespace RecycleLife.Unity
             }
         }
 
+        /// <summary>그 챕터(=스테이지)를 깼는지. <b>마지막 웨이브</b>를 깨야 스테이지 클리어다.</summary>
+        public bool IsChapterCleared(int chapterIndex)
+        {
+            int count = StagesInChapter(chapterIndex);
+            if (count <= 0)
+            {
+                return false;
+            }
+
+            return IsCleared(StageIndex(chapterIndex, count - 1));
+        }
+
+        /// <summary>그 챕터에 들어갈 수 있는지. 첫 챕터는 항상 열려 있고, 그 뒤는 앞 챕터를 깨야 열린다.</summary>
+        public bool IsChapterUnlocked(int chapterIndex)
+        {
+            if (chapterIndex < 0 || chapterIndex >= ChapterCount)
+            {
+                return false;
+            }
+
+            return unlockAll || chapterIndex == 0 || IsChapterCleared(chapterIndex - 1);
+        }
+
+        /// <summary>
+        /// 그 챕터를 고른다. 스테이지는 <b>첫 웨이브부터</b> 시작한다 —
+        /// 1스테이지 = 3웨이브라 중간부터 들어갈 수는 없다(팀 확정 2026-09-22).
+        /// </summary>
+        public void SelectChapter(int chapterIndex)
+        {
+            int first = StageIndex(Mathf.Clamp(chapterIndex, 0, Mathf.Max(0, ChapterCount - 1)), 0);
+            Select(first < 0 ? 0 : first);
+        }
+
+        /// <summary>그 웨이브가 속한 스테이지의 표시 이름. 클리어 화면이 쓴다.</summary>
+        public string StageLabelForWave(int waveIndex)
+            => ChapterNumber(ChapterIndexOfStage(waveIndex)).ToString();
+
+        /// <summary>아직 안 깬 챕터 중 가장 앞선 것. 지도를 열면 여기를 보여 준다.</summary>
+        public int FurthestUnlockedChapter
+        {
+            get
+            {
+                for (int c = 0; c < ChapterCount; c++)
+                {
+                    if (!IsChapterCleared(c)) { return c; }
+                }
+
+                return Mathf.Max(0, ChapterCount - 1);
+            }
+        }
+
         private int FirstIndexOfChapter(int chapterIndex)
         {
             if (waveSet == null || chapterIndex < 0) { return -1; }

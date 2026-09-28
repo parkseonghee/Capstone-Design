@@ -503,10 +503,25 @@ namespace RecycleLife.Unity
         /// </summary>
         private void UpdateFuse(ViewSlot slot, Entity entity)
         {
-            var bomb = entity as Bomb;
-            bool wanted = showFuseNumber && bomb != null && bomb.IsArmed;
+            // 같은 숫자 라벨을 둘이 나눠 쓴다: 폭탄은 남은 턴, 상점 상품은 가격.
+            // 둘 다 "칸 위에 숫자 하나"라 굳이 별도 풀을 둘 이유가 없다.
+            int value = -1;
 
-            if (!wanted)
+            var bomb = entity as Bomb;
+            if (showFuseNumber && bomb != null && bomb.IsArmed)
+            {
+                value = bomb.FuseRemaining;
+            }
+            else
+            {
+                var shopItem = entity as ShopItem;
+                if (shopItem != null)
+                {
+                    value = shopItem.Price;
+                }
+            }
+
+            if (value < 0)
             {
                 ReleaseFuse(slot);
                 return;
@@ -519,13 +534,12 @@ namespace RecycleLife.Unity
                 slot.Settled = false;   // 배치가 필요하므로 LateUpdate를 한 번 깨운다
             }
 
-            if (slot.Fuse == null || slot.ShownFuse == bomb.FuseRemaining)
+            if (slot.Fuse == null || slot.ShownFuse == value)
             {
                 return;
             }
 
-            slot.ShownFuse = bomb.FuseRemaining;
-            int value = bomb.FuseRemaining;
+            slot.ShownFuse = value;
             slot.Fuse.text = value >= 0 && value < FuseLabels.Length
                 ? FuseLabels[value]
                 : value.ToString();
@@ -646,6 +660,13 @@ namespace RecycleLife.Unity
         private void HandleRunStarted(GameLoop loop)
         {
             _loop = loop;
+
+            // 상품 색이 "살 수 있는가"로 갈리므로 보유 골드를 읽을 통로를 꽂아 준다.
+            if (visuals != null)
+            {
+                visuals.BindGoldSource(delegate { return _loop != null ? _loop.Player.Gold : 0; });
+            }
+
             ReleaseAll();
             ResizeBackground();
             Sync(snap: true);
@@ -706,7 +727,8 @@ namespace RecycleLife.Unity
 
                     // 폭탄은 도화선이 줄면 색이 달라진다. 뷰를 만들 때 한 번 칠하고 끝내면
                     // 카운트다운이 화면에 안 보이므로, 폭탄만 매번 다시 칠한다(몇 개 안 된다).
-                    if (entity.Kind == EntityKind.Bomb)
+                    // 상품도 매번 칠한다 — 돈을 쓰면 "살 수 있음/없음" 색이 바뀌어야 한다.
+                    if (entity.Kind == EntityKind.Bomb || entity.Kind == EntityKind.ShopItem)
                     {
                         ApplyVisual(entity, slot.Renderer);
                     }

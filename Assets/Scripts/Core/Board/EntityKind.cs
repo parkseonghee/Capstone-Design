@@ -13,5 +13,11 @@ namespace RecycleLife.Core
         /// Trash와 근본적으로 달라서 별도 종류로 뒀다.
         /// </summary>
         Bomb,
+
+        /// <summary>
+        /// 상점 방 바닥에 놓인 상품. 부딪히면 산다.
+        /// 체력도 공격력도 없고 가격과 꼬리표만 있어서 Trash와 섞을 수 없다.
+        /// </summary>
+        ShopItem,
     }
 }

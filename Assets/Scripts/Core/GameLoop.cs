@@ -66,6 +66,54 @@ namespace RecycleLife.Core
         public int StepCount { get; private set; }
 
         /// <summary>
+        /// 지금 상점 방에 있는지. 켜져 있으면 <b>중력·스폰·패배 판정이 돌지 않는다</b> —
+        /// 상점은 시간이 흐르지 않는 방이라 구경하는 동안 블록이 쌓이면 안 된다.
+        /// 폭탄 도화선도 멈춘다(들고 온 폭탄이 상점에서 터질 이유가 없다).
+        /// </summary>
+        public bool InShop { get; private set; }
+
+        /// <summary>
+        /// 보드를 비우고 상점 방으로 만든다. 상품 배치는 호출자(Unity 계층)가 한다 —
+        /// 무엇을 파는지는 Core가 알 바가 아니기 때문이다.
+        /// </summary>
+        public void EnterShop()
+        {
+            for (int row = 0; row < Grid.Rows; row++)
+            {
+                for (int col = 0; col < Grid.Cols; col++)
+                {
+                    var cell = new Vector2Int(col, row);
+                    Entity e = Grid[cell];
+                    if (e != null && e.Kind != EntityKind.Player)
+                    {
+                        Grid.Remove(cell);
+                    }
+                }
+            }
+
+            InShop = true;
+        }
+
+        /// <summary>상점에서 나온다. 보드는 호출자가 새로 깐다(대개 다음 웨이브를 시작한다).</summary>
+        public void ExitShop()
+        {
+            InShop = false;
+        }
+
+        /// <summary>상품을 상점 바닥에 놓는다.</summary>
+        /// <returns>놓았으면 true. 칸이 비어 있지 않으면 false.</returns>
+        public bool PlaceShopItem(string id, int price, Vector2Int cell)
+        {
+            if (!Grid.InBounds(cell) || cell.y < _config.FirstPlayableRow || !Grid.IsEmpty(cell))
+            {
+                return false;
+            }
+
+            Grid.Place(new ShopItem(id, price), cell);
+            return true;
+        }
+
+        /// <summary>
         /// 웨이브 진행 상태. 뷰가 진행도 바를 그릴 때 읽는다.
         /// 웨이브를 안 쓰는 런에서도 null이 아니다(IsIdle이 true인 빈 러너가 들어간다).
         /// </summary>
@@ -212,6 +260,104 @@ namespace RecycleLife.Core
         }
 
         /// <summary>
+        /// 맵의 모든 <b>적</b>에게 피해를 준다. 일회성 아이템 C01 정화의 물약.
+        ///
+        /// 벽과 포션은 건드리지 않는다 — "적에게 데미지"가 CSV 문구다.
+        /// <b>턴을 쓰지 않는다.</b> 아이템 사용은 행동이 아니라는 전제이며,
+        /// 확정되면 여기서 AdvanceBoard를 부르면 된다.
+        /// </summary>
+        /// <returns>피해를 입은 적 수.</returns>
+        public int DamageAllEnemies(int damage)
+        {
+            if (damage <= 0 || !IsReady || IsOver)
+            {
+                return 0;
+            }
+
+            int hit = 0;
+            for (int row = _config.FirstPlayableRow; row < Grid.Rows; row++)
+            {
+                for (int col = 0; col < Grid.Cols; col++)
+                {
+                    var cell = new Vector2Int(col, row);
+                    var trash = Grid[cell] as Trash;
+                    if (trash == null || !trash.IsEnemy)
+                    {
+                        continue;
+                    }
+
+                    trash.TakeDamage(damage);
+                    hit++;
+
+                    if (trash.IsDead)
+                    {
+                        Grid.Remove(cell);
+                        Player.AddGold(trash.Gold);
+                        _waves.Report(1, 0);
+                    }
+                }
+            }
+
+            return hit;
+        }
+
+        /// <summary>
+        /// 맵의 일반 몬스터를 <b>즉시 처치</b>한다. 일회성 아이템 C02 대청소 물약.
+        ///
+        /// 누구를 고를지는 기획 미확정이라(CSV 비고: "5마리 선정 기준 미정")
+        /// 지금은 <b>플레이어에게 가까운 순</b>으로 잡는다. 기준이 정해지면 이 정렬만 바꾸면 된다.
+        /// </summary>
+        /// <returns>실제로 처치한 수. 적이 그보다 적으면 그만큼만.</returns>
+        public int KillEnemies(int count)
+        {
+            if (count <= 0 || !IsReady || IsOver)
+            {
+                return 0;
+            }
+
+            int killed = 0;
+            for (int n = 0; n < count; n++)
+            {
+                Vector2Int best = new Vector2Int(-1, -1);
+                int bestDistance = int.MaxValue;
+
+                for (int row = _config.FirstPlayableRow; row < Grid.Rows; row++)
+                {
+                    for (int col = 0; col < Grid.Cols; col++)
+                    {
+                        var cell = new Vector2Int(col, row);
+                        var trash = Grid[cell] as Trash;
+                        if (trash == null || !trash.IsEnemy)
+                        {
+                            continue;
+                        }
+
+                        int distance = Mathf.Abs(cell.x - Player.Position.x)
+                                       + Mathf.Abs(cell.y - Player.Position.y);
+                        if (distance < bestDistance)
+                        {
+                            bestDistance = distance;
+                            best = cell;
+                        }
+                    }
+                }
+
+                if (best.x < 0)
+                {
+                    break;      // 남은 적이 없다
+                }
+
+                var target = (Trash)Grid[best];
+                Grid.Remove(best);
+                Player.AddGold(target.Gold);
+                _waves.Report(1, 0);
+                killed++;
+            }
+
+            return killed;
+        }
+
+        /// <summary>
         /// 제자리에서 한 턴을 넘긴다. 플레이어는 움직이지 않지만 보드는 평소대로 진행한다 —
         /// 중력이 한 칸 내려가고, 스폰이 돌고, 폭탄 도화선이 탄다.
         ///
@@ -246,6 +392,9 @@ namespace RecycleLife.Core
         /// </summary>
         private StepResult AdvanceBoard(MoveResult move)
         {
+            // 죽었어도 부활 유물(R04)이 남아 있으면 한 번 일어난다.
+            Player.TryRevive();
+
             // 반격으로 죽었다면 여기서 끝난다. 이미 진 판에 블록을 더 떨어뜨릴 이유가 없다.
             if (Player.IsDead)
             {
@@ -254,10 +403,19 @@ namespace RecycleLife.Core
                 return new StepResult(move, true, 0, 0, false, Reason);
             }
 
+            // 상점 방에서는 시간이 멈춘다. 걸어 다니고 사는 것만 된다.
+            if (InShop)
+            {
+                StepCount++;
+                return new StepResult(move, true, 0, 0, false, Reason);
+            }
+
             // ── 페이즈 2: 폭탄 도화선 ────────────────────────────────────────
             // 중력보다 먼저 도는 이유: 터져서 생긴 빈 칸을 같은 턴의 중력이 메우게 하려는 것이다.
             // 공격으로 처치했을 때와 순서를 맞췄다.
             BlastResult blast = _bombs.Tick();
+
+            Player.TryRevive();
 
             if (Player.IsDead)
             {

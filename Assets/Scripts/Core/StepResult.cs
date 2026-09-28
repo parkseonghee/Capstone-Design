@@ -59,6 +59,9 @@ namespace RecycleLife.Core
         /// <summary>이번 스텝에 번 골드. 공격과 폭발을 합친 값이다.</summary>
         public int Gold => _move.Gold + _blast.Gold;
 
+        /// <summary>이번에 산 상점 상품의 id. 안 샀으면 null이다.</summary>
+        public string PurchasedId => _move.PurchasedId;
+
         /// <summary>반격으로 플레이어가 받은 피해량.</summary>
         public int DamageTaken => _move.DamageTaken;
 

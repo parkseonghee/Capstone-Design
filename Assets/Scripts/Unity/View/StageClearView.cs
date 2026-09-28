@@ -6,9 +6,10 @@ using RecycleLife.Core;
 namespace RecycleLife.Unity
 {
     /// <summary>
-    /// 스테이지를 깼을 때 뜨는 클리어 화면.
-    /// "1-1 클리어 — 다음 스테이지로 이동하시겠습니까?"를 띄우고,
-    /// 다음으로 갈지 마을로 돌아갈지를 플레이어가 고른다.
+    /// <b>스테이지</b>를 깼을 때 뜨는 클리어 화면.
+    ///
+    /// 팀 확정 구조(2026-09-22): 1스테이지 = 3웨이브다. 웨이브를 깰 때마다 뜨는 게 아니라
+    /// 스테이지의 마지막 웨이브를 깼을 때만 뜬다 — 중간 웨이브 뒤에는 상점(ShopView)이 뜬다.
     ///
     /// 클리어 판정 자체는 Core의 WaveRunner가 한다. 여기는 그 상태를 보고 패널을 켜고,
     /// 버튼 입력을 다시 세션에 돌려줄 뿐이다(Hard Rule 5).
@@ -44,7 +45,7 @@ namespace RecycleLife.Unity
         private Button villageButton;
 
         [Header("문구")]
-        [SerializeField] private string titleFormat = "{0} 클리어!";
+        [SerializeField] private string titleFormat = "스테이지 {0} 클리어!";
         [SerializeField] private string rewardFormat = "획득 골드 {0}   (보유 {1})";
         [SerializeField] private string nextMessage = "다음 스테이지로 이동하시겠습니까?";
         [SerializeField, Tooltip("마지막 스테이지를 깼을 때의 안내.")]
@@ -108,8 +109,10 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            // 웨이브만 깬 것이면 상점 차례다(ShopView가 받는다).
+            // 스테이지의 <b>마지막</b> 웨이브를 깼을 때만 여기서 클리어 화면을 띄운다.
             WaveRunner waves = session.Loop.Waves;
-            if (waves == null || !waves.IsWaveCleared)
+            if (waves == null || !waves.IsStageCleared)
             {
                 return;
             }
@@ -136,12 +139,10 @@ namespace RecycleLife.Unity
                     rewardFormat, earned, runProgress != null ? runProgress.Gold : earned);
             }
 
-            string label = runProgress != null ? runProgress.LabelFor(index) : string.Empty;
-            if (string.IsNullOrEmpty(label) && waves.Current != null)
-            {
-                // RunProgress를 안 꽂았을 때의 대비. 전역 웨이브 번호라도 보여 준다.
-                label = waves.Current.StageNumber + "-" + waves.Current.WaveNumber;
-            }
+            // 깬 것은 웨이브가 아니라 <b>스테이지</b>다(1스테이지 = 3웨이브).
+            string label = runProgress != null
+                ? runProgress.StageLabelForWave(index)
+                : (waves.Current != null ? waves.Current.StageNumber.ToString() : string.Empty);
 
             if (titleLabel != null)
             {
