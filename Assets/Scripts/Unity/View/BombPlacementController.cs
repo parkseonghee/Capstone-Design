@@ -36,6 +36,9 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("꾹 누르기를 받는 버튼. 씬에서 연결한다.")]
         private BombButton bombButton;
 
+        [SerializeField, Tooltip("조준하는 동안 슬라이드를 잠글 라우터. 비워 두면 같은 오브젝트에서 찾는다.")]
+        private InputRouter input;
+
         [SerializeField, Tooltip("설치 가능 칸에 띄울 표시 프리팹(SpriteRenderer).")]
         private SpriteRenderer markerPrefab;
 
@@ -55,11 +58,36 @@ namespace RecycleLife.Unity
         private readonly List<SpriteRenderer> _markers = new List<SpriteRenderer>(4);
         private readonly List<Vector2Int> _cells = new List<Vector2Int>(4);
 
-        /// <summary>지금 설치 자리를 보여 주고 있는지. 뷰나 HUD가 읽어도 되게 열어 둔다.</summary>
-        public bool IsShowingPlacements { get; private set; }
+        /// <summary>
+        /// 지금 설치 자리를 보여 주고 있는지. 뷰나 HUD가 읽어도 되게 열어 둔다.
+        ///
+        /// 켜지는 동안 <b>슬라이드 이동을 잠근다</b>. 설치는 보드를 탭해서 고르는 조작인데,
+        /// 탭이 조금만 흔들려도 슬라이드 임계값을 넘겨 엉뚱한 칸으로 움직여 버리기 때문이다.
+        /// </summary>
+        public bool IsShowingPlacements
+        {
+            get => _showingPlacements;
+            private set
+            {
+                _showingPlacements = value;
+
+                if (input != null)
+                {
+                    input.SwipeSuppressed = value;
+                }
+            }
+        }
+
+        private bool _showingPlacements;
 
         private void OnEnable()
         {
+            // 기본 배치는 GameSession과 같은 오브젝트다. 안 꽂혀 있으면 거기서 집어 온다.
+            if (input == null)
+            {
+                input = GetComponent<InputRouter>();
+            }
+
             if (bombButton != null)
             {
                 // 뗄 때는 아무것도 하지 않는다 — 표시를 남겨야 한 손으로 고를 수 있다.

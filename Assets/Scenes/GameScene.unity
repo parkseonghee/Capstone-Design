@@ -986,15 +986,15 @@ RectTransform:
   m_GameObject: {fileID: 653600383}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1226792059}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 8.291748}
+  m_SizeDelta: {x: 0, y: 16.576447}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &653600385
 MonoBehaviour:
@@ -1051,6 +1051,7 @@ GameObject:
   - component: {fileID: 780900001}
   - component: {fileID: 781000001}
   - component: {fileID: 780900002}
+  - component: {fileID: 781100001}
   m_Layer: 0
   m_Name: GameSession
   m_TagString: Untagged
@@ -1097,8 +1098,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.InputRouter
   swipeEnabled: 1
-  swipeThresholdPixels: 40
+  slideThresholdMillimeters: 4.5
+  directionDeadzone: 0.25
+  oneStepPerTouch: 1
+  minStepIntervalSeconds: 0.07
   ignoreSwipeOverUI: 1
+  fallbackDpi: 160
+  hapticsEnabled: 1
+  hapticMilliseconds: 12
   keyboardEnabled: 1
 --- !u!4 &758893682
 Transform:
@@ -1235,6 +1242,7 @@ MonoBehaviour:
   session: {fileID: 758893680}
   board: {fileID: 1443541776}
   bombButton: {fileID: 770100005}
+  input: {fileID: 758893681}
   markerPrefab: {fileID: 4675509845056359637, guid: 30a23d5be19dc024fae8ff32b12446ef, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 0.35}
   markerSprite: {fileID: 0}
@@ -6229,6 +6237,34 @@ MonoBehaviour:
     m_VerticalOverflow: 1
     m_LineSpacing: 1
   m_Text: "\uB2E4\uC74C \uC6E8\uC774\uBE0C"
+--- !u!114 &781100001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 758893679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe845b745ec542819c674e0c8fbc96e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.SlideFeedbackView
+  input: {fileID: 758893681}
+  session: {fileID: 758893680}
+  board: {fileID: 1443541776}
+  worldCamera: {fileID: 519420031}
+  showTouchGizmo: 1
+  gizmoColor: {r: 1, g: 1, b: 1, a: 0.45}
+  arrowColor: {r: 1, g: 0.93, b: 0.55, a: 0.9}
+  dotScale: 0.22
+  arrowScale: 0.42
+  gizmoSortingOrder: 50
+  showGhost: 0
+  ghostMoveColor: {r: 1, g: 1, b: 1, a: 0.35}
+  ghostAttackColor: {r: 1, g: 0.35, b: 0.25, a: 0.5}
+  ghostBlockedColor: {r: 0.4, g: 0.4, b: 0.45, a: 0.3}
+  ghostFill: 0.82
+  ghostSortingOrder: 4
 --- !u!1 &856727681
 GameObject:
   m_ObjectHideFlags: 0
@@ -6244,7 +6280,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &856727682
 RectTransform:
   m_ObjectHideFlags: 0
