@@ -19,10 +19,16 @@ namespace RecycleLife.Core
     public sealed class GravityResolver
     {
         private readonly BoardGrid _grid;
+        private readonly TrapResolver _traps;
 
-        public GravityResolver(BoardGrid grid)
+        /// <param name="traps">
+        /// 덫 처리. 없으면(null) 덫은 그냥 다른 블록과 똑같이 막는 장애물로 취급된다 —
+        /// 덫을 안 쓰는 기존 배선(테스트 등)을 깨지 않으려고 선택 값으로 뒀다.
+        /// </param>
+        public GravityResolver(BoardGrid grid, TrapResolver traps = null)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
+            _traps = traps;
         }
 
         /// <summary>
@@ -55,13 +61,24 @@ namespace RecycleLife.Core
                         continue;
                     }
 
-                    if (!_grid.IsEmpty(col, row + 1))
+                    if (_grid.IsEmpty(col, row + 1))
                     {
+                        _grid.Move(new Vector2Int(col, row), new Vector2Int(col, row + 1));
+                        moved++;
                         continue;
                     }
 
-                    _grid.Move(new Vector2Int(col, row), new Vector2Int(col, row + 1));
-                    moved++;
+                    // 바로 밑이 덫이면 막힌 게 아니라 "닿은" 것이다 — 무작위 빈 칸으로 날아가고
+                    // 밟힌 덫은 사라진다(일회용, 덫 몬스터 기믹). 덫 자신은 위의 HoldsPosition
+                    // 분기에서 이미 걸러졌으므로 여기 오는 entity는 항상 덫에 닿는 쪽이다.
+                    var trapBelow = new Vector2Int(col, row + 1);
+                    if (_traps != null && _grid[trapBelow] is Trap)
+                    {
+                        if (_traps.Trigger(trapBelow, entity))
+                        {
+                            moved++;
+                        }
+                    }
                 }
             }
 

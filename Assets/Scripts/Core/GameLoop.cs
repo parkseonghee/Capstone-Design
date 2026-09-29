@@ -29,6 +29,7 @@ namespace RecycleLife.Core
         private readonly BombResolver _bombs;
         private readonly GameOverChecker _gameOver;
         private readonly WaveRunner _waves;
+        private readonly TrapResolver _traps;
 
         public GameLoop(
             BoardGrid grid,
@@ -40,8 +41,10 @@ namespace RecycleLife.Core
             ISeedSpawner seedSpawner,
             BombResolver bombs,
             GameOverChecker gameOver,
-            WaveRunner waves = null)
+            WaveRunner waves = null,
+            TrapResolver traps = null)
         {
+            _traps = traps;
             Grid = grid ?? throw new ArgumentNullException(nameof(grid));
             Player = player ?? throw new ArgumentNullException(nameof(player));
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -220,6 +223,7 @@ namespace RecycleLife.Core
                            || move.Outcome == MoveOutcome.Attacked
                            || move.Outcome == MoveOutcome.Consumed
                            || move.Outcome == MoveOutcome.Armed
+                           || move.Outcome == MoveOutcome.Teleported
                            || (move.Outcome == MoveOutcome.BlockedByEntity && _config.AdvanceOnBlocked);
 
             if (!advance)
@@ -291,9 +295,11 @@ namespace RecycleLife.Core
 
                     if (trash.IsDead)
                     {
+                        bool leavesTrap = trash.LeavesTrap;
                         Grid.Remove(cell);
                         Player.AddGold(trash.Gold);
                         _waves.Report(1, 0);
+                        _traps?.MaybeLeaveTrap(leavesTrap, cell);
                     }
                 }
             }
@@ -348,9 +354,11 @@ namespace RecycleLife.Core
                 }
 
                 var target = (Trash)Grid[best];
+                bool leavesTrap = target.LeavesTrap;
                 Grid.Remove(best);
                 Player.AddGold(target.Gold);
                 _waves.Report(1, 0);
+                _traps?.MaybeLeaveTrap(leavesTrap, best);
                 killed++;
             }
 

@@ -17,12 +17,19 @@ namespace RecycleLife.Core
     public readonly struct TrashStats
     {
         public TrashStats(int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType)
-            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, 0)
+            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, 0, false)
         {
         }
 
         public TrashStats(
             int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold)
+            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, gold, false)
+        {
+        }
+
+        public TrashStats(
+            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold,
+            bool leavesTrap)
         {
             MaxHp = maxHp;
             Attack = attack;
@@ -30,6 +37,7 @@ namespace RecycleLife.Core
             SpawnWeight = spawnWeight;
             ChainsWithSameType = chainsWithSameType;
             Gold = gold;
+            LeavesTrap = leavesTrap;
         }
 
         /// <summary>체력. 아이템은 0이며 하트도 그리지 않는다.</summary>
@@ -69,6 +77,12 @@ namespace RecycleLife.Core
         /// </summary>
         public int Gold { get; }
 
+        /// <summary>
+        /// 죽으면 그 자리에 덫을 남기는 "덫 몬스터" 기믹인지. 기본은 꺼짐 —
+        /// 어느 잡몹에 붙일지는 기획이 표에서 켜는 값이라 코드에 종류를 못박지 않는다(Hard Rule 1).
+        /// </summary>
+        public bool LeavesTrap { get; }
+
         /// <summary>부딪히면 때리는 게 아니라 먹는 대상인지.</summary>
         public bool IsConsumable => Heal > 0;
 
@@ -80,10 +94,10 @@ namespace RecycleLife.Core
         /// 실제로 골드를 추가했을 때 이 경로에서 그 사고가 났다.
         /// </summary>
         public TrashStats WithSpawnWeight(int spawnWeight)
-            => new TrashStats(MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, Gold);
+            => new TrashStats(MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, Gold, LeavesTrap);
 
         /// <summary>회복량만 바꾼 사본. 유물이 포션을 강화할 때 쓴다(R06 진한 포션).</summary>
         public TrashStats WithHeal(int heal)
-            => new TrashStats(MaxHp, Attack, heal, SpawnWeight, ChainsWithSameType, Gold);
+            => new TrashStats(MaxHp, Attack, heal, SpawnWeight, ChainsWithSameType, Gold, LeavesTrap);
     }
 }

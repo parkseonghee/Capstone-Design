@@ -41,25 +41,21 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>
-        /// 새 스테이지로 들어오면 유물을 비운다. 웨이브 사이 인계라면 그대로 둔다 —
-        /// GameSession이 유물 효과(RunModifiers)를 새로 만들었는지로 판단한다.
+        /// 진짜 새 런이 시작됐을 때만 인벤토리를 비운다. 웨이브·스테이지 인계라면 그대로 둔다.
+        ///
+        /// GameSession.IsNewRun을 그대로 믿는다 — 예전에는 유물 효과(RunModifiers)가 전부
+        /// 기본값인지로 "새 런인지"를 추측했는데, 유물을 하나도 안 사고 일회용 아이템만 산
+        /// 경우엔 그 값이 웨이브를 넘어가도 항상 기본값이라 매번 새 런으로 오판해서
+        /// 방금 산 일회용 아이템까지 비워 버리는 버그가 있었다.
         /// </summary>
         private void HandleRunStarted(GameLoop loop)
         {
-            if (session == null || loop == null)
+            if (session == null || loop == null || !session.IsNewRun)
             {
                 return;
             }
 
-            // 효과 묶음이 초기화됐다 = 새 스테이지다.
-            RunModifiers mods = session.Modifiers;
-            if (mods != null && mods.BonusMaxHp == 0 && mods.BonusBombs == 0
-                && mods.BonusBlastRadius == 0 && mods.BonusPotionHeal == 0
-                && mods.GoldPercent == 100 && !mods.ImmuneToBlast && !mods.ImmuneToStatus
-                && mods.Revives == 0 && mods.WallHealPercent == 0)
-            {
-                Inventory.Clear();
-            }
+            Inventory.Clear();
         }
 
         /// <summary>그 유물을 이미 갖고 있어 더 살 수 없는지.</summary>

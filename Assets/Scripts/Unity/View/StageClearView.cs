@@ -131,6 +131,10 @@ namespace RecycleLife.Unity
                 _banked = true;
                 runProgress.MarkCleared(index);
                 runProgress.AddGold(earned);
+
+                // 다음 스테이지부터도 체력·폭탄과 함께 지갑이 그대로 이어진다(로그라이크: 실패해야만 비워짐).
+                // 방금 적립한 돈을 지갑에 그대로 두면 다음 스테이지 클리어 때 또 적립돼 버린다.
+                session.Loop.Player.BankGold();
             }
 
             if (rewardLabel != null)
@@ -176,8 +180,10 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>
-        /// 다음 스테이지로. 보드를 새로 깔아야 하므로 런 자체를 다시 시작한다 —
-        /// 이전 스테이지에서 쌓여 있던 블록을 그대로 물려받으면 새 스테이지가 아니다.
+        /// 다음 스테이지로. 보드는 새로 깔리지만(WaveRunner가 다음 웨이브로 넘어간다),
+        /// <b>플레이어는 그대로다</b> — 체력·폭탄·아이템이 스테이지를 넘어 이어진다
+        /// (로그라이크 방식, 팀 요청: 실패해야만 비워진다). 그래서 상점 나갈 때와 같은 경로인
+        /// StartNextWave를 그대로 쓴다 — 여기서 따로 런을 새로 시작하지 않는다.
         /// </summary>
         private void GoToNextStage()
         {
@@ -186,7 +192,7 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            if (!session.Loop.Waves.AdvanceToNext())
+            if (!session.StartNextWave())
             {
                 GoToVillage();
                 return;
@@ -198,7 +204,6 @@ namespace RecycleLife.Unity
             }
 
             Hide();
-            session.StartNewRun();
         }
 
         private void GoToVillage()

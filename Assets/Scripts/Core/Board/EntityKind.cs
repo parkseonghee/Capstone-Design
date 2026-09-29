@@ -19,5 +19,19 @@ namespace RecycleLife.Core
         /// 체력도 공격력도 없고 가격과 꼬리표만 있어서 Trash와 섞을 수 없다.
         /// </summary>
         ShopItem,
+
+        /// <summary>마을 화면에서 플레이어가 조작하는 아바타. 본편 Player와 달리 체력·공격이 없다.</summary>
+        VillageAvatar,
+
+        /// <summary>
+        /// 마을에 세워진 캐릭터 상(像). 부딪히면(공격하면) 그 캐릭터로 즉시 바뀐다 — 확인창 없음.
+        /// </summary>
+        CharacterStand,
+
+        /// <summary>
+        /// 덫 몬스터가 죽은 자리에 남는 덫. 체력이 없어 공격 대상이 아니며,
+        /// 플레이어나 몬스터가 닿으면 무작위 빈 칸으로 보낸다(TrapResolver).
+        /// </summary>
+        Trap,
     }
 }

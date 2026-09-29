@@ -24,9 +24,13 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("쓰레기 종류별 HP·공격력. 전투 밸런스는 전부 이 에셋에서 잡는다.")]
         private TrashStatsConfig trashStats;
 
-        [SerializeField, Tooltip("플레이할 캐릭터. 체력·공격력·공격 범위를 담는다. " +
-                                 "캐릭터를 바꾸려면 다른 CharacterConfig 에셋을 꽂으면 된다.")]
+        [SerializeField, Tooltip("플레이할 캐릭터(기본값). 체력·공격력·공격 범위를 담는다. " +
+                                 "characterSelection을 안 꽂으면 이 값을 그대로 쓴다.")]
         private CharacterConfig character;
+
+        [SerializeField, Tooltip("마을에서 고른 캐릭터를 읽어 올 곳. 꽂아 두면 매 런 시작마다 " +
+                                 "여기서 고른 캐릭터로 시작한다 — 비워 두면 위 character 필드를 그대로 쓴다.")]
+        private CharacterSelection characterSelection;
 
         [SerializeField, Tooltip("폭탄 설정 — 폭발 범위·피해·기폭 턴·시작 보유 개수.")]
         private BombConfig bombConfig;
@@ -78,6 +82,13 @@ namespace RecycleLife.Unity
 
         /// <summary>이번 런에 실제로 쓰인 시드. 재현이 필요할 때 이 값을 남긴다.</summary>
         public int CurrentSeed { get; private set; }
+
+        /// <summary>
+        /// 방금 <see cref="RunStarted"/>가 진짜 새 런(웨이브·스테이지 인계가 아님)이었는지.
+        /// RunStarted 구독자가 "이번에 상태를 비워야 하는지"를 판단할 유일하게 믿을 수 있는 값이다
+        /// — Modifiers·인벤토리가 비어 있는지로 추측하면 안 된다(유물을 안 샀을 뿐인 경우와 구분이 안 됨).
+        /// </summary>
+        public bool IsNewRun { get; private set; }
 
         public bool IsIntroPlaying => Loop != null && !Loop.IsReady;
 
@@ -153,6 +164,24 @@ namespace RecycleLife.Unity
         /// </summary>
         public RunModifiers Modifiers { get; private set; } = new RunModifiers();
 
+        /// <summary>
+        /// 게임오버 화면의 재시작 버튼이 부른다. 로그라이크 방식(팀 요청)이라
+        /// 어느 스테이지에서 죽었든 <b>1스테이지로 되돌아간다</b>.
+        ///
+        /// 죽은 직후라 _carryOver가 비어 있으므로 StartNewRun이 Modifiers를 새로 만들고,
+        /// 그걸 본 ItemService가 인벤토리를 비운다 — 이번 런에서 든 아이템은 여기서 사라진다.
+        /// 클리어 기록·누적 골드(RunProgress)는 건드리지 않는다 — 실패해도 남는 메타 진행이다.
+        /// </summary>
+        public void RestartAfterDefeat()
+        {
+            if (runProgress != null)
+            {
+                runProgress.Select(0);
+            }
+
+            StartNewRun();
+        }
+
         /// <summary>재시작 버튼이 호출한다.</summary>
         public void StartNewRun()
         {
@@ -174,7 +203,12 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            if (character == null)
+            // 마을에서 캐릭터를 골랐으면 그걸 쓰고, 아니면 인스펙터의 기본 캐릭터를 쓴다.
+            ICharacterConfig resolvedCharacter = characterSelection != null && characterSelection.SelectedConfig != null
+                ? characterSelection.SelectedConfig
+                : character;
+
+            if (resolvedCharacter == null)
             {
                 Debug.LogError($"{nameof(GameSession)}: CharacterConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
                 return;
@@ -209,14 +243,21 @@ namespace RecycleLife.Unity
                     : waveSet.CreateRunner();
             }
 
-            // 웨이브 인계가 아니면 새 스테이지 = 유물 초기화.
-            if (_carryOver == null)
+            // 웨이브 인계가 아니면 진짜 새 런이다 — 유물 초기화.
+            //
+            // RunStarted 구독자(ItemService 등)가 "이번이 새 런인지"를 직접 물을 수 있게
+            // 여기서 확정해 둔다. 예전에는 Modifiers의 값이 전부 기본값인지로 추측했는데,
+            // 유물을 하나도 안 사고 일회용 아이템만 산 상태에서는 그 값이 웨이브를 넘어가도
+            // 항상 기본값이라 "새 런"으로 오판해 매 웨이브 인벤토리를 비워 버리는 버그가 있었다.
+            IsNewRun = _carryOver == null;
+
+            if (IsNewRun)
             {
                 Modifiers = new RunModifiers();
             }
 
             Loop = GameLoopFactory.CreateStaged(
-                config, spawnConfig, trashStats, character, bombConfig,
+                config, spawnConfig, trashStats, resolvedCharacter, bombConfig,
                 new SystemRandomSource(CurrentSeed), waves, Modifiers);
 
             // 웨이브 사이 인계: 체력·폭탄·골드를 그대로 물려받는다.

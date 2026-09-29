@@ -272,5 +272,34 @@ namespace RecycleLife.Tests
 
             Assert.AreEqual(5, player.Gold);
         }
+
+        // ── 스테이지 넘어갈 때 지갑 정산 (BankGold) ──────────────────────
+        //
+        // 스테이지 사이에도 체력·폭탄과 함께 지갑이 이어지게 되면서(로그라이크 방식),
+        // 클리어할 때 총액에 적립한 돈은 지갑에서 지워야 다음 스테이지에서 또 적립되지 않는다.
+
+        [Test]
+        public void BankGoldResetsTheWalletToZero()
+        {
+            var player = new RecycleLife.Core.Player(3, 2);
+            player.AddGold(24);
+
+            player.BankGold();
+
+            Assert.AreEqual(0, player.Gold);
+        }
+
+        [Test]
+        public void BankGoldDoesNotTouchHpOrBombs()
+        {
+            var player = new RecycleLife.Core.Player(10, 2, bombs: 3);
+            player.TakeDamage(4);
+            player.AddGold(50);
+
+            player.BankGold();
+
+            Assert.AreEqual(6, player.Hp, "골드 정산이 체력을 건드리면 안 된다");
+            Assert.AreEqual(3, player.Bombs, "골드 정산이 폭탄 수를 건드리면 안 된다");
+        }
     }
 }

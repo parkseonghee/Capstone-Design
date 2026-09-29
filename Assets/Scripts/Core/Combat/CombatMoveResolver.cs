@@ -36,6 +36,9 @@ namespace RecycleLife.Core
         /// <summary>벽 처치 회복(R07)의 확률 판정에만 쓴다. 없으면 그 유물이 발동하지 않는다.</summary>
         private readonly IRandomSource _random;
 
+        /// <summary>덫 부딪힘·처치 시 덫 남기기 처리. 없으면 덫 기믹이 통째로 꺼진다(구형 배선 호환).</summary>
+        private readonly TrapResolver _traps;
+
         /// <summary>이번 행동에 피해를 받을 칸들. 매번 재사용해 할당을 만들지 않는다(Hard Rule 8).</summary>
         private readonly List<Vector2Int> _hits;
 
@@ -54,9 +57,11 @@ namespace RecycleLife.Core
             IBoardConfig config,
             ICharacterConfig character,
             ChainFinder chain,
-            IRandomSource random = null)
+            IRandomSource random = null,
+            TrapResolver traps = null)
         {
             _random = random;
+            _traps = traps;
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -93,7 +98,29 @@ namespace RecycleLife.Core
                 return Buy(shopItem);
             }
 
+            // 덫은 공격 대상이 아니다 — 닿으면 무작위 빈 칸으로 날아간다(덫 몬스터 기믹).
+            if (bumped.Kind == EntityKind.Trap)
+            {
+                return Teleport(target);
+            }
+
             return Strike(target, bumped, direction);
+        }
+
+        /// <summary>
+        /// 덫에 닿았다. 플레이어는 목표 칸으로 들어가지 않고, 대신 보드 안의 무작위 빈 칸으로
+        /// 옮겨진다. 밟힌 덫은 사라진다(일회용). 프리뷰 줄은 후보에서 뺀다 —
+        /// 플레이어는 원래 그 줄에 들어갈 수 없다(§3).
+        /// </summary>
+        private MoveResult Teleport(Vector2Int trapCell)
+        {
+            if (_traps == null || !_traps.Trigger(trapCell, _player, _config.FirstPlayableRow))
+            {
+                // 갈 빈 칸이 없는(보드가 거의 꽉 찬) 예외적인 상황. 그냥 막힌 것으로 처리한다.
+                return MoveResult.Simple(MoveOutcome.BlockedByEntity);
+            }
+
+            return MoveResult.Simple(MoveOutcome.Teleported);
         }
 
         public bool CanAct(Vector2Int target)
@@ -143,6 +170,7 @@ namespace RecycleLife.Core
                 var hit = (Trash)_grid[cell];
                 if (hit.IsDead)
                 {
+                    bool leavesTrap = hit.LeavesTrap;
                     _grid.Remove(cell);
                     killed++;
                     gold += hit.Gold;
@@ -155,6 +183,8 @@ namespace RecycleLife.Core
                         wallsDestroyed++;
                         wallHeal += RollWallHeal();
                     }
+
+                    _traps?.MaybeLeaveTrap(leavesTrap, cell);
                 }
             }
 

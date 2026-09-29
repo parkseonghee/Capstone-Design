@@ -1075,6 +1075,7 @@ MonoBehaviour:
   spawnConfig: {fileID: 11400000, guid: 5c9e2a71d4b8f3e6a72c05b981fd3e47, type: 2}
   trashStats: {fileID: 11400000, guid: 9f41c7d305b84a62b8e37150ad9c2e68, type: 2}
   character: {fileID: 11400000, guid: 8e3c17a9b45d2f60c9a83e14d572b6f8, type: 2}
+  characterSelection: {fileID: 11400000, guid: 86594c880e20fe346976579352514787, type: 2}
   bombConfig: {fileID: 11400000, guid: 6a2d40fb83c7e1958d4b6720ce19f8a3, type: 2}
   waveSet: {fileID: 11400000, guid: cfd9d1b8c6eb85ede94b8a72553e89ed, type: 2}
   runProgress: {fileID: 11400000, guid: 3b7e1c4d9a02f6584c1d8e35720ab9f1, type: 2}

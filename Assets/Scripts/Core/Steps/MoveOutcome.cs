@@ -55,5 +55,11 @@ namespace RecycleLife.Core
         /// 블록이 내려와 자리를 잡길 기다리거나, 폭탄이 터질 때까지 버틸 때 쓴다.
         /// </summary>
         Waited,
+
+        /// <summary>
+        /// 덫에 닿아 무작위 빈 칸으로 옮겨졌다. 공격·획득과 마찬가지로 한 턴을 쓰고
+        /// 플레이어는 목표 칸으로 들어가지 않는다(덫 몬스터 기믹).
+        /// </summary>
+        Teleported,
     }
 }

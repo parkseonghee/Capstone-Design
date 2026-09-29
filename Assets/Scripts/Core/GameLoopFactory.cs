@@ -66,6 +66,12 @@ namespace RecycleLife.Core
                 : new WaveSpawnWeights(trashStats, waves);
 
             var grid = new BoardGrid(board.Cols, board.Rows);
+
+            // 덫 몬스터 기믹: 죽은 자리에 덫을 남기고, 닿으면 무작위 빈 칸으로 보낸다.
+            // 여기 한 곳에서 만들어 GravityResolver·CombatMoveResolver·BombResolver·GameLoop가
+            // 전부 같은 인스턴스를 물게 한다(Hard Rule 4 — 배선은 조립 지점에만 있다).
+            var traps = new TrapResolver(grid, random);
+
             // 최대 체력 유물(R01·R02)은 생성 시점에 이미 반영돼야 하트가 맞게 그려진다.
             int maxHp = character.MaxHp + (modifiers != null ? modifiers.BonusMaxHp : 0);
             var player = new Player(maxHp, character.Attack, bomb.StartingCount);
@@ -90,19 +96,20 @@ namespace RecycleLife.Core
             var chain = new ChainFinder(grid, new SameTypeChainRule(), board.FirstPlayableRow);
 
             // 패배 판정이 이동 규칙을 알아야 한다 — 순서상 리졸버를 먼저 만든다.
-            IMoveResolver move = new CombatMoveResolver(grid, player, board, character, chain, random);
+            IMoveResolver move = new CombatMoveResolver(grid, player, board, character, chain, random, traps);
 
             return new GameLoop(
                 grid,
                 player,
                 board,
                 move,
-                new GravityResolver(grid),
+                new GravityResolver(grid, traps),
                 stepSpawner,
                 seedSpawner,
-                new BombResolver(grid, player, board, bomb),
+                new BombResolver(grid, player, board, bomb, traps),
                 new GameOverChecker(grid, player, move),
-                waves);
+                waves,
+                traps);
         }
     }
 }

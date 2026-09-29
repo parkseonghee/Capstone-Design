@@ -816,6 +816,11 @@ namespace RecycleLife.Unity
                 return PlayerViewName;
             }
 
+            if (entity.Kind == EntityKind.Trap)
+            {
+                return "Trap";
+            }
+
             var trash = entity as Trash;
             if (trash == null)
             {

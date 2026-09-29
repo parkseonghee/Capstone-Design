@@ -174,7 +174,8 @@ namespace RecycleLife.Unity
         {
             if (session != null)
             {
-                session.StartNewRun();
+                // 로그라이크 방식(팀 요청): 실패하면 죽은 자리가 아니라 1스테이지로 되돌아간다.
+                session.RestartAfterDefeat();
             }
         }
     }

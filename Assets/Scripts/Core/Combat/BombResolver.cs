@@ -23,6 +23,7 @@ namespace RecycleLife.Core
         private readonly Player _player;
         private readonly IBoardConfig _board;
         private readonly IBombConfig _bomb;
+        private readonly TrapResolver _traps;
 
         private readonly List<Vector2Int> _placements;
 
@@ -32,12 +33,14 @@ namespace RecycleLife.Core
         /// <summary>폭발 범위가 이미 훑은 칸. 인덱스는 row * Cols + col.</summary>
         private readonly bool[] _marked;
 
-        public BombResolver(BoardGrid grid, Player player, IBoardConfig board, IBombConfig bomb)
+        public BombResolver(
+            BoardGrid grid, Player player, IBoardConfig board, IBombConfig bomb, TrapResolver traps = null)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _bomb = bomb ?? throw new ArgumentNullException(nameof(bomb));
+            _traps = traps;
 
             _placements = new List<Vector2Int>(4);
             _detonating = new List<Vector2Int>(grid.CellCount);
@@ -245,10 +248,12 @@ namespace RecycleLife.Core
             trash.TakeDamage(damage);
             if (trash.IsDead)
             {
+                bool leavesTrap = trash.LeavesTrap;
                 _grid.Remove(cell);
                 destroyed++;
                 gold += trash.Gold;
                 if (trash.IsEnemy) { enemiesKilled++; } else { wallsDestroyed++; }
+                _traps?.MaybeLeaveTrap(leavesTrap, cell);
             }
 
             return 0;

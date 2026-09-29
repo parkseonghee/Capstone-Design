@@ -74,6 +74,13 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("(선택) 상품 스프라이트. 비우면 단색 사각형.")]
         private Sprite shopItemSprite;
 
+        [Header("덫 (덫 몬스터 기믹)")]
+        [SerializeField, Tooltip("덫의 색. 눈에 띄어야 플레이어가 피해 다닐 수 있다.")]
+        private Color trapColor = new Color(0.85f, 0.15f, 0.55f);
+
+        [SerializeField, Tooltip("(선택) 덫 스프라이트. 비우면 단색 사각형.")]
+        private Sprite trapSprite;
+
         /// <summary>
         /// 색을 "살 수 있는가"로 가르려면 플레이어의 골드를 알아야 한다.
         /// 뷰가 매번 넘겨주는 대신 여기 한 번 꽂아 둔다.
@@ -136,6 +143,13 @@ namespace RecycleLife.Unity
                 int gold = _goldSource != null ? _goldSource() : int.MaxValue;
                 color = gold >= shopItem.Price ? shopItemColor : shopItemUnaffordableColor;
                 sprite = shopItemSprite;
+                return;
+            }
+
+            if (entity != null && entity.Kind == EntityKind.Trap)
+            {
+                color = trapColor;
+                sprite = trapSprite;
                 return;
             }
 

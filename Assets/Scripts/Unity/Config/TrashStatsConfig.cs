@@ -53,6 +53,10 @@ namespace RecycleLife.Unity
                      "그건 종류가 다르면 자동으로 성립하므로 이 값과 무관하다. " +
                      "끄면 그 종류는 같은 종류끼리도 안 묶인다.")]
             public bool chainsWithSameType;
+
+            [Tooltip("덫 몬스터 기믹. 켜면 이 종류가 죽었을 때 그 자리에 덫이 남고, " +
+                     "플레이어나 몬스터가 닿으면 무작위 빈 칸으로 보내진다. 기본은 꺼짐.")]
+            public bool leavesTrap;
         }
 
         [Header("블록 종류별 (임시 밸런스 — 조절 대상)")]
@@ -109,7 +113,8 @@ namespace RecycleLife.Unity
                             entries[i].heal,
                             entries[i].spawnWeight,
                             entries[i].chainsWithSameType,
-                            entries[i].gold);
+                            entries[i].gold,
+                            entries[i].leavesTrap);
                     }
                 }
             }

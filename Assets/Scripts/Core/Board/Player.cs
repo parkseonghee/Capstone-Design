@@ -151,6 +151,16 @@ namespace RecycleLife.Core
             Gold = Mathf.Max(0, previous.Gold);
         }
 
+        /// <summary>
+        /// 이번 판 지갑을 0으로 되돌린다. 스테이지를 깨서 총액(RunProgress)에 적립한 직후에 부른다 —
+        /// 안 그러면 이어지는 다음 스테이지에서 같은 돈을 또 적립하게 된다(이제 스테이지 사이에도
+        /// 체력·폭탄과 함께 지갑이 그대로 이어지기 때문에 생긴 필요다. 로그라이크: 실패해야만 비워진다).
+        /// </summary>
+        public void BankGold()
+        {
+            Gold = 0;
+        }
+
         /// <summary>골드를 쓴다(상점). 모자라면 아무것도 안 하고 false.</summary>
         public bool SpendGold(int amount)
         {

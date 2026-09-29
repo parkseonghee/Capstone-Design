@@ -20,6 +20,7 @@ MonoBehaviour:
     spawnWeight: 10
     gold: 1
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 1
     maxHp: 2
     attack: 1
@@ -27,6 +28,7 @@ MonoBehaviour:
     spawnWeight: 10
     gold: 2
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 2
     maxHp: 3
     attack: 2
@@ -34,6 +36,7 @@ MonoBehaviour:
     spawnWeight: 10
     gold: 4
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 3
     maxHp: 0
     attack: 0
@@ -41,6 +44,7 @@ MonoBehaviour:
     spawnWeight: 3
     gold: 0
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 4
     maxHp: 3
     attack: 0
@@ -48,6 +52,7 @@ MonoBehaviour:
     spawnWeight: 3
     gold: 0
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 5
     maxHp: 5
     attack: 0
@@ -55,6 +60,7 @@ MonoBehaviour:
     spawnWeight: 2
     gold: 0
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 6
     maxHp: 6
     attack: 0
@@ -62,6 +68,7 @@ MonoBehaviour:
     spawnWeight: 1
     gold: 0
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 7
     maxHp: 2
     attack: 1
@@ -69,6 +76,7 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 2
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 8
     maxHp: 2
     attack: 1
@@ -76,6 +84,7 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 2
     chainsWithSameType: 1
+    leavesTrap: 1
   - type: 9
     maxHp: 3
     attack: 1
@@ -83,6 +92,7 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 3
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 10
     maxHp: 3
     attack: 2
@@ -90,6 +100,7 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 4
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 11
     maxHp: 4
     attack: 1
@@ -97,6 +108,7 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 4
     chainsWithSameType: 1
+    leavesTrap: 0
   - type: 12
     maxHp: 4
     attack: 2
@@ -104,5 +116,6 @@ MonoBehaviour:
     spawnWeight: 0
     gold: 5
     chainsWithSameType: 1
+    leavesTrap: 0
   fallbackMaxHp: 1
   fallbackAttack: 1

@@ -64,9 +64,13 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("가운데 카드가 잠겨 있을 때 띄울 안내. 비우면 표시하지 않는다.")]
         private Text hintLabel;
 
-        [SerializeField] private string lockedHint = "이전 스테이지를 먼저 클리어하세요";
-
         [SerializeField] private string unlockedHint = "눌러서 시작";
+
+        [SerializeField, Tooltip("돈을 내면 바로 들어갈 수 있는 스테이지일 때. {0} = 필요 골드.")]
+        private string payToEnterHint = "{0}G 지불하고 시작";
+
+        [SerializeField, Tooltip("돈이 모자라 못 들어갈 때. {0} = 필요 골드, {1} = 보유 골드.")]
+        private string lockedHint = "{0}G 필요 (보유 {1}G)";
 
         [Header("카드 색")]
         [SerializeField] private Color unlockedColor = new Color(0.62f, 0.26f, 0.78f, 1f);
@@ -251,8 +255,25 @@ namespace RecycleLife.Unity
 
             if (hintLabel != null)
             {
-                hintLabel.text = runProgress.IsChapterUnlocked(_index) ? unlockedHint : lockedHint;
+                hintLabel.text = HintFor(_index);
             }
+        }
+
+        /// <summary>
+        /// 가운데 카드에 띄울 안내 문구. 무료(1스테이지·이미 클리어)면 시작 안내,
+        /// 아니면 골드 지불 필요/부족 안내다(예전의 "먼저 클리어하세요"를 대체, 팀 요청).
+        /// </summary>
+        private string HintFor(int index)
+        {
+            if (runProgress.IsChapterCleared(index) || index == 0)
+            {
+                return unlockedHint;
+            }
+
+            int cost = runProgress.EntryCost(index);
+            return runProgress.CanAffordChapter(index)
+                ? string.Format(payToEnterHint, cost)
+                : string.Format(lockedHint, cost, runProgress.Gold);
         }
 
         /// <summary>카드 하나를 그 스테이지로 칠한다. 범위를 벗어나면 감춘다(양 끝에서 한쪽이 빈다).</summary>
@@ -270,24 +291,24 @@ namespace RecycleLife.Unity
             }
 
             bool cleared = runProgress.IsChapterCleared(index);
-            bool unlocked = runProgress.IsChapterUnlocked(index);
 
-            // 양옆 카드는 "넘기기"용이라 잠겨 있어도 눌러서 볼 수 있어야 한다.
-            bool pressable = card == centerCard ? unlocked : true;
+            // "열려 있다" = 지금 골드로 들어갈 수 있다(1스테이지·이미 클리어는 항상 포함).
+            // 예전의 "바로 앞 챕터를 깨야 한다" 순서 잠금은 골드 지불로 대체됐다(팀 요청).
+            bool affordable = runProgress.CanAffordChapter(index);
+
+            // 양옆 카드는 "넘기기"용이라 돈이 모자라도 눌러서 볼 수 있어야 한다.
+            bool pressable = card == centerCard ? affordable : true;
 
             card.Bind(index, string.Format(cardFormat, runProgress.ChapterNumber(index)), pressable, cleared);
-            card.Tint(cleared ? clearedColor : (unlocked ? unlockedColor : lockedColor));
+            card.Tint(cleared ? clearedColor : (affordable ? unlockedColor : lockedColor));
         }
 
         private void EnterCurrent()
         {
-            if (runProgress == null || !runProgress.IsChapterUnlocked(_index))
+            if (runProgress == null || !runProgress.TryEnterChapter(_index))
             {
                 return;
             }
-
-            // 스테이지의 첫 웨이브부터 시작한다.
-            runProgress.SelectChapter(_index);
 
             if (string.IsNullOrEmpty(gameSceneName))
             {

@@ -289,6 +289,66 @@ namespace RecycleLife.Unity
             Select(first < 0 ? 0 : first);
         }
 
+        // ── 스테이지 건너뛰기(유료) ──────────────────────────────────────
+        //
+        // 예전에는 "바로 앞 챕터를 깨야 다음이 열린다"는 순서 잠금이었다.
+        // 팀 요청(임시값, 확정 전)으로 그 잠금을 골드 지불로 바꿨다:
+        // 1챕터는 항상 무료, 이미 깬 챕터는 다시 무료, 그 외에는 chapterEntryCost만큼 낸다.
+
+        [Header("스테이지 건너뛰기 비용 (임시값)")]
+        [SerializeField, Tooltip("챕터 인덱스(0부터)별로 건너뛸 때 내는 골드. " +
+                                 "0번(1스테이지)은 계산에서 항상 0 취급된다. " +
+                                 "챕터 수보다 배열이 짧으면 남는 챕터는 배열의 마지막 값을 그대로 쓴다. " +
+                                 "기본값: 2스테이지 100골드, 3스테이지 300골드(임시, 밸런스 확정 전).")]
+        private int[] chapterEntryCost = { 0, 100, 300 };
+
+        /// <summary>
+        /// 그 챕터로 바로 건너뛸 때 내야 하는 골드. 첫 챕터거나 이미 깬 챕터면 0(무료).
+        /// </summary>
+        public int EntryCost(int chapterIndex)
+        {
+            if (unlockAll || chapterIndex <= 0 || IsChapterCleared(chapterIndex))
+            {
+                return 0;
+            }
+
+            if (chapterEntryCost == null || chapterEntryCost.Length == 0)
+            {
+                return 0;
+            }
+
+            int i = Mathf.Clamp(chapterIndex, 0, chapterEntryCost.Length - 1);
+            return Mathf.Max(0, chapterEntryCost[i]);
+        }
+
+        /// <summary>지금 가진 골드로 그 챕터에 들어갈 수 있는지(무료 조건 포함).</summary>
+        public bool CanAffordChapter(int chapterIndex)
+        {
+            return chapterIndex == 0 || IsChapterCleared(chapterIndex) || Gold >= EntryCost(chapterIndex);
+        }
+
+        /// <summary>
+        /// 지도에서 챕터를 고르면서, 필요하면 그 자리에서 골드를 낸다.
+        /// 무료 조건이 아니면 <see cref="EntryCost"/>만큼 <see cref="SpendGold"/>를 시도한다.
+        /// </summary>
+        /// <returns>실제로 그 챕터를 골랐으면 true. 돈이 모자라면 아무것도 안 하고 false.</returns>
+        public bool TryEnterChapter(int chapterIndex)
+        {
+            if (chapterIndex < 0 || chapterIndex >= ChapterCount)
+            {
+                return false;
+            }
+
+            int cost = EntryCost(chapterIndex);
+            if (cost > 0 && !SpendGold(cost))
+            {
+                return false;
+            }
+
+            SelectChapter(chapterIndex);
+            return true;
+        }
+
         /// <summary>그 웨이브가 속한 스테이지의 표시 이름. 클리어 화면이 쓴다.</summary>
         public string StageLabelForWave(int waveIndex)
             => ChapterNumber(ChapterIndexOfStage(waveIndex)).ToString();
