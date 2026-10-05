@@ -20,6 +20,7 @@ namespace RecycleLife.Core
             ChainsWithSameType = stats.ChainsWithSameType;
             Gold = Mathf.Max(0, stats.Gold);
             LeavesTrap = stats.LeavesTrap;
+            LeavesPoison = stats.LeavesPoison;
 
             // 아이템은 체력·공격력을 쓰지 않는다. MaxHp 0이면 뷰가 하트를 그리지 않는다.
             MaxHp = Mathf.Max(0, stats.MaxHp);
@@ -46,6 +47,9 @@ namespace RecycleLife.Core
 
         /// <summary>죽으면 그 자리에 덫을 남기는 "덫 몬스터" 기믹인지(TrashStats 주석 참조).</summary>
         public bool LeavesTrap { get; }
+
+        /// <summary>죽으면 그 자리에 독을 깔아 두는 "독 몬스터" 기믹인지(TrashStats 주석 참조).</summary>
+        public bool LeavesPoison { get; }
 
         /// <summary>
         /// 부딪히면 때리는 게 아니라 <b>먹는</b> 대상인지.

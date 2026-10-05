@@ -21,14 +21,21 @@ namespace RecycleLife.Core
         private readonly BoardGrid _grid;
         private readonly TrapResolver _traps;
 
+        /// <summary>
+        /// 독 처리. 없으면(null) 블록은 독을 밟아도 아무렇지 않다 — 독 기믹을 안 쓰는 배선(테스트)을
+        /// 깨지 않게 선택 값으로 둔다. 내려간 블록이 그 칸의 독을 밟는 것이 기획 5번이다.
+        /// </summary>
+        private readonly PoisonResolver _poison;
+
         /// <param name="traps">
         /// 덫 처리. 없으면(null) 덫은 그냥 다른 블록과 똑같이 막는 장애물로 취급된다 —
         /// 덫을 안 쓰는 기존 배선(테스트 등)을 깨지 않으려고 선택 값으로 뒀다.
         /// </param>
-        public GravityResolver(BoardGrid grid, TrapResolver traps = null)
+        public GravityResolver(BoardGrid grid, TrapResolver traps = null, PoisonResolver poison = null)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _traps = traps;
+            _poison = poison;
         }
 
         /// <summary>
@@ -65,6 +72,11 @@ namespace RecycleLife.Core
                     {
                         _grid.Move(new Vector2Int(col, row), new Vector2Int(col, row + 1));
                         moved++;
+
+                        // 한 칸 움직였다 — 내려선 칸이 독이거나 이미 중독이면 여기서 피해가 들어간다.
+                        // 죽은 블록을 걷어내는 건 GameLoop의 독 페이즈다 — 골드·재료·웨이브 집계가
+                        // 전부 거기 모여 있어서, 여기서 치우면 그 처리가 두 군데로 갈라진다.
+                        _poison?.OnMoved(entity);
                         continue;
                     }
 
@@ -77,6 +89,9 @@ namespace RecycleLife.Core
                         if (_traps.Trigger(trapBelow, entity))
                         {
                             moved++;
+
+                            // 날아간 자리에 독이 깔려 있을 수도 있다. 옮겨졌으니 똑같은 "움직임"이다.
+                            _poison?.OnMoved(entity);
                         }
                     }
                 }

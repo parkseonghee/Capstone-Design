@@ -14,110 +14,163 @@ MonoBehaviour:
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.ItemConfig
   items:
   - id: R01
-    displayName: 튼튼한 몸
+    displayName: "\uD2BC\uD2BC\uD55C \uBAB8"
     kind: 0
     effect: 0
     amount: 1
     chance: 0
     price: 25
     confirmed: 1
-    description: 최대 체력 +1
+    description: "\uCD5C\uB300 \uCCB4\uB825 +1"
   - id: R02
-    displayName: 강인한 몸
+    displayName: "\uAC15\uC778\uD55C \uBAB8"
     kind: 0
     effect: 0
     amount: 2
     chance: 0
     price: 45
     confirmed: 1
-    description: 최대 체력 +2
+    description: "\uCD5C\uB300 \uCCB4\uB825 +2"
   - id: R03
-    displayName: 황금 손
+    displayName: "\uD669\uAE08 \uC190"
     kind: 0
     effect: 1
     amount: 25
     chance: 0
     price: 30
     confirmed: 0
-    description: 골드 획득량 +25% (수치 미정)
+    description: "\uACE8\uB4DC \uD68D\uB4DD\uB7C9 +25% (\uC218\uCE58 \uBBF8\uC815)"
   - id: R04
-    displayName: 재생의 씨앗
+    displayName: "\uC7AC\uC0DD\uC758 \uC528\uC557"
     kind: 0
     effect: 2
     amount: 2
     chance: 0
     price: 60
     confirmed: 0
-    description: 사망 시 1회 부활, 체력 2로 복귀 (회복량 미정)
+    description: "\uC0AC\uB9DD \uC2DC 1\uD68C \uBD80\uD65C, \uCCB4\uB825 2\uB85C
+      \uBCF5\uADC0 (\uD68C\uBCF5\uB7C9 \uBBF8\uC815)"
   - id: R05
-    displayName: 대형 폭약
+    displayName: "\uB300\uD615 \uD3ED\uC57D"
     kind: 0
     effect: 3
     amount: 1
     chance: 0
     price: 50
     confirmed: 1
-    description: 폭탄 폭발 범위 3x3 에서 5x5 로
+    description: "\uD3ED\uD0C4 \uD3ED\uBC1C \uBC94\uC704 3x3 \uC5D0\uC11C 5x5 \uB85C"
   - id: R06
-    displayName: 진한 포션
+    displayName: "\uC9C4\uD55C \uD3EC\uC158"
     kind: 0
     effect: 4
     amount: 1
     chance: 0
     price: 30
     confirmed: 1
-    description: 포션 회복량 2 에서 3 으로
+    description: "\uD3EC\uC158 \uD68C\uBCF5\uB7C9 2 \uC5D0\uC11C 3 \uC73C\uB85C"
   - id: R07
-    displayName: 정화의 씨앗
+    displayName: "\uC815\uD654\uC758 \uC528\uC557"
     kind: 0
     effect: 5
     amount: 1
     chance: 25
     price: 35
     confirmed: 0
-    description: 벽을 부수면 25% 확률로 체력 1 회복 (확률·회복량 미정)
+    description: "\uBCBD\uC744 \uBD80\uC218\uBA74 25% \uD655\uB960\uB85C \uCCB4\uB825
+      1 \uD68C\uBCF5 (\uD655\uB960\xB7\uD68C\uBCF5\uB7C9 \uBBF8\uC815)"
   - id: R08
-    displayName: 폭탄 주머니
+    displayName: "\uD3ED\uD0C4 \uC8FC\uBA38\uB2C8"
     kind: 0
     effect: 6
     amount: 5
     chance: 0
     price: 40
     confirmed: 0
-    description: 폭탄 +5 (조정 예정)
+    description: "\uD3ED\uD0C4 +5 (\uC870\uC815 \uC608\uC815)"
   - id: R09
-    displayName: 방폭 장비
+    displayName: "\uBC29\uD3ED \uC7A5\uBE44"
     kind: 0
     effect: 7
     amount: 0
     chance: 0
     price: 55
     confirmed: 1
-    description: 폭발 피해 면역. 자기 폭탄에도 안 맞는다
+    description: "\uD3ED\uBC1C \uD53C\uD574 \uBA74\uC5ED. \uC790\uAE30 \uD3ED\uD0C4\uC5D0\uB3C4
+      \uC548 \uB9DE\uB294\uB2E4"
   - id: R10
-    displayName: 정화 필터
+    displayName: "\uC815\uD654 \uD544\uD130"
     kind: 0
     effect: 8
     amount: 0
     chance: 0
     price: 20
     confirmed: 0
-    description: 상태이상 피해 면역 (기믹 미구현이라 현재 무효과)
+    description: "\uC0C1\uD0DC\uC774\uC0C1 \uD53C\uD574 \uBA74\uC5ED (\uAE30\uBBF9
+      \uBBF8\uAD6C\uD604\uC774\uB77C \uD604\uC7AC \uBB34\uD6A8\uACFC)"
   - id: C01
-    displayName: 정화의 물약
+    displayName: "\uC815\uD654\uC758 \uBB3C\uC57D"
     kind: 1
     effect: 9
     amount: 1
     chance: 0
     price: 15
     confirmed: 1
-    description: 맵 전체 적에게 1 피해
+    description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 1 \uD53C\uD574"
   - id: C02
-    displayName: 대청소 물약
+    displayName: "\uB300\uCCAD\uC18C \uBB3C\uC57D"
     kind: 1
     effect: 10
     amount: 5
     chance: 0
     price: 35
     confirmed: 0
-    description: 가까운 일반 몬스터 5마리 처치 (선정 기준 미정)
+    description: "\uAC00\uAE4C\uC6B4 \uC77C\uBC18 \uBAAC\uC2A4\uD130 5\uB9C8\uB9AC
+      \uCC98\uCE58 (\uC120\uC815 \uAE30\uC900 \uBBF8\uC815)"
+  - id: C03
+    displayName: "\uD3ED\uD0C4"
+    kind: 1
+    effect: 11
+    amount: 1
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uBCF4\uB4DC\uC5D0 \uC124\uCE58\uD574 3\uD134 \uB4A4 \uD130\uC9C4\uB2E4. \uC778\uBCA4\uD1A0\uB9AC\uC5D0\uC11C \uB20C\uB7EC \uC124\uCE58\uD55C\uB2E4."
+  - id: M01
+    displayName: "\uB098\uBB34"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 10
+    confirmed: 0
+    description: "\uC870\uD569 \uC7AC\uB8CC. \uC885\uC787\uC870\uAC01\uC5D0\uC11C
+      \uB098\uC628\uB2E4."
+  - id: M02
+    displayName: "\uCCA0"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 15
+    confirmed: 0
+    description: "\uC870\uD569 \uC7AC\uB8CC. \uD398\uD2B8\uBCD1\uC5D0\uC11C \uB098\uC628\uB2E4."
+  - id: M03
+    displayName: "\uC54C\uB8E8\uBBF8\uB284"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 12
+    confirmed: 0
+    description: "\uC870\uD569 \uC7AC\uB8CC. \uCC0C\uADF8\uB7EC\uC9C4 \uCE94\uC5D0\uC11C
+      \uB098\uC628\uB2E4."
+  - id: M04
+    displayName: "\uBE44\uB2D0"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 10
+    confirmed: 0
+    description: "\uC870\uD569 \uC7AC\uB8CC. \uBE44\uB2D0\uBD09\uC9C0\uC5D0\uC11C
+      \uB098\uC628\uB2E4."

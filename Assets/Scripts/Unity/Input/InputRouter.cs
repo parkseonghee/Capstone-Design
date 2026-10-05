@@ -121,6 +121,49 @@ namespace RecycleLife.Unity
             }
         }
 
+        /// <summary>
+        /// 지금 방향 입력이 막혀 있는지 — 슬라이드도, 키보드도, 버튼 Emit도 안 받는다.
+        /// 레시피·스테이지 클리어처럼 화면을 덮는 UI가 떠 있는 동안 막힌다.
+        ///
+        /// <see cref="SwipeSuppressed"/>와 나눠 둔 이유: 폭탄 조준은 슬라이드만 막고
+        /// <b>보드 탭은 살려 둬야</b> 하지만, 전체 화면 UI는 전부 막아야 하기 때문이다.
+        /// </summary>
+        public bool InputSuppressed => _blockers.Count > 0;
+
+        /// <summary>
+        /// 입력을 막아 달라고 요청하거나 거둬들인다.
+        ///
+        /// <b>단순한 bool이 아니라 요청자 목록인 이유:</b> 화면을 덮는 UI가 여럿이라
+        /// 둘이 겹쳐 떴을 때 먼저 닫힌 쪽이 bool을 꺼 버리면 아직 떠 있는 쪽의 잠금까지
+        /// 같이 풀린다. 목록이 비어야 풀리게 하면 그 사고가 구조적으로 안 생긴다.
+        ///
+        /// 같은 요청자가 여러 번 불러도 한 번으로 친다(집합이라 중복이 안 쌓인다).
+        /// </summary>
+        /// <param name="source">요청자. 보통 호출하는 컴포넌트(this)를 넘긴다.</param>
+        /// <param name="blocked">막을지 풀지.</param>
+        public void SetInputBlocked(UnityEngine.Object source, bool blocked)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            if (blocked)
+            {
+                if (_blockers.Add(source))
+                {
+                    EndSlide();     // 떠 있던 표시까지 접는다
+                }
+
+                return;
+            }
+
+            _blockers.Remove(source);
+        }
+
+        private readonly System.Collections.Generic.HashSet<UnityEngine.Object> _blockers =
+            new System.Collections.Generic.HashSet<UnityEngine.Object>();
+
         private SlideState _slide;
         private bool _swipeSuppressed;
         private bool _dragging;
@@ -129,6 +172,11 @@ namespace RecycleLife.Unity
         /// <summary>외부(버튼 등)에서 직접 방향을 넣는 통로.</summary>
         public void Emit(Direction direction)
         {
+            if (InputSuppressed)
+            {
+                return;
+            }
+
             DirectionPressed?.Invoke(direction);
         }
 
@@ -155,6 +203,13 @@ namespace RecycleLife.Unity
 
         private void Update()
         {
+            if (InputSuppressed)
+            {
+                // 떠 있던 표시까지 접는다. 안 그러면 UI 뒤에 링이 남는다.
+                EndSlide();
+                return;
+            }
+
             if (keyboardEnabled)
             {
                 ReadKeyboard();

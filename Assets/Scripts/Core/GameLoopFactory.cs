@@ -23,10 +23,13 @@ namespace RecycleLife.Core
             IBombConfig bomb,
             IRandomSource random,
             WaveRunner waves = null,
-            RunModifiers modifiers = null)
+            RunModifiers modifiers = null,
+            IMaterialDropTable materialDrops = null,
+            IPoisonConfig poisonConfig = null)
         {
             GameLoop loop = CreateStaged(
-                board, spawn, trashStats, character, bomb, random, waves, modifiers);
+                board, spawn, trashStats, character, bomb, random, waves, modifiers, materialDrops,
+                poisonConfig);
             loop.CompleteSetup();
             return loop;
         }
@@ -43,7 +46,9 @@ namespace RecycleLife.Core
             IBombConfig bomb,
             IRandomSource random,
             WaveRunner waves = null,
-            RunModifiers modifiers = null)
+            RunModifiers modifiers = null,
+            IMaterialDropTable materialDrops = null,
+            IPoisonConfig poisonConfig = null)
         {
             if (board == null) throw new ArgumentNullException(nameof(board));
             if (spawn == null) throw new ArgumentNullException(nameof(spawn));
@@ -72,10 +77,22 @@ namespace RecycleLife.Core
             // 전부 같은 인스턴스를 물게 한다(Hard Rule 4 — 배선은 조립 지점에만 있다).
             var traps = new TrapResolver(grid, random);
 
+            // 재료 드롭도 덫과 같은 자리다 — 적이 죽는 네 군데가 전부 이 인스턴스를 물어야
+            // 어디서 죽든 같은 확률로 떨어진다. 표를 안 넘기면 null이라 아무 일도 안 일어난다.
+            MaterialDropResolver drops = materialDrops != null
+                ? new MaterialDropResolver(materialDrops, random)
+                : null;
+
             // 최대 체력 유물(R01·R02)은 생성 시점에 이미 반영돼야 하트가 맞게 그려진다.
             int maxHp = character.MaxHp + (modifiers != null ? modifiers.BonusMaxHp : 0);
             var player = new Player(maxHp, character.Attack, bomb.StartingCount);
             player.AttachModifiers(modifiers);
+
+            // 독 몬스터 기믹. 덱·드롭과 같은 자리에서 한 번만 만들어 중력·전투·폭발·루프가
+            // 전부 같은 인스턴스를 물게 한다(Hard Rule 4). 설정을 안 넘기면 null이라 기믹이 통째로 꺼진다.
+            PoisonResolver poison = poisonConfig != null
+                ? new PoisonResolver(grid, player, poisonConfig)
+                : null;
 
             if (!grid.InBounds(board.PlayerStart))
             {
@@ -96,20 +113,23 @@ namespace RecycleLife.Core
             var chain = new ChainFinder(grid, new SameTypeChainRule(), board.FirstPlayableRow);
 
             // 패배 판정이 이동 규칙을 알아야 한다 — 순서상 리졸버를 먼저 만든다.
-            IMoveResolver move = new CombatMoveResolver(grid, player, board, character, chain, random, traps);
+            IMoveResolver move = new CombatMoveResolver(
+                grid, player, board, character, chain, random, traps, drops, poison);
 
             return new GameLoop(
                 grid,
                 player,
                 board,
                 move,
-                new GravityResolver(grid, traps),
+                new GravityResolver(grid, traps, poison),
                 stepSpawner,
                 seedSpawner,
-                new BombResolver(grid, player, board, bomb, traps),
+                new BombResolver(grid, player, board, bomb, traps, drops, poison),
                 new GameOverChecker(grid, player, move),
                 waves,
-                traps);
+                traps,
+                drops,
+                poison);
         }
     }
 }

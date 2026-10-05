@@ -10,13 +10,16 @@ namespace RecycleLife.Unity
     /// 폭탄 설치 조작. 기획서(폭탄·아이템·기믹 v1) §1-2.
     ///
     /// 흐름은 셋이다:
-    ///  1. 설치 버튼을 누르면 한 칸 거리의 설치 가능 칸에 표시가 뜬다.
+    ///  1. <b>인벤토리의 폭탄 칸</b>을 누르면 한 칸 거리의 설치 가능 칸에 표시가 뜬다.
     ///  2. 표시된 칸을 <b>탭하면</b> 거기에 폭탄이 놓인다.
-    ///  3. 다른 곳을 탭하거나 버튼을 다시 누르면 취소된다.
+    ///  3. 다른 곳을 탭하거나 폭탄 칸을 다시 누르면 취소된다.
     ///
     /// <b>손을 떼도 표시는 남는다.</b> 처음엔 "누르고 있는 동안만" 띄웠는데,
     /// 그러면 포인터가 하나일 때(에디터 마우스, 한 손 조작) 버튼을 누른 채로 보드를 탭할 수가 없어
     /// 설치 자체가 불가능했다. 표시를 남기면 한 손으로도, 두 손가락으로도 똑같이 동작한다.
+    ///
+    /// 전용 설치 버튼(Btn_Bomb)은 없어졌다 — 폭탄이 인벤토리의 한 칸이 되면서
+    /// 켜는 쪽이 <see cref="Toggle"/>를 부른다. 그래서 이 컴포넌트는 더 이상 버튼을 모른다.
     ///
     /// 어디에 놓을 수 있는지는 전부 Core(GameLoop.CollectBombPlacements)가 정한다.
     /// 이 컴포넌트는 그 목록을 화면에 비추고 탭을 칸 좌표로 바꿔 넘길 뿐이다(Hard Rule 5).
@@ -32,9 +35,6 @@ namespace RecycleLife.Unity
 
         [SerializeField, Tooltip("보드 좌표를 물어볼 뷰. 표시도 이 보드의 좌표계 위에 얹는다.")]
         private BoardView board;
-
-        [SerializeField, Tooltip("꾹 누르기를 받는 버튼. 씬에서 연결한다.")]
-        private BombButton bombButton;
 
         [SerializeField, Tooltip("조준하는 동안 슬라이드를 잠글 라우터. 비워 두면 같은 오브젝트에서 찾는다.")]
         private InputRouter input;
@@ -69,14 +69,26 @@ namespace RecycleLife.Unity
             get => _showingPlacements;
             private set
             {
+                bool changed = _showingPlacements != value;
                 _showingPlacements = value;
 
                 if (input != null)
                 {
                     input.SwipeSuppressed = value;
                 }
+
+                if (changed)
+                {
+                    ShowingChanged?.Invoke(value);
+                }
             }
         }
+
+        /// <summary>
+        /// 조준이 켜지거나 꺼졌을 때. 인벤토리의 폭탄 칸이 구독해 글자를 "설치"/"취소"로 바꾼다 —
+        /// 조준이 켜졌는지는 보드의 표시만 보고는 알기 어렵고, 끄는 방법도 알려 줘야 한다.
+        /// </summary>
+        public event System.Action<bool> ShowingChanged;
 
         private bool _showingPlacements;
 
@@ -86,12 +98,6 @@ namespace RecycleLife.Unity
             if (input == null)
             {
                 input = GetComponent<InputRouter>();
-            }
-
-            if (bombButton != null)
-            {
-                // 뗄 때는 아무것도 하지 않는다 — 표시를 남겨야 한 손으로 고를 수 있다.
-                bombButton.HoldStarted += TogglePlacements;
             }
 
             if (session != null)
@@ -104,11 +110,6 @@ namespace RecycleLife.Unity
 
         private void OnDisable()
         {
-            if (bombButton != null)
-            {
-                bombButton.HoldStarted -= TogglePlacements;
-            }
-
             if (session != null)
             {
                 session.Stepped -= HandleStepped;
@@ -128,8 +129,10 @@ namespace RecycleLife.Unity
             ReadTap();
         }
 
-        /// <summary>버튼을 누를 때마다 표시를 켜고 끈다.</summary>
-        private void TogglePlacements()
+        /// <summary>
+        /// 누를 때마다 설치 표시를 켜고 끈다. 인벤토리의 폭탄 칸이 부른다.
+        /// </summary>
+        public void Toggle()
         {
             if (IsShowingPlacements)
             {
@@ -140,10 +143,23 @@ namespace RecycleLife.Unity
             ShowPlacements();
         }
 
+        /// <summary>조준을 끈다. 폭탄이 바닥났거나 다른 화면이 열릴 때 부른다.</summary>
+        public void Cancel()
+        {
+            HidePlacements();
+        }
+
         /// <summary>설치 가능 칸을 계산해 화면에 띄운다.</summary>
         private void ShowPlacements()
         {
             if (session == null || session.Loop == null || board == null || !session.Loop.IsReady)
+            {
+                return;
+            }
+
+            // 폭탄이 없으면 켜지 않는다. 켜 봤자 표시될 칸이 없는데 슬라이드 이동만 잠겨
+            // 조작이 먹통이 된 것처럼 느껴진다.
+            if (session.Loop.Player == null || session.Loop.Player.Bombs <= 0)
             {
                 return;
             }
@@ -242,7 +258,7 @@ namespace RecycleLife.Unity
         /// <summary>
         /// 보드를 탭했는지 본다. 표시된 칸을 찍었으면 거기에 폭탄을 놓는다.
         ///
-        /// UI 위에서 시작한 탭은 무시한다 — 설치 버튼을 누르는 손가락 자체가
+        /// UI 위에서 시작한 탭은 무시한다 — 인벤토리의 폭탄 칸을 누르는 손가락 자체가
         /// 설치로 오인되면 안 되기 때문이다.
         /// </summary>
         private void ReadTap()

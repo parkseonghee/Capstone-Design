@@ -55,11 +55,28 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("마을 씬 이름. Build Settings에 등록돼 있어야 한다.")]
         private string villageSceneName = "Village";
 
+        [SerializeField, Tooltip("화면이 떠 있는 동안 조작을 막을 라우터. 비워 두면 같은 오브젝트에서 찾는다.")]
+        private InputRouter input;
+
+        [SerializeField, Tooltip("마을로 갈 때 재료를 넘길 곳. 비워 두면 같은 오브젝트에서 찾는다.")]
+        private ItemService items;
+
         /// <summary>이번 스테이지 골드를 이미 적립했는지. 패널이 여러 번 떠도 두 번 넣지 않는다.</summary>
         private bool _banked;
 
         private void OnEnable()
         {
+            // 기본 배치는 GameSession과 같은 오브젝트다. 안 꽂혀 있으면 거기서 집어 온다.
+            if (input == null)
+            {
+                input = GetComponent<InputRouter>();
+            }
+
+            if (items == null)
+            {
+                items = GetComponent<ItemService>();
+            }
+
             if (session != null)
             {
                 session.RunStarted += HandleRunStarted;
@@ -82,6 +99,24 @@ namespace RecycleLife.Unity
 
             if (nextButton != null) { nextButton.onClick.RemoveListener(GoToNextStage); }
             if (villageButton != null) { villageButton.onClick.RemoveListener(GoToVillage); }
+
+            // 꺼지면서 잠근 채로 두면 판이 멈춘다.
+            SetInputBlocked(false);
+        }
+
+        /// <summary>
+        /// 클리어 화면이 떠 있는 동안 방향 입력을 잠근다.
+        ///
+        /// 웨이브는 끝났지만 <b>루프는 아직 살아 있어서</b>, 막지 않으면 패널 뒤에서
+        /// 플레이어가 계속 움직이고 보드도 같이 진행한다. 레이캐스트는 터치만 막고
+        /// 키보드는 그대로 통하므로 라우터를 직접 잠근다.
+        /// </summary>
+        private void SetInputBlocked(bool blocked)
+        {
+            if (input != null)
+            {
+                input.SetInputBlocked(this, blocked);
+            }
         }
 
         private void HandleRunStarted(GameLoop loop)
@@ -169,6 +204,8 @@ namespace RecycleLife.Unity
             {
                 panel.SetActive(true);
             }
+
+            SetInputBlocked(true);
         }
 
         private void Hide()
@@ -177,6 +214,8 @@ namespace RecycleLife.Unity
             {
                 panel.SetActive(false);
             }
+
+            SetInputBlocked(false);
         }
 
         /// <summary>
@@ -212,6 +251,13 @@ namespace RecycleLife.Unity
             {
                 Debug.LogWarning($"{nameof(StageClearView)}: villageSceneName이 비어 있습니다.", this);
                 return;
+            }
+
+            // 씬을 갈아타면 인벤토리는 사라진다. 넘어가기 <b>전에</b> 재료를 마을에 맡긴다.
+            // 유물은 여기서 버려진다 — 런 한정이라는 전제 그대로다.
+            if (items != null)
+            {
+                items.DepositToVillage();
             }
 
             SceneManager.LoadScene(villageSceneName);

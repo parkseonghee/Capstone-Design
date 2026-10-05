@@ -28,7 +28,14 @@ namespace RecycleLife.Unity
         [SerializeField, Min(0f), Tooltip("보드 가장자리와 화면 사이 여백(월드 단위).")]
         private float padding = 0.5f;
 
-        [SerializeField, Tooltip("HUD 자리를 비우려고 보드를 위아래로 밀 때 쓰는 오프셋(월드 단위).")]
+        [Header("보드가 쓸 화면 구간")]
+        [SerializeField, Range(0f, 0.8f), Tooltip("위쪽 HUD에 내주는 몫(화면 높이 비율).")]
+        private float topMargin = 0.129f;
+
+        [SerializeField, Range(0f, 0.8f), Tooltip("아래쪽 조작·인벤토리에 내주는 몫(화면 높이 비율).")]
+        private float bottomMargin = 0.275f;
+
+        [SerializeField, Tooltip("구간 안에서 보드를 한 번 더 밀고 싶을 때 쓰는 미세 조정(월드 단위).")]
         private float verticalOffset;
 
         private Camera _camera;
@@ -67,7 +74,12 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            float halfHeightNeeded = board.y * 0.5f + padding;
+            // 보드는 화면 전체가 아니라 위아래 여백을 뺀 <b>구간</b> 안에 들어가야 한다.
+            // 구간이 화면의 band(예: 0.596)만 차지하므로, 같은 보드를 담으려면
+            // 카메라가 그만큼 더 넓게 봐야 한다 — 그래서 필요한 높이를 band로 나눈다.
+            float band = Mathf.Clamp(1f - topMargin - bottomMargin, 0.05f, 1f);
+
+            float halfHeightNeeded = (board.y * 0.5f + padding) / band;
             float halfWidthNeeded = (board.x * 0.5f + padding) / _camera.aspect;
 
             _camera.orthographicSize = Mathf.Max(halfHeightNeeded, halfWidthNeeded);
@@ -76,7 +88,13 @@ namespace RecycleLife.Unity
             {
                 Vector3 center = boardView.BoardWorldCenter;
                 Vector3 position = _camera.transform.position;
-                _camera.transform.position = new Vector3(center.x, center.y + verticalOffset, position.z);
+
+                // 구간의 한가운데가 화면 중심에서 얼마나 떨어져 있는지(화면 높이 비율).
+                // 보드 중심이 거기 오도록 카메라를 반대로 민다.
+                float bandCenter = bottomMargin + band * 0.5f;
+                float shift = (bandCenter - 0.5f) * 2f * _camera.orthographicSize;
+
+                _camera.transform.position = new Vector3(center.x, center.y - shift + verticalOffset, position.z);
             }
 
             _lastAspect = _camera.aspect;

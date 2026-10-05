@@ -30,6 +30,8 @@ namespace RecycleLife.Core
         private readonly GameOverChecker _gameOver;
         private readonly WaveRunner _waves;
         private readonly TrapResolver _traps;
+        private readonly MaterialDropResolver _drops;
+        private readonly PoisonResolver _poison;
 
         public GameLoop(
             BoardGrid grid,
@@ -42,9 +44,13 @@ namespace RecycleLife.Core
             BombResolver bombs,
             GameOverChecker gameOver,
             WaveRunner waves = null,
-            TrapResolver traps = null)
+            TrapResolver traps = null,
+            MaterialDropResolver drops = null,
+            PoisonResolver poison = null)
         {
             _traps = traps;
+            _drops = drops;
+            _poison = poison;
             Grid = grid ?? throw new ArgumentNullException(nameof(grid));
             Player = player ?? throw new ArgumentNullException(nameof(player));
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -121,6 +127,18 @@ namespace RecycleLife.Core
         /// 웨이브를 안 쓰는 런에서도 null이 아니다(IsIdle이 true인 빈 러너가 들어간다).
         /// </summary>
         public WaveRunner Waves => _waves;
+
+        /// <summary>
+        /// 재료 드롭. 몬스터가 죽을 때 Dropped가 울리고, Unity 쪽 인벤토리가 그걸 받는다.
+        /// 드롭 표를 안 꽂았으면 null이다(= 재료가 아예 안 나온다).
+        /// </summary>
+        public MaterialDropResolver MaterialDrops => _drops;
+
+        /// <summary>
+        /// 바닥에 깔린 독. 독이 깔린 칸을 뷰가 읽어 그린다.
+        /// 독 설정을 안 꽂았으면 null이다(= 독 기믹이 통째로 꺼진다).
+        /// </summary>
+        public PoisonResolver Poison => _poison;
 
         /// <summary>
         /// 프리뷰 줄 바로 아래, 플레이 가능한 첫 행. 뷰가 프리뷰 줄을 다르게 그릴 때 읽는다 —
@@ -296,10 +314,13 @@ namespace RecycleLife.Core
                     if (trash.IsDead)
                     {
                         bool leavesTrap = trash.LeavesTrap;
+                        bool leavesPoison = trash.LeavesPoison;
                         Grid.Remove(cell);
                         Player.AddGold(trash.Gold);
                         _waves.Report(1, 0);
                         _traps?.MaybeLeaveTrap(leavesTrap, cell);
+                        _poison?.MaybeLeavePoison(leavesPoison, cell);
+                        _drops?.MaybeDrop(trash);
                     }
                 }
             }
@@ -355,10 +376,13 @@ namespace RecycleLife.Core
 
                 var target = (Trash)Grid[best];
                 bool leavesTrap = target.LeavesTrap;
+                bool leavesPoison = target.LeavesPoison;
                 Grid.Remove(best);
                 Player.AddGold(target.Gold);
                 _waves.Report(1, 0);
                 _traps?.MaybeLeaveTrap(leavesTrap, best);
+                _poison?.MaybeLeavePoison(leavesPoison, best);
+                _drops?.MaybeDrop(target);
                 killed++;
             }
 
@@ -400,6 +424,15 @@ namespace RecycleLife.Core
         /// </summary>
         private StepResult AdvanceBoard(MoveResult move)
         {
+            // ── 페이즈 0: 독(플레이어) ──────────────────────────
+            // 칸을 정말로 옮긴 행동만 독을 밟는다. 공격·대기·폭탄 설치는 제자리에서 끝나므로
+            // 밟을 새 자체가 없다. 이동이 끝난 뒤에 보는 것도 그 때문이다 — 들어선 칸을 봐야 한다.
+            if (_poison != null
+                && (move.Outcome == MoveOutcome.Moved || move.Outcome == MoveOutcome.Teleported))
+            {
+                _poison.OnMoved(Player);
+            }
+
             // 죽었어도 부활 유물(R04)이 남아 있으면 한 번 일어난다.
             Player.TryRevive();
 
@@ -437,6 +470,17 @@ namespace RecycleLife.Core
             // 여기서 한 칸 내려와 플레이 영역으로 들어간다.
             int settled = _gravity.Step();
 
+            // ── 페이즈 3.5: 독 ──────────────────────────────────
+            // 떨어지면서 독을 밟아 죽은 블록을 걷어내고, 장판 수명과 중독 시간을 한 턴씩 깎는다.
+            // 스폰보다 먼저 도는 이유는 중력과 같다 — 죽어서 생긴 빈 칸이 이번 턴에 전부 정리돼야 한다.
+            int poisonedEnemies = 0;
+            int poisonedWalls = 0;
+            if (_poison != null)
+            {
+                SweepPoisonDeaths(ref poisonedEnemies, ref poisonedWalls);
+                _poison.Tick();
+            }
+
             // ── 페이즈 4: 스폰 ───────────────────────────────────────────────
             // 중력 뒤에 도는 이유: 프리뷰 칸을 먼저 비워야 이번 턴 블록이 들어갈 자리가 생긴다.
             int spawned = _stepSpawner.Spawn();
@@ -445,14 +489,55 @@ namespace RecycleLife.Core
             // ── 페이즈 5: 웨이브 진행도 ──────────────────────────────────────
             // 스폰 뒤에 세는 이유: 목표를 채워 웨이브가 넘어가면 그 다음 스폰부터
             // 새 조합이 내려와야 하는데, 이번 턴 스폰은 아직 이전 웨이브의 것이 맞기 때문이다.
-            _waves.Report(move.EnemiesKilled + blast.EnemiesKilled,
-                          move.WallsDestroyed + blast.WallsDestroyed);
+            _waves.Report(move.EnemiesKilled + blast.EnemiesKilled + poisonedEnemies,
+                          move.WallsDestroyed + blast.WallsDestroyed + poisonedWalls);
 
             // ── 페이즈 6: 패배 판정 ──────────────────────────────────────────
             Reason = _gameOver.Evaluate(spawnBlocked);
 
             StepCount++;
             return new StepResult(move, blast, true, settled, spawned, spawnBlocked, Reason);
+        }
+
+        /// <summary>
+        /// 독으로 죽은 블록을 걷어낸다. 중력 페이즈가 도는 도중에 죽은 것들이라
+        /// 그 자리에서 바로 치우지 않고 여기서 한꺼번에 정리한다 — 처치 보상(골드·재료·덱·독)을
+        /// 먹이는 처리가 그렇게 해야 한 군데에 모인다.
+        ///
+        /// 여기서 살아서 죽은 블록은 다른 경로가 없다 — 공격·폭발·아이템은 죽이자마자 걷어낸다.
+        /// </summary>
+        private void SweepPoisonDeaths(ref int enemiesKilled, ref int wallsDestroyed)
+        {
+            for (int row = 0; row < Grid.Rows; row++)
+            {
+                for (int col = 0; col < Grid.Cols; col++)
+                {
+                    var cell = new Vector2Int(col, row);
+                    var trash = Grid[cell] as Trash;
+                    if (trash == null || !trash.IsDead)
+                    {
+                        continue;
+                    }
+
+                    bool leavesTrap = trash.LeavesTrap;
+                    bool leavesPoison = trash.LeavesPoison;
+                    Grid.Remove(cell);
+                    Player.AddGold(trash.Gold);
+
+                    if (trash.IsEnemy)
+                    {
+                        enemiesKilled++;
+                    }
+                    else
+                    {
+                        wallsDestroyed++;
+                    }
+
+                    _traps?.MaybeLeaveTrap(leavesTrap, cell);
+                    _poison?.MaybeLeavePoison(leavesPoison, cell);
+                    _drops?.MaybeDrop(trash);
+                }
+            }
         }
 
         /// <summary>

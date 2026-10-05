@@ -81,6 +81,27 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("(선택) 덫 스프라이트. 비우면 단색 사각형.")]
         private Sprite trapSprite;
 
+        [Header("독 (독 몬스터 기믹)")]
+        [SerializeField, Tooltip("바닥에 깔린 독의 색. 밟고 지나갈 수 있는 것이라 블록처럼 보이면 안 된다 — " +
+                                 "반투명하게 깔아 그 칸이 그대로 비치게 했다.")]
+        private Color poisonColor = new Color(0.45f, 0.85f, 0.25f, 0.55f);
+
+        [SerializeField, Tooltip("(선택) 독 스프라이트. 비우면 단색 사각형.")]
+        private Sprite poisonSprite;
+
+        [SerializeField, Range(0f, 1f), Tooltip("사라지기 직전(남은 한 턴) 독의 투명도 배율. " +
+                                                "낮추면 흐려져서 곧 사라진다는 게 보인다.")]
+        private float poisonFadingAlpha = 0.5f;
+
+        /// <summary>바닥에 깔린 독의 색. 독은 엔티티가 아니라 Resolve를 거치지 않는다.</summary>
+        public Color PoisonColor => poisonColor;
+
+        /// <summary>(선택) 독 스프라이트. 비어 있으면 단색 사각형을 쓴다.</summary>
+        public Sprite PoisonSprite => poisonSprite;
+
+        /// <summary>마지막 한 턴에 쓸 투명도 배율.</summary>
+        public float PoisonFadingAlpha => poisonFadingAlpha;
+
         /// <summary>
         /// 색을 "살 수 있는가"로 가르려면 플레이어의 골드를 알아야 한다.
         /// 뷰가 매번 넘겨주는 대신 여기 한 번 꽂아 둔다.

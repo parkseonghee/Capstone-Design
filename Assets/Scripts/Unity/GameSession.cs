@@ -35,6 +35,13 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("폭탄 설정 — 폭발 범위·피해·기폭 턴·시작 보유 개수.")]
         private BombConfig bombConfig;
 
+        [SerializeField, Tooltip("독 설정 — 장판 수명·중독 지속·이동 피해. " +
+                                 "비워 두면 독 기믹이 통째로 꺼진다(독 몬스터가 죽어도 아무 일도 안 일어난다).")]
+        private PoisonConfig poisonConfig;
+
+        [SerializeField, Tooltip("몬스터 종류별 재료 드롭 표. 비워 두면 재료가 나오지 않는다.")]
+        private MaterialDropConfig materialDrops;
+
         [SerializeField, Tooltip("웨이브 목록(3스테이지 × 3웨이브). 비워 두면 웨이브 없이 무한히 돈다.")]
         private WaveSet waveSet;
 
@@ -258,7 +265,7 @@ namespace RecycleLife.Unity
 
             Loop = GameLoopFactory.CreateStaged(
                 config, spawnConfig, trashStats, resolvedCharacter, bombConfig,
-                new SystemRandomSource(CurrentSeed), waves, Modifiers);
+                new SystemRandomSource(CurrentSeed), waves, Modifiers, materialDrops, poisonConfig);
 
             // 웨이브 사이 인계: 체력·폭탄·골드를 그대로 물려받는다.
             if (_carryOver != null)

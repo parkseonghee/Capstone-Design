@@ -57,6 +57,11 @@ namespace RecycleLife.Unity
             [Tooltip("덫 몬스터 기믹. 켜면 이 종류가 죽었을 때 그 자리에 덫이 남고, " +
                      "플레이어나 몬스터가 닿으면 무작위 빈 칸으로 보내진다. 기본은 꺼짐.")]
             public bool leavesTrap;
+
+            [Tooltip("독 몬스터 기믹. 켜면 이 종류가 죽었을 때 그 자리에 독이 깔린다. " +
+                     "독은 떨어지지 않고 두 턴 뒤 사라지며, 플레이어든 몬스터든 밟으면 " +
+                     "한 턴 동안 움직일 때마다 피해를 받는다. 기본은 꺼짐.")]
+            public bool leavesPoison;
         }
 
         [Header("블록 종류별 (임시 밸런스 — 조절 대상)")]
@@ -114,7 +119,8 @@ namespace RecycleLife.Unity
                             entries[i].spawnWeight,
                             entries[i].chainsWithSameType,
                             entries[i].gold,
-                            entries[i].leavesTrap);
+                            entries[i].leavesTrap,
+                            entries[i].leavesPoison);
                     }
                 }
             }

@@ -117,5 +117,6 @@ MonoBehaviour:
     gold: 5
     chainsWithSameType: 1
     leavesTrap: 0
+    leavesPoison: 1
   fallbackMaxHp: 1
   fallbackAttack: 1

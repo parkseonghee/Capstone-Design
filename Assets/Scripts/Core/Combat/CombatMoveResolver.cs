@@ -38,6 +38,10 @@ namespace RecycleLife.Core
 
         /// <summary>덫 부딪힘·처치 시 덫 남기기 처리. 없으면 덫 기믹이 통째로 꺼진다(구형 배선 호환).</summary>
         private readonly TrapResolver _traps;
+        private readonly MaterialDropResolver _drops;
+
+        /// <summary>독 몬스터를 잡았을 때 그 자리에 독을 깔기 위해 쓴다. 없으면 독 기믹이 꺼진다.</summary>
+        private readonly PoisonResolver _poison;
 
         /// <summary>이번 행동에 피해를 받을 칸들. 매번 재사용해 할당을 만들지 않는다(Hard Rule 8).</summary>
         private readonly List<Vector2Int> _hits;
@@ -58,10 +62,14 @@ namespace RecycleLife.Core
             ICharacterConfig character,
             ChainFinder chain,
             IRandomSource random = null,
-            TrapResolver traps = null)
+            TrapResolver traps = null,
+            MaterialDropResolver drops = null,
+            PoisonResolver poison = null)
         {
             _random = random;
             _traps = traps;
+            _drops = drops;
+            _poison = poison;
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -171,6 +179,7 @@ namespace RecycleLife.Core
                 if (hit.IsDead)
                 {
                     bool leavesTrap = hit.LeavesTrap;
+                    bool leavesPoison = hit.LeavesPoison;
                     _grid.Remove(cell);
                     killed++;
                     gold += hit.Gold;
@@ -185,6 +194,8 @@ namespace RecycleLife.Core
                     }
 
                     _traps?.MaybeLeaveTrap(leavesTrap, cell);
+                    _poison?.MaybeLeavePoison(leavesPoison, cell);
+                    _drops?.MaybeDrop(hit);
                 }
             }
 

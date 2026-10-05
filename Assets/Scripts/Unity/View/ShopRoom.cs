@@ -39,6 +39,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("수치가 아직 '미정'인 아이템도 깔지. 끄면 확정된 것만 나온다.")]
         private bool includeUnconfirmed = true;
 
+        [SerializeField, Tooltip("상점이 취급하는 종류. 재료·조합 시스템 도입으로 유물 직판을 접고 " +
+                                 "재료만 팔도록 바꿨다. 되돌리려면 여기에 Relic을 더하면 된다.")]
+        private ItemConfig.Kind[] soldKinds = { ItemConfig.Kind.Material };
+
         [Header("HUD (씬에서 배치)")]
         [SerializeField, Tooltip("상점에 있는 동안만 켜지는 안내. 비워도 된다.")]
         private GameObject banner;
@@ -174,7 +178,13 @@ namespace RecycleLife.Unity
 
         /// <summary>
         /// 상품을 뽑아 슬롯 칸에 놓는다.
-        /// <b>이미 가진 유물은 빼고</b> 뽑는다 — 중복 획득이 안 되니 깔아 봐야 소용이 없다.
+        ///
+        /// <see cref="soldKinds"/>에 든 종류만 깐다. <b>이미 가진 유물은 빼고</b> 뽑는다 —
+        /// 중복 획득이 안 되니 깔아 봐야 소용이 없다.
+        ///
+        /// <b>쌓이는 물건은 한 상점에 두 번 나올 수 있다.</b> 재료는 종류가 몇 안 되는데
+        /// 한 번 뽑힌 걸 후보에서 빼 버리면 슬롯 수보다 종류가 적을 때 매대가 빈 채로 열린다.
+        /// 나무를 두 칸에 까는 건 이상하지 않지만 빈 매대는 이상하다.
         /// </summary>
         private void RollAndPlace(GameLoop loop)
         {
@@ -188,6 +198,7 @@ namespace RecycleLife.Unity
             ItemConfig.Entry[] all = catalog.Items;
             for (int i = 0; i < all.Length; i++)
             {
+                if (!Sells(all[i].kind)) { continue; }
                 if (!includeUnconfirmed && !all[i].confirmed) { continue; }
                 if (items.AlreadyOwned(all[i])) { continue; }
 
@@ -198,10 +209,34 @@ namespace RecycleLife.Unity
             {
                 int pick = Random.Range(0, _pool.Count);
                 ItemConfig.Entry item = all[_pool[pick]];
-                _pool.RemoveAt(pick);
+
+                // 유물은 하나뿐이라 뽑고 나면 후보에서 빠진다. 쌓이는 물건은 남겨 둔다.
+                if (item.kind == ItemConfig.Kind.Relic)
+                {
+                    _pool.RemoveAt(pick);
+                }
 
                 loop.PlaceShopItem(item.id, item.price, slots[s]);
             }
+        }
+
+        /// <summary>이 상점이 그 종류를 취급하는지.</summary>
+        private bool Sells(ItemConfig.Kind kind)
+        {
+            if (soldKinds == null || soldKinds.Length == 0)
+            {
+                return true;    // 지정이 없으면 예전처럼 전부 취급한다
+            }
+
+            for (int i = 0; i < soldKinds.Length; i++)
+            {
+                if (soldKinds[i] == kind)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void Hide()

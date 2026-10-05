@@ -22,6 +22,13 @@ namespace RecycleLife.Unity
 
             /// <summary>일회성. 들고 있다가 눌러서 쓴다. 여러 개 살 수 있다.</summary>
             Consumable,
+
+            /// <summary>
+            /// 재료. 몬스터를 잡으면 떨어지고, 인벤토리에서 둘을 겹쳐 유물로 조합한다.
+            /// 그 자체로는 아무 효과가 없어서 <see cref="Entry.effect"/>는 쓰이지 않는다.
+            /// 일회성처럼 개수로 쌓인다.
+            /// </summary>
+            Material,
         }
 
         public enum Effect
@@ -58,6 +65,20 @@ namespace RecycleLife.Unity
 
             /// <summary>맵의 일반 몬스터를 처치. C02. amount = 마리 수.</summary>
             KillEnemies,
+
+            /// <summary>
+            /// 설치용 폭탄. C03. amount = 한 개당 늘어나는 보유 수(보통 1).
+            ///
+            /// 이 효과를 가진 일회성은 <b>인벤토리 칸에 쌓이지 않고 보유 폭탄 수로 들어간다</b>
+            /// (<see cref="RecycleLife.Unity.ItemService.Acquire"/>). 폭탄은 Core가 이미
+            /// Player.Bombs로 세고 있어서 — 설치 가능 여부·소모·웨이브 인계·유물 R08이 전부 그 숫자를
+            /// 본다 — RunInventory에 같은 숫자를 또 두면 둘을 맞추는 코드가 영원히 따라붙는다.
+            /// 인벤토리 목록에는 그 숫자를 한 줄로 비춘다.
+            ///
+            /// 새 항목은 <b>반드시 끝에 붙인다</b> — 에셋에 번호로 저장돼 있어 중간에 끼우면
+            /// 기존 아이템의 효과가 전부 한 칸씩 밀린다.
+            /// </summary>
+            PlaceBomb,
         }
 
         [Serializable]

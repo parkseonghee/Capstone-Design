@@ -24,6 +24,10 @@ namespace RecycleLife.Core
         private readonly IBoardConfig _board;
         private readonly IBombConfig _bomb;
         private readonly TrapResolver _traps;
+        private readonly MaterialDropResolver _drops;
+
+        /// <summary>독 몬스터를 잡았을 때 그 자리에 독을 깔기 위해 쓴다. 없으면 독 기믹이 꺼진다.</summary>
+        private readonly PoisonResolver _poison;
 
         private readonly List<Vector2Int> _placements;
 
@@ -34,13 +38,16 @@ namespace RecycleLife.Core
         private readonly bool[] _marked;
 
         public BombResolver(
-            BoardGrid grid, Player player, IBoardConfig board, IBombConfig bomb, TrapResolver traps = null)
+            BoardGrid grid, Player player, IBoardConfig board, IBombConfig bomb, TrapResolver traps = null,
+            MaterialDropResolver drops = null, PoisonResolver poison = null)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _bomb = bomb ?? throw new ArgumentNullException(nameof(bomb));
             _traps = traps;
+            _drops = drops;
+            _poison = poison;
 
             _placements = new List<Vector2Int>(4);
             _detonating = new List<Vector2Int>(grid.CellCount);
@@ -249,11 +256,14 @@ namespace RecycleLife.Core
             if (trash.IsDead)
             {
                 bool leavesTrap = trash.LeavesTrap;
+                bool leavesPoison = trash.LeavesPoison;
                 _grid.Remove(cell);
                 destroyed++;
                 gold += trash.Gold;
                 if (trash.IsEnemy) { enemiesKilled++; } else { wallsDestroyed++; }
                 _traps?.MaybeLeaveTrap(leavesTrap, cell);
+                _poison?.MaybeLeavePoison(leavesPoison, cell);
+                _drops?.MaybeDrop(trash);
             }
 
             return 0;

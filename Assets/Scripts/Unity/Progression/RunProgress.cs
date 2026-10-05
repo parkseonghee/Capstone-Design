@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RecycleLife.Unity
@@ -22,6 +23,12 @@ namespace RecycleLife.Unity
         /// <summary>모아 둔 골드를 담는 PlayerPrefs 키.</summary>
         private const string GoldKey = "RecycleLife.Gold";
 
+        /// <summary>마을에서 산 조합법 id들을 담는 PlayerPrefs 키.</summary>
+        private const string RecipesKey = "RecycleLife.KnownRecipes";
+
+        /// <summary>마을에 보관 중인 재료를 담는 PlayerPrefs 키.</summary>
+        private const string StashKey = "RecycleLife.Stash";
+
         [SerializeField, Tooltip("스테이지 목록. 지도가 이 순서대로 노드를 만든다.")]
         private WaveSet waveSet;
 
@@ -43,6 +50,22 @@ namespace RecycleLife.Unity
 
         /// <summary>스테이지를 넘어 쌓이는 총 골드.</summary>
         private int _gold;
+
+        /// <summary>
+        /// 마을에서 샀거나 직접 만들어 본 조합법 id들.
+        ///
+        /// 인덱스가 아니라 <b>id</b>로 저장한다 — 인덱스로 두면 조합법 목록의 순서만 바뀌어도
+        /// 플레이어가 산 기록이 엉뚱한 조합법을 가리킨다.
+        /// </summary>
+        private readonly HashSet<string> _knownRecipes = new HashSet<string>();
+
+        /// <summary>
+        /// 마을에 놓고 가는 재료. 다음 판에 그대로 들고 들어가거나, 쓰레기통에 넣어 골드로 바꾼다.
+        ///
+        /// 순서를 유지해야 목록이 매번 뒤바뀌지 않아서 id 목록과 개수를 따로 둔다.
+        /// </summary>
+        private readonly List<string> _stashOrder = new List<string>(16);
+        private readonly Dictionary<string, int> _stash = new Dictionary<string, int>(16);
 
         private bool _loaded;
 
@@ -100,6 +123,154 @@ namespace RecycleLife.Unity
             return true;
         }
 
+        /// <summary>그 조합법을 알고 있는지(샀거나, 직접 맞춰 봤거나).</summary>
+        public bool IsRecipeKnown(string recipeId)
+        {
+            if (string.IsNullOrEmpty(recipeId))
+            {
+                return false;
+            }
+
+            EnsureLoaded();
+            return _knownRecipes.Contains(recipeId);
+        }
+
+        /// <summary>
+        /// 조합법을 알게 된다. 이미 알고 있으면 아무 일도 없다.
+        /// <b>값은 깎지 않는다</b> — 돈 내는 쪽은 상점이고 여기는 기록만 맡는다.
+        /// </summary>
+        /// <returns>이번에 새로 알게 됐으면 true.</returns>
+        public bool LearnRecipe(string recipeId)
+        {
+            if (string.IsNullOrEmpty(recipeId))
+            {
+                return false;
+            }
+
+            EnsureLoaded();
+
+            if (!_knownRecipes.Add(recipeId))
+            {
+                return false;
+            }
+
+            Save();
+            Changed?.Invoke();
+            return true;
+        }
+
+        // ── 재료 보관함 ──────────────────────────────────────────────────
+
+        /// <summary>보관 중인 재료의 id. 넣은 순서대로다.</summary>
+        public IReadOnlyList<string> StashIds
+        {
+            get
+            {
+                EnsureLoaded();
+                return _stashOrder;
+            }
+        }
+
+        /// <summary>그 재료를 몇 개 보관하고 있는지.</summary>
+        public int StashCount(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return 0;
+            }
+
+            EnsureLoaded();
+            int n;
+            return _stash.TryGetValue(id, out n) ? n : 0;
+        }
+
+        /// <summary>재료를 보관함에 넣는다.</summary>
+        public void AddToStash(string id, int count)
+        {
+            if (string.IsNullOrEmpty(id) || count <= 0)
+            {
+                return;
+            }
+
+            EnsureLoaded();
+
+            int n;
+            if (_stash.TryGetValue(id, out n))
+            {
+                _stash[id] = n + count;
+            }
+            else
+            {
+                _stash[id] = count;
+                _stashOrder.Add(id);
+            }
+
+            Save();
+            Changed?.Invoke();
+        }
+
+        /// <summary>재료를 보관함에서 뺀다. 가진 것보다 많이 빼려 하면 아무것도 안 하고 false.</summary>
+        public bool RemoveFromStash(string id, int count)
+        {
+            if (string.IsNullOrEmpty(id) || count <= 0)
+            {
+                return false;
+            }
+
+            EnsureLoaded();
+
+            int n;
+            if (!_stash.TryGetValue(id, out n) || n < count)
+            {
+                return false;
+            }
+
+            if (n == count)
+            {
+                _stash.Remove(id);
+                _stashOrder.Remove(id);
+            }
+            else
+            {
+                _stash[id] = n - count;
+            }
+
+            Save();
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// 보관함을 통째로 갈아 끼운다. 판을 마치고 마을로 돌아올 때, 남은 인벤토리를 그대로 옮긴다.
+        ///
+        /// 더하는 게 아니라 <b>덮어쓰는</b> 이유: 판에 들어갈 때 보관함을 복사해 갔으므로,
+        /// 돌아올 때 더하면 같은 재료가 두 배로 늘어난다.
+        /// </summary>
+        public void ReplaceStash(IReadOnlyList<string> ids, IReadOnlyList<int> counts)
+        {
+            EnsureLoaded();
+
+            _stash.Clear();
+            _stashOrder.Clear();
+
+            if (ids != null && counts != null)
+            {
+                for (int i = 0; i < ids.Count && i < counts.Count; i++)
+                {
+                    if (string.IsNullOrEmpty(ids[i]) || counts[i] <= 0 || _stash.ContainsKey(ids[i]))
+                    {
+                        continue;
+                    }
+
+                    _stash[ids[i]] = counts[i];
+                    _stashOrder.Add(ids[i]);
+                }
+            }
+
+            Save();
+            Changed?.Invoke();
+        }
+
         /// <summary>그 스테이지를 깼는지.</summary>
         public bool IsCleared(int index)
         {
@@ -143,11 +314,14 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>기록을 전부 지운다. 인스펙터 우클릭 메뉴에서도 부를 수 있다.</summary>
-        [ContextMenu("클리어 기록·골드 초기화")]
+        [ContextMenu("클리어 기록·골드·조합법·보관함 초기화")]
         public void ClearAll()
         {
             _cleared = 0;
             _gold = 0;
+            _knownRecipes.Clear();
+            _stash.Clear();
+            _stashOrder.Clear();
             SelectedIndex = 0;
             _loaded = true;
             Save();
@@ -424,6 +598,44 @@ namespace RecycleLife.Unity
             _loaded = true;
             _cleared = ignoreSavedProgress ? 0 : PlayerPrefs.GetInt(ClearedKey, 0);
             _gold = ignoreSavedProgress ? 0 : PlayerPrefs.GetInt(GoldKey, 0);
+
+            _knownRecipes.Clear();
+            _stash.Clear();
+            _stashOrder.Clear();
+
+            if (!ignoreSavedProgress)
+            {
+                string saved = PlayerPrefs.GetString(RecipesKey, string.Empty);
+                if (!string.IsNullOrEmpty(saved))
+                {
+                    foreach (string id in saved.Split(','))
+                    {
+                        if (!string.IsNullOrEmpty(id)) { _knownRecipes.Add(id); }
+                    }
+                }
+
+                // "M01:3,M02:1" 꼴. 망가진 줄은 통째로 버린다 — 세이브가 깨졌다고
+                // 마을이 안 열리는 것보다 재료를 잃는 쪽이 낫다.
+                string stashed = PlayerPrefs.GetString(StashKey, string.Empty);
+                if (!string.IsNullOrEmpty(stashed))
+                {
+                    foreach (string pair in stashed.Split(','))
+                    {
+                        if (string.IsNullOrEmpty(pair)) { continue; }
+
+                        int colon = pair.IndexOf(':');
+                        if (colon <= 0) { continue; }
+
+                        string id = pair.Substring(0, colon);
+                        int count;
+                        if (!int.TryParse(pair.Substring(colon + 1), out count) || count <= 0) { continue; }
+                        if (_stash.ContainsKey(id)) { continue; }
+
+                        _stash[id] = count;
+                        _stashOrder.Add(id);
+                    }
+                }
+            }
         }
 
         private void Save()
@@ -435,6 +647,15 @@ namespace RecycleLife.Unity
 
             PlayerPrefs.SetInt(ClearedKey, _cleared);
             PlayerPrefs.SetInt(GoldKey, _gold);
+            PlayerPrefs.SetString(RecipesKey, string.Join(",", _knownRecipes));
+
+            var stash = new string[_stashOrder.Count];
+            for (int i = 0; i < _stashOrder.Count; i++)
+            {
+                stash[i] = _stashOrder[i] + ":" + _stash[_stashOrder[i]];
+            }
+
+            PlayerPrefs.SetString(StashKey, string.Join(",", stash));
             PlayerPrefs.Save();
         }
 
