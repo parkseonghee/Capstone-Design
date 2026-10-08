@@ -20,7 +20,11 @@ namespace RecycleLife.Unity
         private GameSession session;
 
         [Header("표시 대상 (씬에서 배치)")]
-        [SerializeField, Tooltip("차오르는 바. Image Type을 Filled로 둬야 fillAmount가 먹는다.")]
+        [SerializeField, Tooltip("차오르는 바. 트랙(둥근 마스크) 안에 들어가는 단색 사각형이어야 한다 — " +
+                                 "Image.fillAmount 대신 anchorMax.x로 너비를 조절한다. " +
+                                 "이유: Filled 타입은 9-slice(모서리 고정)를 안 받아서 둥근 스프라이트가 " +
+                                 "비율대로 늘어나며 찌그러진다. 대신 바깥 트랙의 Mask가 둥근 모양을 내고, " +
+                                 "이 바는 그 안에서 폭만 바뀌는 단색이라 트랙과 모서리가 항상 일치한다.")]
         private Image fill;
 
         [SerializeField, Tooltip("(선택) 'STAGE 1 · WAVE 1' 같은 라벨. 비우면 표시하지 않는다.")]
@@ -53,22 +57,7 @@ namespace RecycleLife.Unity
                 session.Stepped += HandleStepped;
             }
 
-            EnsureFillHasSprite();
             Refresh();
-        }
-
-        /// <summary>
-        /// Image.type이 Filled여도 <b>스프라이트가 없으면 fillAmount가 무시되고</b>
-        /// 항상 가득 찬 사각형으로 그려진다. 아트가 없는 단계에서 바가 늘 꽉 차 보이던 원인이라,
-        /// 비어 있으면 단색 사각형을 끼워 넣는다.
-        /// 인스펙터에서 스프라이트를 꽂으면 그쪽이 그대로 쓰인다.
-        /// </summary>
-        private void EnsureFillHasSprite()
-        {
-            if (fill != null && fill.sprite == null)
-            {
-                fill.sprite = PlaceholderSprite.Square;
-            }
         }
 
         private void OnDisable()
@@ -138,7 +127,10 @@ namespace RecycleLife.Unity
 
             if (fill != null)
             {
-                fill.fillAmount = waves.Fill;
+                RectTransform rt = fill.rectTransform;
+                Vector2 max = rt.anchorMax;
+                max.x = Mathf.Clamp01(waves.Fill);
+                rt.anchorMax = max;
             }
 
             if (waves.IsRunCleared)

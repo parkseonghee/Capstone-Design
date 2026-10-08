@@ -66,6 +66,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("숫자의 정렬 순서. 폭탄보다 위여야 보인다.")]
         private int fuseSortingOrder = 3;
 
+        [SerializeField, Min(1f), Tooltip("EmphasizedEntity로 지정된 상품의 가격 숫자 배율. " +
+                                          "플레이어가 가까이 간 상품만 눈에 띄게 커 보이게 한다(상점 기믹). 1이면 효과 없음.")]
+        private float emphasizedFuseScale = 1.8f;
+
         [Header("체력 하트")]
         [SerializeField, Tooltip("엔티티 밑에 체력 하트를 그릴지. 끄면 하트를 아예 만들지 않는다.")]
         private bool showHealthHearts = true;
@@ -214,6 +218,45 @@ namespace RecycleLife.Unity
         /// <summary>칸 좌표 -> cellRoot 기준 로컬 위치. 보드 위에 마커를 놓을 때 쓴다.</summary>
         public Vector3 CellToLocalPosition(Vector2Int cell) => CellToLocal(cell);
 
+        private Entity _emphasizedEntity;
+
+        /// <summary>
+        /// 가격 숫자를 키워서 강조할 엔티티(상점 상품). ShopRoom이 "플레이어와 가까운 상품"을
+        /// 매 스텝 여기에 꽂는다. null이면 아무것도 강조하지 않는다.
+        ///
+        /// 세터에서 옛/새 슬롯을 깨우는 이유: 정착한 엔티티는 LateUpdate가 매 프레임 건너뛰므로
+        /// (Hard Rule 8), 값이 바뀐 바로 그 프레임에 다시 그리라고 Settled를 풀어 줘야 한다.
+        /// </summary>
+        public Entity EmphasizedEntity
+        {
+            get => _emphasizedEntity;
+            set
+            {
+                if (_emphasizedEntity == value)
+                {
+                    return;
+                }
+
+                WakeSlot(_emphasizedEntity);
+                _emphasizedEntity = value;
+                WakeSlot(_emphasizedEntity);
+            }
+        }
+
+        private void WakeSlot(Entity entity)
+        {
+            if (entity == null)
+            {
+                return;
+            }
+
+            ViewSlot slot;
+            if (_views.TryGetValue(entity, out slot))
+            {
+                slot.Settled = false;
+            }
+        }
+
         /// <summary>
         /// 화면에서 찍은 월드 좌표가 어느 칸인지 되돌린다. 보드를 탭해서 고를 때 쓴다.
         /// </summary>
@@ -330,7 +373,7 @@ namespace RecycleLife.Unity
 
                 bool fullyRevealed = ApplyReveal(slot, revealLine, fullSize);
                 LayoutHearts(slot, fullyRevealed);
-                LayoutFuse(slot, fullyRevealed);
+                LayoutFuse(slot, pair.Key, fullyRevealed);
             }
         }
 
@@ -545,8 +588,8 @@ namespace RecycleLife.Unity
                 : value.ToString();
         }
 
-        /// <summary>숫자를 폭탄 칸 한가운데에 올린다.</summary>
-        private void LayoutFuse(ViewSlot slot, bool visible)
+        /// <summary>숫자를 폭탄 칸 한가운데에 올린다. entity가 EmphasizedEntity면 더 크게 그린다.</summary>
+        private void LayoutFuse(ViewSlot slot, Entity entity, bool visible)
         {
             if (slot.Fuse == null)
             {
@@ -570,8 +613,11 @@ namespace RecycleLife.Unity
                 slot.Fuse.gameObject.SetActive(true);
             }
 
+            float scale = fuseTextScale
+                * (_emphasizedEntity != null && entity == _emphasizedEntity ? emphasizedFuseScale : 1f);
+
             tr.localPosition = slot.Position;
-            tr.localScale = new Vector3(fuseTextScale, fuseTextScale, 1f);
+            tr.localScale = new Vector3(scale, scale, 1f);
         }
 
         private TextMesh RentFuse()

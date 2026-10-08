@@ -26,6 +26,9 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("산 아이템을 넣고 효과를 거는 곳.")]
         private ItemService items;
 
+        [SerializeField, Tooltip("가격 숫자를 그리는 보드 뷰. 가까이 간 상품의 가격을 키우는 데 쓴다.")]
+        private BoardView board;
+
         [Header("상품 배치")]
         [SerializeField, Tooltip("상품을 놓을 칸. 개수가 곧 한 상점에 깔리는 상품 수다. " +
                                  "보드는 8x9이고 0번 줄은 프리뷰라 쓸 수 없다.")]
@@ -43,6 +46,14 @@ namespace RecycleLife.Unity
                                  "재료만 팔도록 바꿨다. 되돌리려면 여기에 Relic을 더하면 된다.")]
         private ItemConfig.Kind[] soldKinds = { ItemConfig.Kind.Material };
 
+        [Header("가까이 간 상품 안내 (삽질기사 포켓던전 상점 방식)")]
+        [SerializeField, Min(1), Tooltip("플레이어와 이 칸 거리(맨해튼) 안에 있는 상품 중 " +
+                                         "가장 가까운 하나만 '가까이 간 상품'이 된다.")]
+        private int nearbyRange = 2;
+
+        [SerializeField, Tooltip("가까이 간 상품의 이름을 띄울 라벨. 비우면 표시하지 않는다.")]
+        private Text itemNameLabel;
+
         [Header("HUD (씬에서 배치)")]
         [SerializeField, Tooltip("상점에 있는 동안만 켜지는 안내. 비워도 된다.")]
         private GameObject banner;
@@ -50,7 +61,7 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("'1웨이브 클리어 — 상점' 같은 제목.")]
         private Text titleLabel;
 
-        [SerializeField, Tooltip("부딪혀 사라는 안내. 방금 산 물건 이름도 여기 뜬다.")]
+        [SerializeField, Tooltip("부딪혀 사라는 안내. 방금 산 물건 이름·가까이 간 상품의 설명도 여기 뜬다.")]
         private Text hintLabel;
 
         [SerializeField, Tooltip("다음 웨이브로 나가는 버튼.")]
@@ -64,6 +75,10 @@ namespace RecycleLife.Unity
 
         /// <summary>이번 상점에 깔린 상품(아이템 표 인덱스). 후보를 다시 뽑을 때만 바뀐다.</summary>
         private readonly List<int> _pool = new List<int>(16);
+
+        /// <summary>이번 상점에 실제로 놓인 상품의 칸과 표 항목. "가까이 갔는지" 판정에 쓴다.</summary>
+        private readonly List<Vector2Int> _placedCells = new List<Vector2Int>(8);
+        private readonly List<ItemConfig.Entry> _placedEntries = new List<ItemConfig.Entry>(8);
 
         public bool IsOpen { get; private set; }
 
@@ -104,9 +119,11 @@ namespace RecycleLife.Unity
                 return;
             }
 
-            // 상점에 있는 동안은 구매 결과만 안내에 비춘다.
+            // 상점에 있는 동안은 가까이 간 상품부터 갱신하고, 그 위에 구매 결과를 덮어 보여 준다 —
+            // 순서가 바뀌면 "획득!" 메시지가 뜨자마자 설명 문구로 바로 덮여 사라진다.
             if (IsOpen)
             {
+                UpdateNearbyItem(loop);
                 ShowPurchaseFeedback(result);
                 return;
             }
@@ -174,6 +191,8 @@ namespace RecycleLife.Unity
             {
                 banner.SetActive(true);
             }
+
+            UpdateNearbyItem(loop);
         }
 
         /// <summary>
@@ -189,6 +208,8 @@ namespace RecycleLife.Unity
         private void RollAndPlace(GameLoop loop)
         {
             _pool.Clear();
+            _placedCells.Clear();
+            _placedEntries.Clear();
 
             if (catalog == null || items == null)
             {
@@ -217,6 +238,82 @@ namespace RecycleLife.Unity
                 }
 
                 loop.PlaceShopItem(item.id, item.price, slots[s]);
+                _placedCells.Add(slots[s]);
+                _placedEntries.Add(item);
+            }
+        }
+
+        /// <summary>
+        /// 플레이어와 가장 가까운 상품을 찾아 이름·설명을 띄우고, BoardView에 가격을
+        /// 키울 대상으로 알려 준다. 가까운 상품이 없으면(또는 전부 팔렸으면) 안내를 지운다.
+        /// </summary>
+        private void UpdateNearbyItem(GameLoop loop)
+        {
+            if (loop == null)
+            {
+                ClearNearbyItem();
+                return;
+            }
+
+            Vector2Int playerPos = loop.Player.Position;
+            int bestDistance = int.MaxValue;
+            int bestIndex = -1;
+
+            for (int i = 0; i < _placedCells.Count; i++)
+            {
+                // 이미 팔린 상품은 칸이 비어 있다 — 후보에서 자연히 빠진다.
+                if (!(loop.Grid[_placedCells[i]] is ShopItem))
+                {
+                    continue;
+                }
+
+                Vector2Int cell = _placedCells[i];
+                int distance = Mathf.Abs(cell.x - playerPos.x) + Mathf.Abs(cell.y - playerPos.y);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+
+            if (bestIndex < 0 || bestDistance > nearbyRange)
+            {
+                ClearNearbyItem();
+                return;
+            }
+
+            ItemConfig.Entry entry = _placedEntries[bestIndex];
+
+            if (itemNameLabel != null)
+            {
+                itemNameLabel.text = entry.displayName;
+                if (!itemNameLabel.gameObject.activeSelf) { itemNameLabel.gameObject.SetActive(true); }
+            }
+
+            if (hintLabel != null) { hintLabel.text = entry.description; }
+
+            if (board != null)
+            {
+                board.EmphasizedEntity = loop.Grid[_placedCells[bestIndex]];
+            }
+        }
+
+        /// <summary>가까이 간 상품이 없을 때(또는 상점을 나갈 때)로 되돌린다.</summary>
+        private void ClearNearbyItem()
+        {
+            if (itemNameLabel != null && itemNameLabel.gameObject.activeSelf)
+            {
+                itemNameLabel.gameObject.SetActive(false);
+            }
+
+            if (hintLabel != null)
+            {
+                hintLabel.text = hintText;
+            }
+
+            if (board != null)
+            {
+                board.EmphasizedEntity = null;
             }
         }
 
@@ -247,6 +344,8 @@ namespace RecycleLife.Unity
             {
                 banner.SetActive(false);
             }
+
+            ClearNearbyItem();
         }
 
         /// <summary>상점을 나와 다음 웨이브로. 보드는 세션이 새로 깐다.</summary>
