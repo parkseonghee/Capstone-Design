@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace RecycleLife.Core
 {
@@ -28,6 +29,13 @@ namespace RecycleLife.Core
         public event Action<string> Dropped;
 
         /// <summary>
+        /// <see cref="Dropped"/> 직후에 울린다. 인자는 아이템 id와 <b>죽은 칸</b>이다.
+        /// 획득 연출(ItemFlyEffect)처럼 위치가 필요한 쪽이 구독한다 — 인벤토리 반영은
+        /// <see cref="Dropped"/>가 먼저 끝내 두므로, 이쪽 구독자가 무엇을 하든 아이템은 이미 들어가 있다.
+        /// </summary>
+        public event Action<string, Vector2Int> DroppedAt;
+
+        /// <summary>
         /// 방금 죽은 쓰레기로 드롭을 굴린다. 적이 아니면(벽·포션) 굴리지 않는다 —
         /// 재료는 몬스터를 잡아야 나온다는 기획이기 때문이다.
         /// </summary>
@@ -42,6 +50,9 @@ namespace RecycleLife.Core
             if (_table.TryRoll(killed.Type, _random, out materialId) && !string.IsNullOrEmpty(materialId))
             {
                 Dropped?.Invoke(materialId);
+
+                // 죽은 뒤에도 Position은 마지막 칸을 들고 있다(BoardGrid.Remove는 좌표를 지우지 않는다).
+                DroppedAt?.Invoke(materialId, killed.Position);
             }
         }
     }

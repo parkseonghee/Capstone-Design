@@ -41,6 +41,10 @@ namespace RecycleLife.Unity
                                  "비우면 설치 직후 폭탄 개수가 바로 갱신되지 않는다.")]
         private GameSession session;
 
+        [SerializeField, Tooltip("몬스터 드롭 획득 연출. 연결하면 아이콘이 칸에 도착할 때 수량이 오른다. " +
+                                 "비우면 예전처럼 얻는 즉시 수량이 바뀐다.")]
+        private ItemFlyEffect flyEffect;
+
         [Header("화면")]
         [SerializeField, Tooltip("목록 화면 전체. 화면 아래쪽에 늘 떠 있는 바다.")]
         private GameObject panel;
@@ -185,11 +189,40 @@ namespace RecycleLife.Unity
             }
         }
 
-        /// <summary>그 칸을 끌 수 있는지. 재료가 놓인 칸만 끌 수 있다.</summary>
+        /// <summary>
+        /// 그 칸을 끌 수 있는지. 폭탄만 빼고 다 끌 수 있다 — 재료는 조합하러,
+        /// 유물·일회성은 쓰레기통에 버리러 끈다. 조합 자체는 <see cref="TryCombine"/>가 재료끼리만 받는다.
+        /// </summary>
         public bool CanDrag(int index)
         {
             ItemConfig.Entry entry;
-            return TryEntryAt(index, out entry) && entry.kind == ItemConfig.Kind.Material;
+            return TryEntryAt(index, out entry) && items != null && !items.IsBombItem(entry.id);
+        }
+
+        /// <summary>그 칸에 놓인 아이템. 쓰레기통이 버리기 전에 무엇인지(유물인지) 보려고 쓴다.</summary>
+        public bool TryGetItemAt(int index, out ItemConfig.Entry entry) => TryEntryAt(index, out entry);
+
+        /// <summary>그 칸의 아이템을 하나 버린다(쓰레기통에 떨궜을 때).</summary>
+        /// <returns>실제로 버렸으면 true.</returns>
+        public bool TryDiscard(int index)
+        {
+            ItemConfig.Entry entry;
+            return TryEntryAt(index, out entry) && TryDiscardItem(entry.id);
+        }
+
+        /// <summary>
+        /// 그 아이템을 하나 버린다. 확인 창을 거친 뒤에는 칸 번호가 아니라 id로 버린다 —
+        /// 창이 떠 있는 사이에 드롭·조합으로 칸 순서가 밀릴 수 있기 때문이다.
+        /// </summary>
+        public bool TryDiscardItem(string id)
+        {
+            if (items == null || !items.Discard(id))
+            {
+                return false;
+            }
+
+            Refresh();
+            return true;
         }
 
         /// <summary>
@@ -269,6 +302,33 @@ namespace RecycleLife.Unity
             return items.IsBombItem(id) ? items.BombCount : items.Inventory.CountOf(id);
         }
 
+        /// <summary>
+        /// 그 아이템이 그려진 칸. 획득 연출이 날아갈 목적지로 쓴다.
+        /// 칸이 모자라 목록에 못 올라간 아이템이면 false.
+        /// </summary>
+        public bool TryGetSlotRect(string id, out RectTransform rect)
+        {
+            rect = null;
+
+            int index = _slots.IndexOf(id);
+            if (index < 0 || index >= rows.Length || rows[index].root == null)
+            {
+                return false;
+            }
+
+            rect = rows[index].root.transform as RectTransform;
+            return rect != null;
+        }
+
+        /// <summary>목록 패널 전체. 칸이 없을 때 연출이 대신 날아갈 곳이다.</summary>
+        public RectTransform PanelRect => panel != null ? panel.transform as RectTransform : null;
+
+        /// <summary>데이터는 그대로 두고 표시만 다시 그린다. 획득 연출이 도착 시점에 부른다.</summary>
+        public void RefreshDisplay()
+        {
+            Refresh();
+        }
+
         public void Open()
         {
             if (panel == null)
@@ -339,10 +399,15 @@ namespace RecycleLife.Unity
                 // 누를 수 있는 버튼은 일회성과 폭탄에만 붙는다. 재료는 조합으로만 쓰인다.
                 bool pressable = entry.kind == ItemConfig.Kind.Consumable;
 
+                // 아직 날아오는 중인 몫은 빼고 보여 준다 — 아이콘이 칸에 닿는 순간 오른다.
+                // 처음 얻는 아이템이면 0이 되어 칸만 먼저 뜨고 수량은 숨는다.
+                int pending = flyEffect != null ? flyEffect.PendingCount(entry.id) : 0;
+                int shown = Mathf.Max(0, count - pending);
+
                 if (rows[i].nameLabel != null)
                 {
-                    rows[i].nameLabel.text = stacks
-                        ? string.Format(countFormat, entry.displayName, count)
+                    rows[i].nameLabel.text = stacks && (pending == 0 || shown > 0)
+                        ? string.Format(countFormat, entry.displayName, shown)
                         : entry.displayName;
                 }
 

@@ -514,7 +514,10 @@ namespace RecycleLife.Core
                 {
                     var cell = new Vector2Int(col, row);
                     var trash = Grid[cell] as Trash;
-                    if (trash == null || !trash.IsDead)
+
+                    // 포션은 체력이 처음부터 0이라 IsDead가 늘 참이다. 빼지 않으면 독 기믹이 켜진
+                    // 판에서 매 턴 포션이 "독으로 죽은 것"으로 걷혀 나간다(벽 파괴로도 잘못 세진다).
+                    if (trash == null || trash.IsConsumable || !trash.IsDead)
                     {
                         continue;
                     }

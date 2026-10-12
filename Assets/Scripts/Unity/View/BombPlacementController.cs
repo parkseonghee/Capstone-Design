@@ -126,6 +126,13 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            // 화면을 덮는 창(확인 창·레시피 등)이 입력을 잠갔으면 조준 탭도 받지 않는다.
+            // IsPointerOverGameObject는 터치에서 믿을 게 못 돼(RecipeView 주석) 잠금을 따로 본다.
+            if (input != null && input.InputSuppressed)
+            {
+                return;
+            }
+
             ReadTap();
         }
 

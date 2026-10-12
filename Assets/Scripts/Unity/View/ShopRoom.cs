@@ -34,9 +34,11 @@ namespace RecycleLife.Unity
                                  "보드는 8x9이고 0번 줄은 프리뷰라 쓸 수 없다.")]
         private Vector2Int[] slots =
         {
+            // 보드 폭이 8(짝수)이라 3개로는 좌우 대칭이 안 나온다 — 4개를 좌우 대칭으로 띄워 깐다.
+            new Vector2Int(0, 3),
             new Vector2Int(2, 3),
-            new Vector2Int(4, 3),
-            new Vector2Int(6, 3),
+            new Vector2Int(5, 3),
+            new Vector2Int(7, 3),
         };
 
         [SerializeField, Tooltip("수치가 아직 '미정'인 아이템도 깔지. 끄면 확정된 것만 나온다.")]

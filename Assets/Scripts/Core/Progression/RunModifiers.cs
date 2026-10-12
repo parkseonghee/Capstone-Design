@@ -80,6 +80,41 @@ namespace RecycleLife.Core
             WallHealAmount = Mathf.Max(WallHealAmount, Mathf.Max(1, amount));
         }
 
+        // ── 되돌리기 (유물을 쓰레기통에 버렸을 때) ─────────────────────────
+        // 위의 Add/Grant와 짝을 이룬다. 각각 기본값 밑으로는 내려가지 않는다 —
+        // 버린 유물보다 더 많이 깎이면 다른 유물의 몫까지 사라지기 때문이다.
+
+        public void RemoveMaxHp(int amount) => BonusMaxHp = Mathf.Max(0, BonusMaxHp - Mathf.Max(0, amount));
+
+        public void RemoveBombs(int amount) => BonusBombs = Mathf.Max(0, BonusBombs - Mathf.Max(0, amount));
+
+        public void RemoveBlastRadius(int amount) => BonusBlastRadius = Mathf.Max(0, BonusBlastRadius - Mathf.Max(0, amount));
+
+        public void RemovePotionHeal(int amount) => BonusPotionHeal = Mathf.Max(0, BonusPotionHeal - Mathf.Max(0, amount));
+
+        public void RemoveGoldPercent(int amount) => GoldPercent = Mathf.Max(100, GoldPercent - Mathf.Max(0, amount));
+
+        public void RevokeBlastImmunity() => ImmuneToBlast = false;
+
+        public void RevokeStatusImmunity() => ImmuneToStatus = false;
+
+        /// <summary>부활을 하나 뺀다. 이미 써 버렸으면 뺄 게 없다.</summary>
+        public void RemoveRevive()
+        {
+            Revives = Mathf.Max(0, Revives - 1);
+            if (Revives == 0)
+            {
+                ReviveHp = 0;
+            }
+        }
+
+        /// <summary>벽 처치 회복을 끈다. 주는 유물이 하나뿐이라 통째로 0이 된다.</summary>
+        public void ClearWallHeal()
+        {
+            WallHealPercent = 0;
+            WallHealAmount = 0;
+        }
+
         /// <summary>부활을 한 번 쓴다. 남은 게 없으면 false.</summary>
         public bool TrySpendRevive()
         {

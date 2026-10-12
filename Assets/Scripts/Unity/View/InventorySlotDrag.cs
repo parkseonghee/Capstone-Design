@@ -22,6 +22,12 @@ namespace RecycleLife.Unity
         private CanvasGroup _group;
         private RectTransform _ghost;
 
+        /// <summary>이 칸을 가진 목록. 쓰레기통처럼 칸 밖에서 떨굼을 받는 쪽이 읽는다.</summary>
+        public InventoryView Owner => _owner;
+
+        /// <summary>목록 안에서 이 칸의 번호.</summary>
+        public int Index => _index;
+
         /// <summary>어느 목록의 몇 번째 칸인지 꽂아 준다. InventoryView가 칸을 만들 때 부른다.</summary>
         public void Bind(InventoryView owner, int index)
         {

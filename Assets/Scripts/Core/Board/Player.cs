@@ -128,6 +128,30 @@ namespace RecycleLife.Core
         }
 
         /// <summary>
+        /// 최대 체력을 내린다(유물을 버렸을 때). 1 밑으로는 안 내려가고,
+        /// 현재 체력이 새 최대치를 넘으면 거기에 맞춰 깎는다.
+        /// </summary>
+        public void DecreaseMaxHp(int amount)
+        {
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            MaxHp = Mathf.Max(1, MaxHp - amount);
+            Hp = Mathf.Min(Hp, MaxHp);
+        }
+
+        /// <summary>폭탄을 뺀다(유물을 버렸을 때). 이미 써 버린 만큼은 뺄 수 없다.</summary>
+        public void RemoveBombs(int amount)
+        {
+            if (amount > 0)
+            {
+                Bombs = Mathf.Max(0, Bombs - amount);
+            }
+        }
+
+        /// <summary>
         /// 웨이브 사이에 상태를 물려받는다. 스테이지 안에서는 체력·폭탄·골드가 이어져야
         /// 상점이 의미를 갖기 때문이다(팀 확정 구조: 1스테이지 = 3웨이브 + 상점 2회).
         ///

@@ -350,6 +350,25 @@ namespace RecycleLife.Tests
             Assert.IsTrue(loop.Grid.IsEmpty(landing), "죽은 블록은 보드에서 걷혀야 한다");
         }
 
+        [Test]
+        public void Potion_IsNotSweptAwayAsAPoisonDeath()
+        {
+            // 포션은 체력 0이 정상이다(먹는 대상이라 하트가 없다). 죽은 블록 청소가
+            // 이걸 시체로 착각하면 플레이어가 한 걸음 옮길 때마다 포션이 사라진다.
+            var config = new FakeBoardConfig { RowsOnStart = 0, BlocksPerSpawn = 0, PlayerStart = new Vector2Int(0, 8) };
+            GameLoop loop = GameLoopFactory.CreateWeek1(
+                config, config, config, config, config, new MinRandom(),
+                null, null, null, new Poison());
+
+            var potion = Make.Potion(TrashType.Potion, 2);
+            var cell = new Vector2Int(4, 8);           // 맨 아래 줄 — 더 떨어지지 않는다
+            loop.Grid.Place(potion, cell);
+
+            loop.Wait();
+
+            Assert.AreSame(potion, loop.Grid[cell], "포션은 턴이 지나도 그대로 남아야 한다");
+        }
+
         // ── 설정이 없으면 기믹이 통째로 꺼진다 ────────────────────────────
 
         [Test]

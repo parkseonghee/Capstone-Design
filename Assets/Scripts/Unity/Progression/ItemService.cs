@@ -371,6 +371,91 @@ namespace RecycleLife.Unity
             return true;
         }
 
+        /// <summary>
+        /// 아이템 하나를 버린다(쓰레기통). 쌓이는 물건은 하나만 빠지고, 유물은 <b>효과까지 되돌린다</b> —
+        /// 효과를 남긴 채 칸만 비우면 버리는 게 공짜 이득이 된다.
+        ///
+        /// 폭탄은 버릴 수 없다. 인벤토리가 아니라 Player.Bombs에 들어 있고, 버릴 이유도 없다.
+        /// </summary>
+        /// <returns>실제로 버렸으면 true.</returns>
+        public bool Discard(string id)
+        {
+            ItemConfig.Entry item;
+            if (catalog == null || !catalog.TryGet(id, out item) || IsBomb(item))
+            {
+                return false;
+            }
+
+            if (!Inventory.Consume(id))
+            {
+                return false;
+            }
+
+            if (item.kind == ItemConfig.Kind.Relic)
+            {
+                RevertRelic(item);
+            }
+
+            return true;
+        }
+
+        /// <summary><see cref="ApplyRelic"/>의 반대. 두 switch는 항목이 늘 짝을 이뤄야 한다.</summary>
+        private void RevertRelic(ItemConfig.Entry item)
+        {
+            RunModifiers mods = session != null ? session.Modifiers : null;
+            if (mods == null)
+            {
+                return;
+            }
+
+            Player player = ActivePlayer;
+
+            switch (item.effect)
+            {
+                case ItemConfig.Effect.MaxHp:
+                    mods.RemoveMaxHp(item.amount);
+                    if (player != null) { player.DecreaseMaxHp(item.amount); }
+                    break;
+
+                case ItemConfig.Effect.Bombs:
+                    mods.RemoveBombs(item.amount);
+                    if (player != null)
+                    {
+                        player.RemoveBombs(item.amount);
+                        BombsChanged?.Invoke();
+                    }
+                    break;
+
+                case ItemConfig.Effect.GoldPercent:
+                    mods.RemoveGoldPercent(item.amount);
+                    break;
+
+                case ItemConfig.Effect.Revive:
+                    mods.RemoveRevive();
+                    break;
+
+                case ItemConfig.Effect.BlastRadius:
+                    mods.RemoveBlastRadius(item.amount);
+                    break;
+
+                case ItemConfig.Effect.PotionHeal:
+                    mods.RemovePotionHeal(item.amount);
+                    break;
+
+                case ItemConfig.Effect.WallHeal:
+                    mods.ClearWallHeal();
+                    break;
+
+                case ItemConfig.Effect.BlastImmunity:
+                    mods.RevokeBlastImmunity();
+                    break;
+
+                case ItemConfig.Effect.StatusImmunity:
+                    mods.RevokeStatusImmunity();
+                    break;
+            }
+        }
+
         /// <summary>가방의 일회성 아이템을 쓴다.</summary>
         /// <returns>실제로 썼으면 true.</returns>
         public bool Use(string id)
