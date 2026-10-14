@@ -85,6 +85,14 @@ namespace RecycleLife.Unity
         /// <summary>한 번의 입력 처리가 끝났을 때. 거부된 입력도 포함된다(Advanced로 구분).</summary>
         public event Action<StepResult> Stepped;
 
+        /// <summary>
+        /// 방향 입력 한 번이 끝났을 때, 그 <b>방향</b>까지 함께 받고 싶은 구독자용이다.
+        /// 플레이어 이동/공격 연출(PlayerVisualFeedback)처럼 "어느 쪽으로 움직이거나 쳤는지"가
+        /// 필요한 쪽을 위한 것 — Stepped와 같은 스텝에서, 그 바로 뒤에 이어서 울린다.
+        /// 방향이 없는 입력(대기·폭탄 설치)에는 이 이벤트가 울리지 않는다.
+        /// </summary>
+        public event Action<Direction, StepResult> DirectedStep;
+
         public GameLoop Loop { get; private set; }
 
         /// <summary>이번 런에 실제로 쓰인 시드. 재현이 필요할 때 이 값을 남긴다.</summary>
@@ -96,6 +104,13 @@ namespace RecycleLife.Unity
         /// — Modifiers·인벤토리가 비어 있는지로 추측하면 안 된다(유물을 안 샀을 뿐인 경우와 구분이 안 됨).
         /// </summary>
         public bool IsNewRun { get; private set; }
+
+        /// <summary>
+        /// 지금 이 런에서 플레이 중인 캐릭터. 뷰(BoardView)가 플레이어 스프라이트를
+        /// 캐릭터별로 다르게 그릴 때 읽는다 — 마을에서 고른 캐릭터가 바뀌어도
+        /// 코드가 아니라 이 값이 바뀌어 반영된다.
+        /// </summary>
+        public CharacterConfig ActiveCharacterConfig { get; private set; }
 
         public bool IsIntroPlaying => Loop != null && !Loop.IsReady;
 
@@ -211,7 +226,9 @@ namespace RecycleLife.Unity
             }
 
             // 마을에서 캐릭터를 골랐으면 그걸 쓰고, 아니면 인스펙터의 기본 캐릭터를 쓴다.
-            ICharacterConfig resolvedCharacter = characterSelection != null && characterSelection.SelectedConfig != null
+            // CharacterConfig(구체 타입)로 들고 있는 이유: 뷰가 지금 플레이 중인 캐릭터의
+            // 스프라이트(Icon)를 읽어야 하는데, Core의 ICharacterConfig는 뷰를 몰라야 한다(Hard Rule 5).
+            CharacterConfig resolvedCharacter = characterSelection != null && characterSelection.SelectedConfig != null
                 ? characterSelection.SelectedConfig
                 : character;
 
@@ -220,6 +237,8 @@ namespace RecycleLife.Unity
                 Debug.LogError($"{nameof(GameSession)}: CharacterConfig가 비어 있습니다. 인스펙터에서 연결해 주세요.", this);
                 return;
             }
+
+            ActiveCharacterConfig = resolvedCharacter;
 
             if (bombConfig == null)
             {
@@ -380,6 +399,10 @@ namespace RecycleLife.Unity
             }
 
             StepResult result = Loop.Step(direction);
+
+            // DirectedStep을 먼저 울린다 — BoardView가 "이번 스텝의 방향"을 먼저 받아 둬야
+            // 바로 뒤이은 Stepped(보드 다시 그리기)에서 몬스터 피격 넉백 방향을 알 수 있다.
+            DirectedStep?.Invoke(direction, result);
             Stepped?.Invoke(result);
         }
     }

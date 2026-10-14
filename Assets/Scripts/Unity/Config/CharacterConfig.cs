@@ -23,6 +23,9 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("인스펙터에서 알아보기 위한 이름. 로직에는 쓰이지 않는다.")]
         private string displayName = "캐릭터";
 
+        [SerializeField, Tooltip("보드 위 플레이어 스프라이트. 비우면 EntityVisualSet의 기본(단색) 플레이어 표시로 대신한다.")]
+        private Sprite icon;
+
         [Header("수치 (밸런싱 v1 §1-1)")]
         [SerializeField, Min(1), Tooltip("런 시작 체력. 반격을 맞아 0이 되면 패배한다.")]
         private int maxHp = 3;
@@ -40,6 +43,8 @@ namespace RecycleLife.Unity
         private Vector2Int[] attackOffsets = { Vector2Int.zero };
 
         public string DisplayName => displayName;
+
+        public Sprite Icon => icon;
 
         public int MaxHp => maxHp;
 

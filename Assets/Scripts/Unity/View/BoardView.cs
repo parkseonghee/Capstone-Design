@@ -30,6 +30,20 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("종류별 색·스프라이트 매핑 에셋.")]
         private EntityVisualSet visuals;
 
+        [SerializeField, Tooltip("플레이어 전용 연출(기울기·돌진 등)을 재생하는 프리팹. " +
+                                 "Player 엔티티의 뷰가 처음 만들어질 때 그 밑에 자식(Visual)으로 붙는다. " +
+                                 "비우면 연출 없이 기존 방식(직접 스프라이트 표시)대로 그린다.")]
+        private PlayerVisualFeedback playerVisualPrefab;
+
+        [SerializeField, Tooltip("몬스터·아이템(물약) 전용 연출(숨쉬기·피격·공격·사망 등)을 재생하는 프리팹. " +
+                                 "Trash 엔티티의 뷰가 처음 만들어질 때 그 밑에 자식(Visual)으로 붙는다. " +
+                                 "비우면 연출 없이 기존 방식대로 그린다.")]
+        private MonsterVisualFeedback monsterVisualPrefab;
+
+        [SerializeField, Tooltip("TrashEntry.feedback을 안 꽂아 둔 종류가 쓸 기본 연출 수치. " +
+                                 "이것도 비어 있으면 그 종류는 연출 없이(스폰/착지/피격/공격/사망 전부 생략) 그려진다.")]
+        private MonsterFeedbackSettings defaultMonsterFeedback;
+
         [SerializeField, Tooltip("(선택) 보드 배경. 연결하면 보이는 영역에 맞춰 스케일만 조정한다.")]
         private SpriteRenderer boardBackground;
 
@@ -128,6 +142,33 @@ namespace RecycleLife.Unity
 
             /// <summary>마지막으로 찍은 숫자. 같으면 문자열을 새로 만들지 않는다(Hard Rule 8).</summary>
             public int ShownFuse;
+
+            /// <summary>
+            /// 이 슬롯이 플레이어를 그리고 있을 때만 쓰는 연출 컴포넌트. Renderer의 자식(Visual)이다.
+            /// 슬롯은 종류를 가리지 않고 재사용되므로(풀링), 한 번 만들어지면 계속 붙어 있고
+            /// ApplyVisual이 매번 지금 종류에 맞게 켜고 끈다.
+            /// </summary>
+            public PlayerVisualFeedback PlayerVisual;
+
+            /// <summary>
+            /// 이 슬롯이 몬스터/아이템(Trash)을 그리고 있을 때만 쓰는 연출 컴포넌트.
+            /// PlayerVisual과 마찬가지로 한 번 만들어지면 계속 붙어 있다.
+            /// </summary>
+            public MonsterVisualFeedback MonsterVisual;
+
+            /// <summary>
+            /// 사망/획득 연출이 도는 중이라 그리드에서는 이미 사라졌지만 아직 풀에 돌려주지
+            /// 않은 상태. Sync의 stale 처리가 이 슬롯을 다시 집어도 또 Release하거나
+            /// 연출을 다시 재생하지 않게 막는다.
+            /// </summary>
+            public bool ReleasePending;
+
+            /// <summary>
+            /// 막 스폰돼 PlaySpawn이 재생 중이라, 보드 위쪽에서 떨어져 내려와 자리를 잡는
+            /// 첫 정착에는 PlayLand(착지 스쿼시)를 건너뛰어야 함. 스폰 팝업과 겹치면
+            /// 같은 scale 채널을 두고 서로 죽이며 튀어 보인다.
+            /// </summary>
+            public bool SkipNextLandAnimation;
         }
 
         private readonly Dictionary<Entity, ViewSlot> _views = new Dictionary<Entity, ViewSlot>(128);
@@ -179,6 +220,17 @@ namespace RecycleLife.Unity
         // NaN으로 시작해 첫 프레임은 무조건 '바뀐 것'으로 잡히게 한다.
         private float _lastRevealLine = float.NaN;
         private float _lastFullSize = float.NaN;
+
+        /// <summary>
+        /// 이번 스텝의 방향. DirectedStep이 Stepped보다 먼저 울리므로(GameSession 참조),
+        /// Sync가 몬스터 피격 넉백 방향을 고를 때 이미 최신값이다. 방향 없는 스텝(대기 등)엔
+        /// 바뀌지 않고 직전 값을 그대로 쓴다 — 아주 드문 경우(폭탄/독 피해)의 넉백 방향이
+        /// 다소 부정확할 수 있지만, 피격 연출 자체는 정상적으로 재생된다.
+        /// </summary>
+        private Direction _lastStepDirection;
+
+        /// <summary>이번 스텝에 반격 돌진(PlayAttack)을 재생한 몬스터. 같은 스텝에 PlayHit과 겹치지 않게 막는다.</summary>
+        private Entity _lastRetaliator;
 
         /// <summary>
         /// 화면에 보여야 할 영역의 월드 크기. CameraBoardFitter가 읽는다.
@@ -311,6 +363,7 @@ namespace RecycleLife.Unity
             session.RunStarted += HandleRunStarted;
             session.BoardChanged += HandleBoardChanged;
             session.Stepped += HandleStepped;
+            session.DirectedStep += HandleDirectedStep;
 
             // 컴포넌트가 도중에 다시 켜진 경우에도 현재 보드를 따라잡는다.
             if (session.Loop != null)
@@ -329,6 +382,7 @@ namespace RecycleLife.Unity
             session.RunStarted -= HandleRunStarted;
             session.BoardChanged -= HandleBoardChanged;
             session.Stepped -= HandleStepped;
+            session.DirectedStep -= HandleDirectedStep;
         }
 
         private void LateUpdate()
@@ -366,6 +420,7 @@ namespace RecycleLife.Unity
                     continue;
                 }
 
+                bool wasSettled = slot.Settled;
                 slot.Position = Vector3.Lerp(slot.Position, target, t);
 
                 // 충분히 가까워지면 목표에 딱 붙이고 정착으로 표시한다.
@@ -373,6 +428,21 @@ namespace RecycleLife.Unity
                 if (slot.Settled)
                 {
                     slot.Position = target;
+
+                    // 막 내려와 자리를 잡은 순간 — 몇 칸을 떨어졌든 한 칸 내려설 때마다 다시 불린다
+                    // (한 스텝에 한 칸씩만 내려가므로 GravityResolver와 자연히 맞물린다).
+                    // 방금 스폰된 슬롯은 PlaySpawn의 팝업과 겹치지 않게 이번 한 번만 건너뛴다.
+                    if (!wasSettled && slot.MonsterVisual != null)
+                    {
+                        if (slot.SkipNextLandAnimation)
+                        {
+                            slot.SkipNextLandAnimation = false;
+                        }
+                        else
+                        {
+                            slot.MonsterVisual.PlayLand();
+                        }
+                    }
                 }
 
                 bool fullyRevealed = ApplyReveal(slot, revealLine, fullSize);
@@ -743,6 +813,77 @@ namespace RecycleLife.Unity
             Sync(snap: false);
         }
 
+        /// <summary>
+        /// 방향 입력 한 번의 결과. 이동/공격일 때 플레이어 연출을, 반격을 받았으면 그 몬스터의
+        /// 공격 연출을 재생한다. Sync(HandleStepped)보다 <b>먼저</b> 불린다 — 이 방향을
+        /// _lastStepDirection에 먼저 캐시해 둬야, 뒤이어 도는 Sync가 몬스터 피격 넉백 방향을
+        /// 정확히 고를 수 있다(GameSession이 DirectedStep을 Stepped보다 먼저 울린다).
+        /// </summary>
+        private void HandleDirectedStep(Direction direction, StepResult result)
+        {
+            _lastStepDirection = direction;
+            _lastRetaliator = null;
+
+            if (_loop == null)
+            {
+                return;
+            }
+
+            Vector2Int worldDir = ToWorldDirection(direction);
+            Player player = _loop.Player;
+
+            if (player != null && _views.TryGetValue(player, out ViewSlot playerSlot) && playerSlot.PlayerVisual != null)
+            {
+                switch (result.Move)
+                {
+                    case MoveOutcome.Moved:
+                        playerSlot.PlayerVisual.PlayMove(worldDir);
+                        break;
+
+                    case MoveOutcome.Attacked:
+                        playerSlot.PlayerVisual.PlayAttack(worldDir, null);
+                        break;
+                }
+            }
+
+            // 반격(CORE_COMBAT.md §5-5)은 부딪힌 그 한 마리만, 실제로 피해를 입혔을 때만 한다.
+            // 0피해 "반격"(공격력 0인 벽)까지 돌진 애니메이션을 태우면 가만히 있어야 할 벽이
+            // 플레이어 쪽으로 튀어나가는 것처럼 보인다.
+            if (player == null || result.Move != MoveOutcome.Attacked || result.DamageTaken <= 0)
+            {
+                return;
+            }
+
+            Vector2Int bumpedCell = player.Position + direction.ToOffset();
+            if (!_loop.Grid.InBounds(bumpedCell))
+            {
+                return;
+            }
+
+            Entity bumped = _loop.Grid[bumpedCell];
+            if (bumped == null || !_views.TryGetValue(bumped, out ViewSlot bumpedSlot) || bumpedSlot.MonsterVisual == null)
+            {
+                return;
+            }
+
+            _lastRetaliator = bumped;
+            Vector2Int towardPlayer = new Vector2Int(-worldDir.x, -worldDir.y);
+            bumpedSlot.MonsterVisual.PlayAttack(towardPlayer, null);
+        }
+
+        /// <summary>논리 방향을 <b>월드</b> 기준 단위 벡터 성분으로. Direction.ToOffset()은 그리드(행)
+        /// 기준이라 Up이 y=-1인데, 연출은 화면 좌표를 써야 하므로 따로 둔다.</summary>
+        private static Vector2Int ToWorldDirection(Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.Up: return new Vector2Int(0, 1);
+                case Direction.Down: return new Vector2Int(0, -1);
+                case Direction.Left: return new Vector2Int(-1, 0);
+                default: return new Vector2Int(1, 0);
+            }
+        }
+
         private void Sync(bool snap)
         {
             if (_loop == null || entityViewPrefab == null || cellRoot == null)
@@ -765,11 +906,12 @@ namespace RecycleLife.Unity
 
                     _alive.Add(entity);
 
-                    if (!_views.TryGetValue(entity, out ViewSlot slot))
+                    bool isNewSlot = !_views.TryGetValue(entity, out ViewSlot slot);
+                    if (isNewSlot)
                     {
                         slot = Rent();
                         _views.Add(entity, slot);
-                        ApplyVisual(entity, slot.Renderer);
+                        ApplyVisual(entity, slot);
 
                         // 새 쓰레기는 보드 위쪽 바깥에서 시작해야 "떨어져 내리는" 것으로 보인다.
                         bool fallsIn = dropFromAbove && entity.Kind != EntityKind.Player;
@@ -777,6 +919,12 @@ namespace RecycleLife.Unity
                             ? CellToLocal(new Vector2Int(entity.Position.x, -1))
                             : CellToLocal(entity.Position);
                         slot.Settled = false;
+
+                        // 스폰 팝업이 따로 돈다 — 떨어져 내려와 처음 자리를 잡을 때는
+                        // 착지 스쿼시(PlayLand)를 건너뛴다. 같은 scale 채널을 두고 서로
+                        // 죽이며 튀어 보이기 때문이다(LateUpdate 참조).
+                        slot.SkipNextLandAnimation = true;
+                        slot.MonsterVisual?.PlaySpawn();
                     }
                     else if (snap)
                     {
@@ -789,7 +937,19 @@ namespace RecycleLife.Unity
                     // 상품도 매번 칠한다 — 돈을 쓰면 "살 수 있음/없음" 색이 바뀌어야 한다.
                     if (entity.Kind == EntityKind.Bomb || entity.Kind == EntityKind.ShopItem)
                     {
-                        ApplyVisual(entity, slot.Renderer);
+                        ApplyVisual(entity, slot);
+                    }
+
+                    // 기존에 있던 몬스터/아이템만 피격 판정을 한다 — 막 만들어진 슬롯은 풀에서
+                    // 재사용됐을 수 있어 ShownHp가 직전 점유자의 값일 수 있다(오탐 방지).
+                    // 반격으로 PlayAttack이 이미 재생 중인 몬스터는 넉백과 겹치지 않게 뺀다.
+                    if (!isNewSlot && slot.MonsterVisual != null && !ReferenceEquals(entity, _lastRetaliator))
+                    {
+                        var health = entity as IHasHealth;
+                        if (health != null && slot.ShownHp > health.Hp)
+                        {
+                            slot.MonsterVisual.PlayHit(ToWorldDirection(_lastStepDirection));
+                        }
                     }
 
                     // 체력과 도화선은 스텝 단위로만 바뀐다. 매 프레임이 아니라 여기서만 맞춘다.
@@ -809,9 +969,66 @@ namespace RecycleLife.Unity
 
             for (int i = 0; i < _stale.Count; i++)
             {
-                Release(_views[_stale[i]]);
-                _views.Remove(_stale[i]);
+                Entity entity = _stale[i];
+                ViewSlot slot = _views[entity];
+
+                if (slot.ReleasePending)
+                {
+                    continue;   // 사망/획득 연출이 아직 도는 중 — 끝나면 콜백이 정리한다
+                }
+
+                if (TryPlayExitAnimation(entity, slot))
+                {
+                    slot.ReleasePending = true;
+                    continue;
+                }
+
+                Release(slot);
+                _views.Remove(entity);
             }
+        }
+
+        /// <summary>
+        /// 그리드에서 이미 사라진 엔티티를 바로 풀에 돌려주는 대신, 몬스터/아이템이면
+        /// 사망·획득 연출을 먼저 재생한다. 연출이 끝나야(콜백) 실제로 Release + _views.Remove가
+        /// 일어난다 — 그 사이엔 Sync가 매번 이 엔티티를 다시 stale로 집어도 ReleasePending이
+        /// 막아 주므로 중복 재생되지 않는다.
+        /// </summary>
+        /// <returns>연출을 재생하기 시작했으면 true(= 아직 풀에 돌려주면 안 된다).</returns>
+        private bool TryPlayExitAnimation(Entity entity, ViewSlot slot)
+        {
+            if (slot.MonsterVisual == null)
+            {
+                return false;
+            }
+
+            var trash = entity as Trash;
+            if (trash == null)
+            {
+                return false;
+            }
+
+            // 사라지는 애 밑에 빈 하트 줄/도화선 숫자가 남아 있을 이유가 없다.
+            ReleaseHearts(slot);
+            ReleaseFuse(slot);
+
+            if (trash.IsConsumable)
+            {
+                slot.MonsterVisual.PlayPickup(() => FinishDeferredRelease(entity, slot));
+            }
+            else
+            {
+                slot.MonsterVisual.PlayDeath(() => FinishDeferredRelease(entity, slot));
+            }
+
+            return true;
+        }
+
+        private void FinishDeferredRelease(Entity entity, ViewSlot slot)
+        {
+            slot.ReleasePending = false;
+            Release(slot);
+            _views.Remove(entity);
         }
 
         private Vector3 CellToLocal(Vector2Int cell)
@@ -827,12 +1044,55 @@ namespace RecycleLife.Unity
             return new Vector3(x, y, 0f);
         }
 
-        private void ApplyVisual(Entity entity, SpriteRenderer view)
+        private void ApplyVisual(Entity entity, ViewSlot slot)
         {
+            bool isPlayer = entity.Kind == EntityKind.Player;
+            bool isTrash = !isPlayer && entity is Trash;
+
+            if (isPlayer)
+            {
+                EnsurePlayerVisual(slot);
+            }
+            else if (isTrash)
+            {
+                EnsureMonsterVisual(slot);
+            }
+
+            // 전용 Visual이 있으면 그쪽에 그린다 — 루트(slot.Renderer)는 위치/판정만 맡고,
+            // 보이는 건 Visual이 전담해야 연출(기울기·돌진·숨쉬기 등)이 루트 좌표와 안 섞인다.
+            SpriteRenderer playerView = isPlayer && slot.PlayerVisual != null ? slot.PlayerVisual.SpriteRenderer : null;
+            SpriteRenderer monsterView = isTrash && slot.MonsterVisual != null ? slot.MonsterVisual.SpriteRenderer : null;
+            SpriteRenderer view = playerView != null ? playerView : (monsterView != null ? monsterView : slot.Renderer);
+
+            // 루트 자신의 렌더러는 전용 Visual이 대신 그릴 때만 끈다. 슬롯은 종류를 가리지 않고
+            // 재사용되므로(풀링) 과거엔 다른 종류였을 수도, 지금 막 그 종류가 됐을 수도 있다 —
+            // 매번 지금 종류에 맞게 다시 맞춘다.
+            slot.Renderer.enabled = view == slot.Renderer;
+            if (slot.PlayerVisual != null)
+            {
+                slot.PlayerVisual.gameObject.SetActive(isPlayer);
+            }
+
+            if (slot.MonsterVisual != null)
+            {
+                slot.MonsterVisual.gameObject.SetActive(isTrash);
+            }
+
             Color color = Color.white;
             Sprite sprite = null;
 
-            if (visuals != null)
+            // 플레이어는 지금 고른 캐릭터의 스프라이트를 먼저 써 본다 — 캐릭터마다 그림이
+            // 다르므로(기획: 개성은 공격 범위 + 겉모습) EntityVisualSet의 단일 플레이어 슬롯보다
+            // 우선한다. 캐릭터에 아이콘을 안 꽂았으면(아직 아트 전) 기존 경로로 떨어진다.
+            Sprite characterIcon = isPlayer && session != null
+                ? session.ActiveCharacterConfig?.Icon
+                : null;
+
+            if (characterIcon != null)
+            {
+                sprite = characterIcon;
+            }
+            else if (visuals != null)
             {
                 visuals.Resolve(entity, out color, out sprite);
             }
@@ -840,12 +1100,69 @@ namespace RecycleLife.Unity
             view.sprite = sprite != null ? sprite : PlaceholderSprite.Square;
             view.color = color;
 
+            if (isTrash && slot.MonsterVisual != null)
+            {
+                var trash = (Trash)entity;
+                MonsterFeedbackSettings feedback = visuals != null ? visuals.ResolveFeedback(trash.Type) : null;
+                slot.MonsterVisual.Configure(feedback != null ? feedback : defaultMonsterFeedback);
+                slot.MonsterVisual.SetBaseColor(color);
+            }
+
             // localScale은 여기서 안 잡는다 — 같은 프레임의 LateUpdate가 ApplyReveal로 덮어쓴다.
 
 #if UNITY_EDITOR
             // 하이어라키에서 알아보기 위한 이름. 순수 디버깅용이라 에디터에서만 붙인다.
             // $"Trash_{type}"은 부를 때마다 enum 박싱 + 문자열 할당을 만든다(Hard Rule 8).
-            view.name = NameFor(entity);
+            slot.Renderer.name = NameFor(entity);
+#endif
+        }
+
+        /// <summary>
+        /// 플레이어 뷰 밑에 연출용 Visual 자식을 한 번만 만든다. 이미 있으면(슬롯 재사용)
+        /// 아무것도 안 한다. 프리팹을 안 꽂아 뒀으면 조용히 포기한다 — 그러면 ApplyVisual이
+        /// 루트에 직접 그리는 기존 방식으로 자동 대체된다(연출만 없을 뿐 렌더링은 멀쩡하다).
+        /// </summary>
+        private void EnsurePlayerVisual(ViewSlot slot)
+        {
+            if (slot.PlayerVisual != null || playerVisualPrefab == null)
+            {
+                return;
+            }
+
+            slot.PlayerVisual = Instantiate(playerVisualPrefab, slot.Renderer.transform);
+
+            Transform visual = slot.PlayerVisual.transform;
+            visual.localPosition = Vector3.zero;
+            visual.localRotation = Quaternion.identity;
+            visual.localScale = Vector3.one;
+
+#if UNITY_EDITOR
+            visual.name = "Visual";
+#endif
+        }
+
+        /// <summary>
+        /// 몬스터/아이템 뷰 밑에 연출용 Visual 자식을 한 번만 만든다. 로컬 y를 -0.5로 두는 이유:
+        /// 이 트랜스폼 자체가 숨쉬기 스케일의 피벗이 되므로, 칸의 "발 밑"에 둬야 스케일이
+        /// 커져도 발이 땅에서 뜨지 않는다(프리팹 안의 Sprite 자식이 반대로 +0.5만큼 올라가
+        /// 있어서, 정지 상태의 보이는 위치는 칸 한가운데 그대로다).
+        /// </summary>
+        private void EnsureMonsterVisual(ViewSlot slot)
+        {
+            if (slot.MonsterVisual != null || monsterVisualPrefab == null)
+            {
+                return;
+            }
+
+            slot.MonsterVisual = Instantiate(monsterVisualPrefab, slot.Renderer.transform);
+
+            Transform visual = slot.MonsterVisual.transform;
+            visual.localPosition = new Vector3(0f, -0.5f, 0f);
+            visual.localRotation = Quaternion.identity;
+            visual.localScale = Vector3.one;
+
+#if UNITY_EDITOR
+            visual.name = "Visual";
 #endif
         }
 
@@ -909,6 +1226,20 @@ namespace RecycleLife.Unity
         {
             ReleaseHearts(slot);
             ReleaseFuse(slot);
+
+            // 트윈이 도는 채로 풀에 돌아가면, 다음에 이 슬롯을 다른 종류가 받았을 때
+            // 자식(Visual)이 비뚤어지거나 밀려난 자세로 남아 있을 수 있다.
+            if (slot.PlayerVisual != null)
+            {
+                slot.PlayerVisual.SnapIdle();
+            }
+
+            if (slot.MonsterVisual != null)
+            {
+                slot.MonsterVisual.SnapIdle();
+            }
+
+            slot.ReleasePending = false;
             slot.Renderer.gameObject.SetActive(false);
             _pool.Push(slot);
         }

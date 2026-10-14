@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a86f39d75c14e08b1d4c6903fe27a15, type: 3}
   m_Name: CharacterA
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.CharacterConfig
-  displayName: "캐릭터 A (기본형)"
+  displayName: "\uCE90\uB9AD\uD130 A (\uAE30\uBCF8\uD615)"
+  icon: {fileID: 4961784595368994782, guid: d654d4019d79f5642ab893ec5635cbc2, type: 3}
   maxHp: 3
   attack: 2
   attackOffsets:

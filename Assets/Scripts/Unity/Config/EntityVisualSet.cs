@@ -20,6 +20,9 @@ namespace RecycleLife.Unity
             public TrashType type;
             public Color color;
             public Sprite sprite;
+
+            [Tooltip("이 종류의 연출 수치(숨쉬기·피격·사망 등). 비우면 defaultMonsterFeedback을 쓴다.")]
+            public MonsterFeedbackSettings feedback;
         }
 
         [Header("플레이어")]
@@ -190,6 +193,20 @@ namespace RecycleLife.Unity
 
             color = fallbackColor;
             sprite = null;
+        }
+
+        /// <summary>이 종류의 연출 수치. 안 꽂아 뒀으면 null — 호출하는 쪽이 기본값으로 대신한다.</summary>
+        public MonsterFeedbackSettings ResolveFeedback(TrashType type)
+        {
+            for (int i = 0; i < trash.Length; i++)
+            {
+                if (trash[i].type == type)
+                {
+                    return trash[i].feedback;
+                }
+            }
+
+            return null;
         }
     }
 }

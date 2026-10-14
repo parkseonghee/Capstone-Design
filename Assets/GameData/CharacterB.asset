@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a86f39d75c14e08b1d4c6903fe27a15, type: 3}
   m_Name: CharacterB
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.CharacterConfig
-  displayName: "캐릭터 B (사이드 어택형)"
+  displayName: "\uCE90\uB9AD\uD130 B (\uC0AC\uC774\uB4DC \uC5B4\uD0DD\uD615)"
+  icon: {fileID: -8139962630144484709, guid: 4da2729963887a34783f1d8d55bcea21, type: 3}
   maxHp: 4
   attack: 1
   attackOffsets:
