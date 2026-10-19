@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.BombConfig
   fuseTurns: 3
   damage: 5
+  playerDamage: 3
   blastRadius: 1
   startingCount: 3
   damagesPlayer: 1

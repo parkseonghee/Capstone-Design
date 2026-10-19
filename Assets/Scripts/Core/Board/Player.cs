@@ -20,7 +20,25 @@ namespace RecycleLife.Core
         public int MaxHp { get; private set; }
 
         /// <summary>연쇄에 묶인 모든 적에게 각각 들어가는 피해량(§5-2).</summary>
-        public int Attack { get; }
+        public int Attack { get; private set; }
+
+        /// <summary>공격력을 올린다(유물 R09).</summary>
+        public void IncreaseAttack(int amount)
+        {
+            if (amount > 0)
+            {
+                Attack += amount;
+            }
+        }
+
+        /// <summary>공격력을 내린다(유물을 버렸을 때). 0 밑으로는 안 내려간다.</summary>
+        public void DecreaseAttack(int amount)
+        {
+            if (amount > 0)
+            {
+                Attack = Mathf.Max(0, Attack - amount);
+            }
+        }
 
         public int Hp { get; private set; }
 
@@ -31,12 +49,64 @@ namespace RecycleLife.Core
         /// <summary>반격 피해를 적용하고 남은 체력을 돌려준다.</summary>
         public int TakeDamage(int amount)
         {
-            if (amount > 0)
+            if (amount <= 0)
             {
-                Hp = Mathf.Max(0, Hp - amount);
+                return Hp;
             }
 
+            // 방독면(C06): 남은 턴 동안은 무엇에 맞아도 아프지 않다.
+            if (InvulnerableTurns > 0)
+            {
+                return Hp;
+            }
+
+            // 방호복(C11): 다음 한 번을 막고 사라진다.
+            if (Shields > 0)
+            {
+                Shields--;
+                return Hp;
+            }
+
+            Hp = Mathf.Max(0, Hp - amount);
             return Hp;
+        }
+
+        /// <summary>남은 피격 무효 횟수. 방호복(C11).</summary>
+        public int Shields { get; private set; }
+
+        /// <summary>피해 무효가 남은 턴 수. 방독면(C06).</summary>
+        public int InvulnerableTurns { get; private set; }
+
+        public void AddShield(int count)
+        {
+            if (count > 0)
+            {
+                Shields += count;
+            }
+        }
+
+        /// <summary>그 턴 수만큼 피해 무효. 이미 걸려 있으면 긴 쪽을 남긴다(겹쳐 늘어나지 않는다).</summary>
+        public void GrantInvulnerability(int turns)
+        {
+            InvulnerableTurns = Mathf.Max(InvulnerableTurns, turns);
+        }
+
+        /// <summary>한 턴이 끝났다. 피해 무효를 한 턴 깎는다. GameLoop가 턴 끝마다 부른다.</summary>
+        public void TickInvulnerability()
+        {
+            if (InvulnerableTurns > 0)
+            {
+                InvulnerableTurns--;
+            }
+        }
+
+        /// <summary>체력을 가득 채운다(완전 회복 키트 C12).</summary>
+        /// <returns>실제로 찬 양.</returns>
+        public int HealFull()
+        {
+            int before = Hp;
+            Hp = MaxHp;
+            return Hp - before;
         }
 
         /// <summary>
@@ -171,6 +241,8 @@ namespace RecycleLife.Core
             }
 
             Hp = Mathf.Clamp(previous.Hp, 1, MaxHp);
+            Shields = previous.Shields;
+            InvulnerableTurns = previous.InvulnerableTurns;
             Bombs = Mathf.Max(0, previous.Bombs);
             Gold = Mathf.Max(0, previous.Gold);
         }

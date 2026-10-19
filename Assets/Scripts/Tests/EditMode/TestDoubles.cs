@@ -75,6 +75,8 @@ namespace RecycleLife.Tests
 
         public bool DamagesPlayer { get; set; } = true;
 
+        public int PlayerDamage { get; set; } = 5;     // 기존 테스트가 적 피해와 같은 5를 전제한다
+
         public bool ChainDetonates { get; set; } = true;
     }
 

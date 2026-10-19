@@ -59,6 +59,7 @@ namespace RecycleLife.Core
             _stepSpawner = stepSpawner ?? throw new ArgumentNullException(nameof(stepSpawner));
             _seedSpawner = seedSpawner ?? throw new ArgumentNullException(nameof(seedSpawner));
             _bombs = bombs ?? throw new ArgumentNullException(nameof(bombs));
+            _bombs.Exploded += (cell, radius) => BombExploded?.Invoke(cell, radius);
             _gameOver = gameOver ?? throw new ArgumentNullException(nameof(gameOver));
 
             // 웨이브는 선택이다. 안 넘기면 웨이브 없이 무한히 도는 기존 동작 그대로다.
@@ -133,6 +134,12 @@ namespace RecycleLife.Core
         /// 드롭 표를 안 꽂았으면 null이다(= 재료가 아예 안 나온다).
         /// </summary>
         public MaterialDropResolver MaterialDrops => _drops;
+
+        /// <summary>
+        /// 폭탄 하나가 터졌을 때(터진 칸, 폭발 반경). 연쇄로 터진 폭탄도 하나씩 울린다.
+        /// 폭발 이펙트가 구독한다. 폭발을 처리하는 <b>도중에</b> 울리므로 구독자가 보드를 바꾸면 안 된다.
+        /// </summary>
+        public event Action<Vector2Int, int> BombExploded;
 
         /// <summary>
         /// 바닥에 깔린 독. 독이 깔린 칸을 뷰가 읽어 그린다.
@@ -243,6 +250,13 @@ namespace RecycleLife.Core
                            || move.Outcome == MoveOutcome.Armed
                            || move.Outcome == MoveOutcome.Teleported
                            || (move.Outcome == MoveOutcome.BlockedByEntity && _config.AdvanceOnBlocked);
+
+            // 재활용 장갑(R11): 한 번의 공격으로 N마리 이상 잡으면 체력을 회복한다.
+            RunModifiers mods = Player.Modifiers;
+            if (mods != null && mods.ChainHealThreshold > 0 && move.EnemiesKilled >= mods.ChainHealThreshold)
+            {
+                Player.Heal(mods.ChainHealAmount);
+            }
 
             if (!advance)
             {
@@ -390,6 +404,89 @@ namespace RecycleLife.Core
         }
 
         /// <summary>
+        /// 보드의 덫을 전부 없앤다. 제거 스프레이(C04). <b>턴을 쓰지 않는다</b>(아이템 사용은 행동이 아니다).
+        /// </summary>
+        /// <returns>없앤 덫 수.</returns>
+        public int RemoveAllTraps()
+        {
+            if (!IsReady || IsOver)
+            {
+                return 0;
+            }
+
+            int removed = 0;
+            for (int row = 0; row < Grid.Rows; row++)
+            {
+                for (int col = 0; col < Grid.Cols; col++)
+                {
+                    var cell = new Vector2Int(col, row);
+                    if (Grid[cell] != null && Grid[cell].Kind == EntityKind.Trap)
+                    {
+                        Grid.Remove(cell);
+                        removed++;
+                    }
+                }
+            }
+
+            return removed;
+        }
+
+        /// <summary>
+        /// 보드의 적들끼리 자리를 섞는다. 재배치 물약(C07). 적이 있던 칸들 안에서만 섞으므로
+        /// 벽·포션·빈 칸·플레이어는 그대로다. <b>턴을 쓰지 않는다.</b>
+        /// </summary>
+        /// <returns>섞인 적 수. 둘 미만이면 섞을 게 없어 0.</returns>
+        public int ShuffleEnemies(IRandomSource random)
+        {
+            if (!IsReady || IsOver || random == null)
+            {
+                return 0;
+            }
+
+            var cells = new List<Vector2Int>();
+            var enemies = new List<Entity>();
+            for (int row = _config.FirstPlayableRow; row < Grid.Rows; row++)
+            {
+                for (int col = 0; col < Grid.Cols; col++)
+                {
+                    var cell = new Vector2Int(col, row);
+                    var trash = Grid[cell] as Trash;
+                    if (trash != null && trash.IsEnemy)
+                    {
+                        cells.Add(cell);
+                        enemies.Add(trash);
+                    }
+                }
+            }
+
+            if (enemies.Count < 2)
+            {
+                return 0;
+            }
+
+            // 피셔-예이츠. 적만 섞고 칸 목록은 그대로 둔 채 다시 깐다.
+            for (int i = enemies.Count - 1; i > 0; i--)
+            {
+                int j = random.NextInt(0, i + 1);
+                Entity tmp = enemies[i];
+                enemies[i] = enemies[j];
+                enemies[j] = tmp;
+            }
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                Grid.Remove(cells[i]);
+            }
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                Grid.Place(enemies[i], cells[i]);
+            }
+
+            return enemies.Count;
+        }
+
+        /// <summary>
         /// 제자리에서 한 턴을 넘긴다. 플레이어는 움직이지 않지만 보드는 평소대로 진행한다 —
         /// 중력이 한 칸 내려가고, 스폰이 돌고, 폭탄 도화선이 탄다.
         ///
@@ -494,6 +591,9 @@ namespace RecycleLife.Core
 
             // ── 페이즈 6: 패배 판정 ──────────────────────────────────────────
             Reason = _gameOver.Evaluate(spawnBlocked);
+
+            // 방독면(C06)은 턴 끝에 한 턴씩 줄어든다. 이번 턴의 반격·폭발·독을 다 막은 뒤에 깎는다.
+            Player.TickInvulnerability();
 
             StepCount++;
             return new StepResult(move, blast, true, settled, spawned, spawnBlocked, Reason);

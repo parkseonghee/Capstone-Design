@@ -19,8 +19,11 @@ namespace RecycleLife.Unity
         [SerializeField, Min(1), Tooltip("불을 붙인 뒤 몇 턴 있다가 터지는지. 확정값 3.")]
         private int fuseTurns = 3;
 
-        [SerializeField, Min(0), Tooltip("폭발이 한 칸에 주는 피해. 확정값 5.")]
+        [SerializeField, Min(0), Tooltip("폭발이 적·벽에 주는 피해. 확정값 5.")]
         private int damage = 5;
+
+        [SerializeField, Min(0), Tooltip("폭발이 플레이어에게 주는 피해. 조합레시피 문서 §5: 3.")]
+        private int playerDamage = 3;
 
         [SerializeField, Min(0), Tooltip("폭심에서의 사거리. 1 = 3x3(확정값), 2 = 5x5. " +
                                          "유물 '폭발 범위 증가'가 이 값을 올린다.")]
@@ -47,6 +50,8 @@ namespace RecycleLife.Unity
         public int StartingCount => startingCount;
 
         public bool DamagesPlayer => damagesPlayer;
+
+        public int PlayerDamage => playerDamage;
 
         public bool ChainDetonates => chainDetonates;
     }

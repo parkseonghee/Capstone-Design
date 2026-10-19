@@ -51,6 +51,38 @@ namespace RecycleLife.Core
         /// <summary>그때 회복하는 양.</summary>
         public int WallHealAmount { get; private set; }
 
+        /// <summary>공격력 보너스. R09 날카로운 삽.</summary>
+        public int BonusAttack { get; private set; }
+
+        /// <summary>덫에 닿아도 날아가지 않는다. R12 튼튼한 장화.</summary>
+        public bool ImmuneToTraps { get; private set; }
+
+        /// <summary>재료 드랍 확률 보너스(%p). R10 넝마주이. 드랍 표의 확률에 그대로 더한다.</summary>
+        public int BonusDropChance { get; private set; }
+
+        /// <summary>
+        /// 한 번의 공격으로 이 수 이상 처치하면 체력을 회복한다(0이면 효과 없음). R11 재활용 장갑.
+        /// </summary>
+        public int ChainHealThreshold { get; private set; }
+
+        /// <summary>연쇄 회복량. <see cref="ChainHealThreshold"/>와 짝이다.</summary>
+        public int ChainHealAmount { get; private set; }
+
+        /// <summary>
+        /// 이번 스테이지 동안만 붙는 드랍 확률 보너스(%p). 수집 장갑(C05).
+        /// RunModifiers는 스테이지를 새로 시작할 때 새로 만들어지므로 따로 지울 필요가 없다.
+        /// </summary>
+        public int StageDropChance { get; private set; }
+
+        /// <summary>드랍 표에 더할 보너스 합계 — 유물(R10)과 소모품(C05).</summary>
+        public int TotalDropChance => BonusDropChance + StageDropChance;
+
+        /// <summary>
+        /// "N마리 처치마다 재료 1개 보장"을 세는 카운터. 효과가 아니라 런 단위 진행값이지만,
+        /// 웨이브마다 루프가 새로 만들어져도 이어져야 해서 런과 수명이 같은 여기에 둔다.
+        /// </summary>
+        public int KillsSinceGuaranteedDrop { get; set; }
+
         public void AddMaxHp(int amount) => BonusMaxHp += Mathf.Max(0, amount);
 
         public void AddBombs(int amount) => BonusBombs += Mathf.Max(0, amount);
@@ -80,6 +112,21 @@ namespace RecycleLife.Core
             WallHealAmount = Mathf.Max(WallHealAmount, Mathf.Max(1, amount));
         }
 
+        public void AddAttack(int amount) => BonusAttack += Mathf.Max(0, amount);
+
+        public void AddStageDropChance(int percent) => StageDropChance += Mathf.Max(0, percent);
+
+        public void GrantTrapImmunity() => ImmuneToTraps = true;
+
+        public void AddDropChance(int percent) => BonusDropChance += Mathf.Max(0, percent);
+
+        /// <summary>연쇄 회복을 건다. 주는 유물이 하나뿐이라 덮어쓴다.</summary>
+        public void SetChainHeal(int threshold, int amount)
+        {
+            ChainHealThreshold = Mathf.Max(1, threshold);
+            ChainHealAmount = Mathf.Max(1, amount);
+        }
+
         // ── 되돌리기 (유물을 쓰레기통에 버렸을 때) ─────────────────────────
         // 위의 Add/Grant와 짝을 이룬다. 각각 기본값 밑으로는 내려가지 않는다 —
         // 버린 유물보다 더 많이 깎이면 다른 유물의 몫까지 사라지기 때문이다.
@@ -106,6 +153,18 @@ namespace RecycleLife.Core
             {
                 ReviveHp = 0;
             }
+        }
+
+        public void RemoveAttack(int amount) => BonusAttack = Mathf.Max(0, BonusAttack - Mathf.Max(0, amount));
+
+        public void RevokeTrapImmunity() => ImmuneToTraps = false;
+
+        public void RemoveDropChance(int percent) => BonusDropChance = Mathf.Max(0, BonusDropChance - Mathf.Max(0, percent));
+
+        public void ClearChainHeal()
+        {
+            ChainHealThreshold = 0;
+            ChainHealAmount = 0;
         }
 
         /// <summary>벽 처치 회복을 끈다. 주는 유물이 하나뿐이라 통째로 0이 된다.</summary>

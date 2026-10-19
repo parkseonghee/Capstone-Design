@@ -79,6 +79,48 @@ namespace RecycleLife.Unity
             /// 기존 아이템의 효과가 전부 한 칸씩 밀린다.
             /// </summary>
             PlaceBomb,
+
+            /// <summary>공격력 증가. R09 날카로운 삽. amount = 오르는 공격력.</summary>
+            AttackUp,
+
+            /// <summary>덫 효과 면역 — 밟아도 날아가지 않는다. R12 튼튼한 장화.</summary>
+            TrapImmunity,
+
+            /// <summary>재료 드랍 확률 증가. R10 넝마주이. amount = 더할 %p.</summary>
+            DropChance,
+
+            /// <summary>
+            /// 한 번의 공격으로 여러 마리를 잡으면 체력 회복. R11 재활용 장갑.
+            /// amount = 회복량, <b>chance = 기준 마릿수</b>(이 효과에서만 확률이 아니라 마릿수로 쓴다).
+            /// </summary>
+            ChainHeal,
+
+            /// <summary>체력 회복. C03 응급 포션. amount = 회복량.</summary>
+            HealPlayer,
+
+            /// <summary>체력 전부 회복. C12 완전 회복 키트.</summary>
+            FullHeal,
+
+            /// <summary>보드의 덫 전부 제거. C04 제거 스프레이.</summary>
+            RemoveTraps,
+
+            /// <summary>이번 스테이지 동안 재료 드랍 확률 증가. C05 수집 장갑. amount = 더할 %p.</summary>
+            StageDropChance,
+
+            /// <summary>
+            /// 재료 1개를 원하는 기초 재료로 바꾼다. C10 재료 전환기.
+            /// [사용] 버튼이 아니라 <b>바꿀 재료를 이 칸에 끌어다 놓아</b> 쓴다 — 무엇을 무엇으로 바꿀지 골라야 해서다.
+            /// </summary>
+            ConvertMaterial,
+
+            /// <summary>다음 피격 무효. C11 방호복. amount = 막는 횟수(보통 1).</summary>
+            Shield,
+
+            /// <summary>N턴 동안 피해 무효. C06 방독면. amount = 턴 수.</summary>
+            Invulnerable,
+
+            /// <summary>보드의 몬스터 배치를 섞는다. C07 재배치 물약.</summary>
+            ShuffleEnemies,
         }
 
         [Serializable]
@@ -110,6 +152,9 @@ namespace RecycleLife.Unity
 
             [TextArea, Tooltip("설명. 인벤토리와 상점에 그대로 뜬다.")]
             public string description;
+
+            [Tooltip("조합으로만 얻는지. 켜면 상점에 진열되지 않는다(가공 재료·유물 — 조합레시피 문서 §1).")]
+            public bool craftOnly;
         }
 
         [SerializeField, Tooltip("전체 아이템. 상점은 이 중에서 뽑아 판다.")]

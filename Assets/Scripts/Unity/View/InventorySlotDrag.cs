@@ -14,7 +14,8 @@ namespace RecycleLife.Unity
     /// 칸 전체를 복제하면 레이아웃 안에서 자리가 비어 다른 칸들이 들썩인다.
     /// </summary>
     public sealed class InventorySlotDrag : MonoBehaviour,
-        IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler,
+        IPointerEnterHandler, IPointerExitHandler
     {
         private InventoryView _owner;
         private int _index = -1;
@@ -97,6 +98,13 @@ namespace RecycleLife.Unity
         /// </summary>
         private void ClearDrag()
         {
+            // 끌기가 어디서 끝나든(빈 곳·쓰레기통·칸) 미리보기 창은 닫혀야 한다.
+            // 끌던 칸일 때만 닫는다 — 다른 칸이 Refresh로 꺼질 때까지 창을 닫으면 끄는 도중에 깜빡인다.
+            if (_owner != null && _ghost != null)
+            {
+                _owner.HideCombinePreview();
+            }
+
             if (_group != null)
             {
                 _group.alpha = 1f;
@@ -125,6 +133,39 @@ namespace RecycleLife.Unity
             }
 
             _owner.TryCombine(from._index, _index);
+        }
+
+        /// <summary>
+        /// 끌고 있는 다른 칸이 이 칸 위로 올라왔다. 조합되는 짝이면 미리보기 창이 뜬다
+        /// (롤토체스 방식 — 놓기 전에 결과를 보여 준다).
+        /// </summary>
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            InventorySlotDrag from = DraggedFrom(eventData);
+            if (from != null)
+            {
+                _owner.PreviewCombine(from._index, _index);
+            }
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (DraggedFrom(eventData) != null)
+            {
+                _owner.HideCombinePreview();
+            }
+        }
+
+        /// <summary>지금 이 칸 위로 끌려 온 다른 칸. 끄는 중이 아니거나 자기 자신이면 null.</summary>
+        private InventorySlotDrag DraggedFrom(PointerEventData eventData)
+        {
+            if (_owner == null || eventData == null || !eventData.dragging || eventData.pointerDrag == null)
+            {
+                return null;
+            }
+
+            var from = eventData.pointerDrag.GetComponent<InventorySlotDrag>();
+            return from != null && from != this ? from : null;
         }
 
         /// <summary>손가락을 따라다닐 이름표. 원본 칸은 자리에 그대로 남는다.</summary>

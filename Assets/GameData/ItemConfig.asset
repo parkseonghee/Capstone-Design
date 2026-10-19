@@ -19,114 +19,257 @@ MonoBehaviour:
     effect: 0
     amount: 1
     chance: 0
-    price: 25
-    confirmed: 1
-    description: "\uCD5C\uB300 \uCCB4\uB825 +1"
+    price: 0
+    confirmed: 0
+    description: "\uCD5C\uB300 \uCCB4\uB825 +1 (T1)"
+    craftOnly: 1
+  - id: R05
+    displayName: "\uC9C4\uD55C \uD3EC\uC158"
+    kind: 0
+    effect: 4
+    amount: 1
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uD3EC\uC158 \uD68C\uBCF5\uB7C9 2 \u2192 3 (T1)"
+    craftOnly: 1
+  - id: R10
+    displayName: "\uB11D\uB9C8\uC8FC\uC774"
+    kind: 0
+    effect: 14
+    amount: 5
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uC7AC\uB8CC \uB4DC\uB78D \uD655\uB960 +5%p (T1)"
+    craftOnly: 1
+  - id: R12
+    displayName: "\uD2BC\uD2BC\uD55C \uC7A5\uD654"
+    kind: 0
+    effect: 13
+    amount: 0
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uB36B\uC744 \uBC1F\uC544\uB3C4 \uB0A0\uC544\uAC00\uC9C0 \uC54A\uB294\uB2E4
+      (T1)"
+    craftOnly: 1
   - id: R02
     displayName: "\uAC15\uC778\uD55C \uBAB8"
     kind: 0
     effect: 0
     amount: 2
     chance: 0
-    price: 45
-    confirmed: 1
-    description: "\uCD5C\uB300 \uCCB4\uB825 +2"
-  - id: R03
-    displayName: "\uD669\uAE08 \uC190"
-    kind: 0
-    effect: 1
-    amount: 25
-    chance: 0
-    price: 30
+    price: 0
     confirmed: 0
-    description: "\uACE8\uB4DC \uD68D\uB4DD\uB7C9 +25% (\uC218\uCE58 \uBBF8\uC815)"
-  - id: R04
-    displayName: "\uC7AC\uC0DD\uC758 \uC528\uC557"
-    kind: 0
-    effect: 2
-    amount: 2
-    chance: 0
-    price: 60
-    confirmed: 0
-    description: "\uC0AC\uB9DD \uC2DC 1\uD68C \uBD80\uD65C, \uCCB4\uB825 2\uB85C
-      \uBCF5\uADC0 (\uD68C\uBCF5\uB7C9 \uBBF8\uC815)"
-  - id: R05
-    displayName: "\uB300\uD615 \uD3ED\uC57D"
-    kind: 0
-    effect: 3
-    amount: 1
-    chance: 0
-    price: 50
-    confirmed: 1
-    description: "\uD3ED\uD0C4 \uD3ED\uBC1C \uBC94\uC704 3x3 \uC5D0\uC11C 5x5 \uB85C"
+    description: "\uCD5C\uB300 \uCCB4\uB825 +2 (T2)"
+    craftOnly: 1
   - id: R06
-    displayName: "\uC9C4\uD55C \uD3EC\uC158"
-    kind: 0
-    effect: 4
-    amount: 1
-    chance: 0
-    price: 30
-    confirmed: 1
-    description: "\uD3EC\uC158 \uD68C\uBCF5\uB7C9 2 \uC5D0\uC11C 3 \uC73C\uB85C"
-  - id: R07
-    displayName: "\uC815\uD654\uC758 \uC528\uC557"
-    kind: 0
-    effect: 5
-    amount: 1
-    chance: 25
-    price: 35
-    confirmed: 0
-    description: "\uBCBD\uC744 \uBD80\uC218\uBA74 25% \uD655\uB960\uB85C \uCCB4\uB825
-      1 \uD68C\uBCF5 (\uD655\uB960\xB7\uD68C\uBCF5\uB7C9 \uBBF8\uC815)"
-  - id: R08
     displayName: "\uD3ED\uD0C4 \uC8FC\uBA38\uB2C8"
     kind: 0
     effect: 6
-    amount: 5
+    amount: 2
     chance: 0
-    price: 40
+    price: 0
     confirmed: 0
-    description: "\uD3ED\uD0C4 +5 (\uC870\uC815 \uC608\uC815)"
-  - id: R09
+    description: "\uD3ED\uD0C4 \uBCF4\uC720 \uC218 +2 (T2)"
+    craftOnly: 1
+  - id: R07
     displayName: "\uBC29\uD3ED \uC7A5\uBE44"
     kind: 0
     effect: 7
     amount: 0
     chance: 0
-    price: 55
-    confirmed: 1
-    description: "\uD3ED\uBC1C \uD53C\uD574 \uBA74\uC5ED. \uC790\uAE30 \uD3ED\uD0C4\uC5D0\uB3C4
-      \uC548 \uB9DE\uB294\uB2E4"
-  - id: R10
+    price: 0
+    confirmed: 0
+    description: "\uD3ED\uBC1C \uD53C\uD574 \uBA74\uC5ED (T2)"
+    craftOnly: 1
+  - id: R08
     displayName: "\uC815\uD654 \uD544\uD130"
     kind: 0
     effect: 8
     amount: 0
     chance: 0
-    price: 20
+    price: 0
     confirmed: 0
-    description: "\uC0C1\uD0DC\uC774\uC0C1 \uD53C\uD574 \uBA74\uC5ED (\uAE30\uBBF9
-      \uBBF8\uAD6C\uD604\uC774\uB77C \uD604\uC7AC \uBB34\uD6A8\uACFC)"
+    description: "\uC0C1\uD0DC\uC774\uC0C1 \uB370\uBBF8\uC9C0 \uBA74\uC5ED (T2)"
+    craftOnly: 1
+  - id: R11
+    displayName: "\uC7AC\uD65C\uC6A9 \uC7A5\uAC11"
+    kind: 0
+    effect: 15
+    amount: 1
+    chance: 5
+    price: 0
+    confirmed: 0
+    description: "\uD55C \uBC88\uC5D0 5\uB9C8\uB9AC \uC774\uC0C1 \uCC98\uCE58\uD558\uBA74
+      \uCCB4\uB825 1 \uD68C\uBCF5 (T2)"
+    craftOnly: 1
+  - id: R03
+    displayName: "\uC7AC\uC0DD\uC758 \uC528\uC557"
+    kind: 0
+    effect: 2
+    amount: 2
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uC0AC\uB9DD \uC2DC 1\uD68C \uBD80\uD65C (T3)"
+    craftOnly: 1
+  - id: R04
+    displayName: "\uB300\uD615 \uD3ED\uC57D"
+    kind: 0
+    effect: 3
+    amount: 1
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uD3ED\uBC1C \uBC94\uC704 3\xD73 \u2192 5\xD75 (T3)"
+    craftOnly: 1
+  - id: R09
+    displayName: "\uB0A0\uCE74\uB85C\uC6B4 \uC0BD"
+    kind: 0
+    effect: 12
+    amount: 1
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uACF5\uACA9\uB825 +1 (T3)"
+    craftOnly: 1
+  - id: R13
+    displayName: "\uAC70\uB300\uD55C \uBAB8"
+    kind: 0
+    effect: 0
+    amount: 3
+    chance: 0
+    price: 0
+    confirmed: 0
+    description: "\uCD5C\uB300 \uCCB4\uB825 +3 (T3)"
+    craftOnly: 1
   - id: C01
     displayName: "\uC815\uD654\uC758 \uBB3C\uC57D"
     kind: 1
     effect: 9
     amount: 1
     chance: 0
-    price: 15
-    confirmed: 1
-    description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 1 \uD53C\uD574"
+    price: 20
+    confirmed: 0
+    description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 1\uB370\uBBF8\uC9C0 (C1)"
+    craftOnly: 0
   - id: C02
     displayName: "\uB300\uCCAD\uC18C \uBB3C\uC57D"
     kind: 1
     effect: 10
     amount: 5
     chance: 0
-    price: 35
+    price: 30
     confirmed: 0
-    description: "\uAC00\uAE4C\uC6B4 \uC77C\uBC18 \uBAAC\uC2A4\uD130 5\uB9C8\uB9AC
-      \uCC98\uCE58 (\uC120\uC815 \uAE30\uC900 \uBBF8\uC815)"
+    description: "\uC77C\uBC18 \uBAAC\uC2A4\uD130 5\uB9C8\uB9AC \uC989\uC2DC \uCC98\uCE58
+      (C2)"
+    craftOnly: 0
   - id: C03
+    displayName: "\uC751\uAE09 \uD3EC\uC158"
+    kind: 1
+    effect: 16
+    amount: 2
+    chance: 0
+    price: 15
+    confirmed: 0
+    description: "\uCCB4\uB825 2 \uD68C\uBCF5 (C1)"
+    craftOnly: 0
+  - id: C04
+    displayName: "\uC81C\uAC70 \uC2A4\uD504\uB808\uC774"
+    kind: 1
+    effect: 18
+    amount: 0
+    chance: 0
+    price: 15
+    confirmed: 0
+    description: "\uBCF4\uB4DC\uC758 \uBAA8\uB4E0 \uB36B \uC81C\uAC70 (C1)"
+    craftOnly: 0
+  - id: C05
+    displayName: "\uC218\uC9D1 \uC7A5\uAC11"
+    kind: 1
+    effect: 19
+    amount: 10
+    chance: 0
+    price: 15
+    confirmed: 0
+    description: "\uC774\uBC88 \uC2A4\uD14C\uC774\uC9C0 \uB3D9\uC548 \uC7AC\uB8CC
+      \uB4DC\uB78D \uD655\uB960 +10%p (C1)"
+    craftOnly: 0
+  - id: C06
+    displayName: "\uBC29\uB3C5\uBA74"
+    kind: 1
+    effect: 22
+    amount: 3
+    chance: 0
+    price: 30
+    confirmed: 0
+    description: "3\uD134 \uB3D9\uC548 \uD53C\uD574 \uBB34\uD6A8 (C2)"
+    craftOnly: 0
+  - id: C07
+    displayName: "\uC7AC\uBC30\uCE58 \uBB3C\uC57D"
+    kind: 1
+    effect: 23
+    amount: 0
+    chance: 0
+    price: 30
+    confirmed: 0
+    description: "\uBCF4\uB4DC\uC758 \uBAAC\uC2A4\uD130 \uBC30\uCE58\uB97C \uC11E\uB294\uB2E4
+      (C2)"
+    craftOnly: 0
+  - id: C08
+    displayName: "\uACE0\uB18D\uCD95 \uC815\uD654\uC758 \uBB3C\uC57D"
+    kind: 1
+    effect: 9
+    amount: 2
+    chance: 0
+    price: 30
+    confirmed: 0
+    description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 2\uB370\uBBF8\uC9C0 (C2)"
+    craftOnly: 0
+  - id: C09
+    displayName: "\uC644\uC804 \uC815\uD654\uC758 \uBB3C\uC57D"
+    kind: 1
+    effect: 9
+    amount: 3
+    chance: 0
+    price: 45
+    confirmed: 0
+    description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 3\uB370\uBBF8\uC9C0 (C3)"
+    craftOnly: 0
+  - id: C10
+    displayName: "\uC7AC\uB8CC \uC804\uD658\uAE30"
+    kind: 1
+    effect: 20
+    amount: 0
+    chance: 0
+    price: 15
+    confirmed: 0
+    description: "\uC7AC\uB8CC\uB97C \uC774 \uCE78\uC5D0 \uB04C\uC5B4\uB2E4 \uB193\uC73C\uBA74
+      \uC6D0\uD558\uB294 \uAE30\uCD08 \uC7AC\uB8CC\uB85C \uBC14\uAFBC\uB2E4 (C1)"
+    craftOnly: 0
+  - id: C11
+    displayName: "\uBC29\uD638\uBCF5"
+    kind: 1
+    effect: 21
+    amount: 1
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uB2E4\uC74C \uD53C\uACA9 1\uD68C \uBB34\uD6A8 (C1)"
+    craftOnly: 0
+  - id: C12
+    displayName: "\uC644\uC804 \uD68C\uBCF5 \uD0A4\uD2B8"
+    kind: 1
+    effect: 17
+    amount: 0
+    chance: 0
+    price: 30
+    confirmed: 0
+    description: "\uCCB4\uB825 \uC804\uBD80 \uD68C\uBCF5 (C2)"
+    craftOnly: 0
+  - id: B01
     displayName: "\uD3ED\uD0C4"
     kind: 1
     effect: 11
@@ -134,43 +277,183 @@ MonoBehaviour:
     chance: 0
     price: 20
     confirmed: 0
-    description: "\uBCF4\uB4DC\uC5D0 \uC124\uCE58\uD574 3\uD134 \uB4A4 \uD130\uC9C4\uB2E4. \uC778\uBCA4\uD1A0\uB9AC\uC5D0\uC11C \uB20C\uB7EC \uC124\uCE58\uD55C\uB2E4."
+    description: "3\xD73 \uD3ED\uBC1C \xB7 \uC801 \uB370\uBBF8\uC9C0 5. \uC124\uCE58
+      \uD6C4 3\uBC88 \uC774\uB3D9\uD558\uBA74 \uD130\uC9C4\uB2E4. \uD50C\uB808\uC774\uC5B4
+      \uD53C\uACA9 3"
+    craftOnly: 0
   - id: M01
-    displayName: "\uB098\uBB34"
+    displayName: "\uACE0\uCCA0"
     kind: 2
     effect: 0
     amount: 0
     chance: 0
     price: 10
     confirmed: 0
-    description: "\uC870\uD569 \uC7AC\uB8CC. \uC885\uC787\uC870\uAC01\uC5D0\uC11C
-      \uB098\uC628\uB2E4."
+    description: "\uAE30\uCD08 \uC7AC\uB8CC. \uCE94 \uACC4\uC5F4 \uBAAC\uC2A4\uD130\uC5D0\uC11C
+      \uB098\uC628\uB2E4. (\uACF5\uACA9 \xB7 \uD3ED\uBC1C)"
+    craftOnly: 0
   - id: M02
-    displayName: "\uCCA0"
-    kind: 2
-    effect: 0
-    amount: 0
-    chance: 0
-    price: 15
-    confirmed: 0
-    description: "\uC870\uD569 \uC7AC\uB8CC. \uD398\uD2B8\uBCD1\uC5D0\uC11C \uB098\uC628\uB2E4."
-  - id: M03
-    displayName: "\uC54C\uB8E8\uBBF8\uB284"
-    kind: 2
-    effect: 0
-    amount: 0
-    chance: 0
-    price: 12
-    confirmed: 0
-    description: "\uC870\uD569 \uC7AC\uB8CC. \uCC0C\uADF8\uB7EC\uC9C4 \uCE94\uC5D0\uC11C
-      \uB098\uC628\uB2E4."
-  - id: M04
-    displayName: "\uBE44\uB2D0"
+    displayName: "\uD3A0\uB9BF"
     kind: 2
     effect: 0
     amount: 0
     chance: 0
     price: 10
     confirmed: 0
-    description: "\uC870\uD569 \uC7AC\uB8CC. \uBE44\uB2D0\uBD09\uC9C0\uC5D0\uC11C
-      \uB098\uC628\uB2E4."
+    description: "\uAE30\uCD08 \uC7AC\uB8CC. \uD398\uD2B8\uBCD1 \xB7 \uD50C\uB77C\uC2A4\uD2F1\uC5D0\uC11C
+      \uB098\uC628\uB2E4. (\uBC29\uC5B4 \xB7 \uC7A5\uBE44)"
+    craftOnly: 0
+  - id: M03
+    displayName: "\uD384\uD504"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 10
+    confirmed: 0
+    description: "\uAE30\uCD08 \uC7AC\uB8CC. \uC885\uC774 \xB7 \uBC15\uC2A4\uC5D0\uC11C
+      \uB098\uC628\uB2E4. (\uD3EC\uC158 \xB7 \uD68C\uBCF5)"
+    craftOnly: 0
+  - id: M04
+    displayName: "\uD544\uB984"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 10
+    confirmed: 0
+    description: "\uAE30\uCD08 \uC7AC\uB8CC. \uBE44\uB2D0\uBD09\uC9C0 \xB7 \uACFC\uC790\uBD09\uC9C0\uC5D0\uC11C
+      \uB098\uC628\uB2E4. (\uCC28\uB2E8 \xB7 \uBA74\uC5ED)"
+    craftOnly: 0
+  - id: M05
+    displayName: "\uC794\uC7AC"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 10
+    confirmed: 0
+    description: "\uAE30\uCD08 \uC7AC\uB8CC. \uC77C\uBC18\uC4F0\uB808\uAE30\uC5D0\uC11C
+      \uB098\uC628\uB2E4. (\uC624\uC5FC \xB7 \uACE0\uC704\uB825)"
+    craftOnly: 0
+  - id: U01
+    displayName: "\uACE0\uCCA0+"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uC2B9\uAE09 \uC7AC\uB8CC. \uACE0\uCCA0 2\uAC1C\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uACF5\uACA9 \uAC15\uD654)"
+    craftOnly: 1
+  - id: U02
+    displayName: "\uD3A0\uB9BF+"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uC2B9\uAE09 \uC7AC\uB8CC. \uD3A0\uB9BF 2\uAC1C\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uBC29\uC5B4 \uAC15\uD654)"
+    craftOnly: 1
+  - id: U03
+    displayName: "\uD384\uD504+"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uC2B9\uAE09 \uC7AC\uB8CC. \uD384\uD504 2\uAC1C\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uD68C\uBCF5 \uAC15\uD654)"
+    craftOnly: 1
+  - id: U04
+    displayName: "\uD544\uB984+"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uC2B9\uAE09 \uC7AC\uB8CC. \uD544\uB984 2\uAC1C\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uBA74\uC5ED \uAC15\uD654)"
+    craftOnly: 1
+  - id: U05
+    displayName: "\uC794\uC7AC+"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uC2B9\uAE09 \uC7AC\uB8CC. \uC794\uC7AC 2\uAC1C\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uACE0\uC704\uB825 \uAC15\uD654)"
+    craftOnly: 1
+  - id: X01
+    displayName: "\uCF54\uD305 \uAC15\uD310"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uACE0\uCCA0 + \uD544\uB984\uC73C\uB85C
+      \uB9CC\uB4E0\uB2E4. (\uACF5\uACA9 \xB7 \uAD00\uD1B5)"
+    craftOnly: 1
+  - id: X02
+    displayName: "\uC2AC\uB798\uADF8"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uACE0\uCCA0 + \uC794\uC7AC\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uD3ED\uBC1C \xB7 \uACE0\uC704\uB825)"
+    craftOnly: 1
+  - id: X03
+    displayName: "\uD569\uC131 \uC885\uC774"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uD3A0\uB9BF + \uD384\uD504\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uC720\uD2F8 \xB7 \uD0D0\uC0C9)"
+    craftOnly: 1
+  - id: X04
+    displayName: "\uBC29\uC218 \uC2DC\uD2B8"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uD3A0\uB9BF + \uD544\uB984\uC73C\uB85C
+      \uB9CC\uB4E0\uB2E4. (\uBC29\uC5B4 \xB7 \uBA74\uC5ED)"
+    craftOnly: 1
+  - id: X05
+    displayName: "\uD1F4\uBE44"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uD384\uD504 + \uC794\uC7AC\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uD68C\uBCF5 \xB7 \uC0DD\uBA85)"
+    craftOnly: 1
+  - id: X06
+    displayName: "\uACE0\uD615 \uC5F0\uB8CC"
+    kind: 2
+    effect: 0
+    amount: 0
+    chance: 0
+    price: 20
+    confirmed: 0
+    description: "\uD63C\uD569 \uC7AC\uB8CC. \uD544\uB984 + \uC794\uC7AC\uB85C \uB9CC\uB4E0\uB2E4.
+      (\uC5F0\uC18C \xB7 \uAD11\uC5ED)"
+    craftOnly: 1

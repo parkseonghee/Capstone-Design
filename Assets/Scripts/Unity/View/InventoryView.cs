@@ -45,6 +45,24 @@ namespace RecycleLife.Unity
                                  "비우면 예전처럼 얻는 즉시 수량이 바뀐다.")]
         private ItemFlyEffect flyEffect;
 
+        [SerializeField, Tooltip("재료를 다른 재료 위로 끌어 올렸을 때 뜨는 조합 미리보기 창. " +
+                                 "비우면 미리보기 없이 놓을 때 바로 조합된다.")]
+        private CombinePreviewView combinePreview;
+
+        [SerializeField, Tooltip("조합 중·조합 완료 이펙트. 비우면 이펙트 없이 조합된다.")]
+        private CombineEffects combineEffects;
+
+        [SerializeField, Tooltip("조합대. 조합대에 올려 둔 재료는 칸 수량에서 빠진 것으로 보이고, " +
+                                 "올려 둔 만큼은 끌거나 겹치거나 버릴 수 없다. 비워도 된다.")]
+        private CraftingStationView craftingStation;
+
+        [SerializeField, Tooltip("재료 전환기(C10)에 재료를 떨궜을 때 바꿀 재료를 고르는 창. " +
+                                 "비우면 전환기를 쓸 수 없다.")]
+        private MaterialPickerView materialPicker;
+
+        [SerializeField, Tooltip("재료 고르기 창의 제목. {0}이 바꿀 재료 이름이다.")]
+        private string convertTitleFormat = "'{0}'을(를) 무엇으로 바꿀까요?";
+
         [Header("화면")]
         [SerializeField, Tooltip("목록 화면 전체. 화면 아래쪽에 늘 떠 있는 바다.")]
         private GameObject panel;
@@ -196,7 +214,24 @@ namespace RecycleLife.Unity
         public bool CanDrag(int index)
         {
             ItemConfig.Entry entry;
-            return TryEntryAt(index, out entry) && items != null && !items.IsBombItem(entry.id);
+            return TryEntryAt(index, out entry) && items != null && !items.IsBombItem(entry.id)
+                   && Available(entry.id) > 0;
+        }
+
+        /// <summary>
+        /// 지금 손댈 수 있는 개수 — 가진 개수에서 조합대에 올려 둔 만큼을 뺀 것.
+        /// 올려 둔 재료를 인벤토리에서 또 겹치거나 버리면 조합대가 없는 재료를 들고 있게 된다.
+        /// </summary>
+        public int Available(string id)
+        {
+            int reserved = craftingStation != null ? craftingStation.ReservedCount(id) : 0;
+            return Mathf.Max(0, CountOf(id) - reserved);
+        }
+
+        /// <summary>두 칸을 겹칠 만큼 손댈 수 있는지. 같은 재료끼리면 두 개가 남아 있어야 한다.</summary>
+        private bool HasAvailablePair(string a, string b)
+        {
+            return a == b ? Available(a) >= 2 : Available(a) >= 1 && Available(b) >= 1;
         }
 
         /// <summary>그 칸에 놓인 아이템. 쓰레기통이 버리기 전에 무엇인지(유물인지) 보려고 쓴다.</summary>
@@ -216,7 +251,7 @@ namespace RecycleLife.Unity
         /// </summary>
         public bool TryDiscardItem(string id)
         {
-            if (items == null || !items.Discard(id))
+            if (items == null || Available(id) < 1 || !items.Discard(id))
             {
                 return false;
             }
@@ -231,21 +266,130 @@ namespace RecycleLife.Unity
         /// </summary>
         public void TryCombine(int fromIndex, int toIndex)
         {
+            HideCombinePreview();
+
             ItemConfig.Entry from, to;
             if (items == null || !TryEntryAt(fromIndex, out from) || !TryEntryAt(toIndex, out to))
             {
                 return;
             }
 
-            if (from.kind != ItemConfig.Kind.Material || to.kind != ItemConfig.Kind.Material)
+            // 재료를 재료 전환기 위에 떨궜다 — 무엇으로 바꿀지 묻는다.
+            if (from.kind == ItemConfig.Kind.Material && items.IsConverter(to.id))
+            {
+                BeginConvert(to.id, from);
+                return;
+            }
+
+            if (from.kind != ItemConfig.Kind.Material || to.kind != ItemConfig.Kind.Material
+                || !HasAvailablePair(from.id, to.id))
             {
                 return;
             }
 
+            // 무엇이 나올지는 조합 전에 알아 둔다 — 완료 이펙트를 그 아이템 칸에서 터뜨리려고.
+            // 놓은 칸은 조합으로 줄 수가 줄며 꺼질 수 있으니, 결과 칸을 못 찾을 때를 대비해 위치를 재 둔다.
+            ItemConfig.Entry result;
+            bool known;
+            bool hasResult = items.TryPreviewCraft(from.id, to.id, out result, out known);
+            RectTransform dropped = SlotRect(toIndex);
+            Vector2 fallback = dropped != null ? CombineEffects.ScreenCenterOf(dropped) : Vector2.zero;
+
             if (items.TryCraft(from.id, to.id))
             {
                 Refresh();
+
+                if (combineEffects != null && (hasResult || dropped != null))
+                {
+                    // 완성된 아이템이 들어간 칸. 칸은 씬에 고정 배치라 Refresh 직후에도 위치가 맞다.
+                    RectTransform resultSlot;
+                    Vector2 burstAt = hasResult && TryGetSlotRect(result.id, out resultSlot) && resultSlot.gameObject.activeInHierarchy
+                        ? CombineEffects.ScreenCenterOf(resultSlot)
+                        : fallback;
+
+                    combineEffects.PlayComplete(burstAt);
+                }
             }
+        }
+
+        /// <summary>
+        /// 재료 전환기(C10) 사용. 고를 수 있는 기초 재료(바꿀 재료 자신은 뺀다)를 띄우고,
+        /// 고르면 전환기와 그 재료가 하나씩 빠지고 고른 재료가 들어온다. 취소하면 아무 일도 없다.
+        /// </summary>
+        private void BeginConvert(string converterId, ItemConfig.Entry material)
+        {
+            if (materialPicker == null || Available(converterId) < 1 || Available(material.id) < 1)
+            {
+                return;
+            }
+
+            var choices = items.BaseMaterials();
+            choices.RemoveAll(e => e.id == material.id);
+            if (choices.Count == 0)
+            {
+                return;
+            }
+
+            string fromId = material.id;
+            materialPicker.Show(string.Format(convertTitleFormat, material.displayName), choices, delegate (string toId)
+            {
+                if (items.ConvertMaterial(converterId, fromId, toId))
+                {
+                    Refresh();
+                }
+            });
+        }
+
+        /// <summary>
+        /// 끌고 있는 칸이 다른 칸 위에 올라왔다. 지금 놓으면 조합되는 짝이면 미리보기 창을 띄우고,
+        /// 아니면(레시피 없음·개수 부족·재료가 아님) 창을 닫는다 — 안 되는 짝에는 아무것도 안 띄운다.
+        /// </summary>
+        public void PreviewCombine(int fromIndex, int toIndex)
+        {
+            ItemConfig.Entry from, to, result;
+            bool known;
+            if (items == null || fromIndex == toIndex
+                || !TryEntryAt(fromIndex, out from) || !TryEntryAt(toIndex, out to)
+                || from.kind != ItemConfig.Kind.Material || to.kind != ItemConfig.Kind.Material
+                || !HasAvailablePair(from.id, to.id)
+                || !items.TryPreviewCraft(from.id, to.id, out result, out known))
+            {
+                HideCombinePreview();
+                return;
+            }
+
+            if (combinePreview != null)
+            {
+                combinePreview.Show(from, to, result, known);
+            }
+
+            // 조합 중 — 올려 둔 칸 위에서 이펙트가 계속 나온다.
+            if (combineEffects != null)
+            {
+                combineEffects.BeginCharging(SlotRect(toIndex));
+            }
+        }
+
+        /// <summary>미리보기 창과 조합 중 이펙트를 거둔다. 칸에서 벗어났거나 끌기가 끝났을 때.</summary>
+        public void HideCombinePreview()
+        {
+            if (combinePreview != null)
+            {
+                combinePreview.Hide();
+            }
+
+            if (combineEffects != null)
+            {
+                combineEffects.EndCharging();
+            }
+        }
+
+        /// <summary>그 번호 칸의 RectTransform. 칸이 모자라면 null.</summary>
+        private RectTransform SlotRect(int index)
+        {
+            return index >= 0 && index < rows.Length && rows[index].root != null
+                ? rows[index].root.transform as RectTransform
+                : null;
         }
 
         /// <summary>그 칸에 지금 무엇이 놓여 있는지. 빈 칸이면 false.</summary>
@@ -397,12 +541,15 @@ namespace RecycleLife.Unity
                 bool stacks = entry.kind != ItemConfig.Kind.Relic;
 
                 // 누를 수 있는 버튼은 일회성과 폭탄에만 붙는다. 재료는 조합으로만 쓰인다.
-                bool pressable = entry.kind == ItemConfig.Kind.Consumable;
+                // 재료 전환기는 누르는 게 아니라 재료를 끌어다 놓아 쓰므로 버튼이 없다.
+                bool pressable = entry.kind == ItemConfig.Kind.Consumable && !items.IsConverter(entry.id);
 
                 // 아직 날아오는 중인 몫은 빼고 보여 준다 — 아이콘이 칸에 닿는 순간 오른다.
                 // 처음 얻는 아이템이면 0이 되어 칸만 먼저 뜨고 수량은 숨는다.
+                // 조합대에 올려 둔 몫도 뺀다 — 올려 둔 재료는 칸에서 꺼낸 것처럼 보인다(조합대를 닫으면 돌아온다).
                 int pending = flyEffect != null ? flyEffect.PendingCount(entry.id) : 0;
-                int shown = Mathf.Max(0, count - pending);
+                int reserved = craftingStation != null ? craftingStation.ReservedCount(entry.id) : 0;
+                int shown = Mathf.Max(0, count - pending - reserved);
 
                 if (rows[i].nameLabel != null)
                 {

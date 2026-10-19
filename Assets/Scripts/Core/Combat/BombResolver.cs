@@ -61,6 +61,12 @@ namespace RecycleLife.Core
         public IReadOnlyList<Vector2Int> Placements => _placements;
 
         /// <summary>
+        /// 폭탄 하나가 터졌을 때. 인자는 터진 칸과 폭발 반경이다. 연쇄로 터진 폭탄도 하나씩 울린다.
+        /// 폭발 이펙트처럼 위치가 필요한 뷰가 구독한다 — 결과(BlastResult)는 개수만 들고 있기 때문이다.
+        /// </summary>
+        public event Action<Vector2Int, int> Exploded;
+
+        /// <summary>
         /// 플레이어 한 칸 거리의 설치 가능 칸을 모은다.
         /// 몬스터·블록·벽이 있는 칸은 빠지고 <b>빈 칸만</b> 남는다(기획 확정).
         /// </summary>
@@ -93,7 +99,8 @@ namespace RecycleLife.Core
         }
 
         /// <summary>
-        /// 폭탄을 설치한다. <b>불은 붙지 않는다</b> — 플레이어가 때려야 카운트다운이 시작된다.
+        /// 폭탄을 설치한다. <b>설치하는 순간 불이 붙는다</b>(조합레시피 문서 §5: 설치 후 플레이어가
+        /// 3번 이동하면 기폭). 설치한 턴은 세지 않으므로 그 뒤 세 번째 행동에 터진다.
         /// 놓은 자리에 그대로 남고, 다음 턴부터 중력을 받는다.
         /// </summary>
         /// <returns>설치했으면 true. 보유가 없거나 놓을 수 없는 칸이면 false.</returns>
@@ -110,6 +117,7 @@ namespace RecycleLife.Core
             }
 
             var bomb = new Bomb(_bomb.FuseTurns, _bomb.Damage, _bomb.BlastRadius);
+            bomb.Arm();
 
             // 놓은 자리에 일단 머문다. 이번 턴 중력은 건너뛰고, 다음 행동부터 떨어진다.
             bomb.HoldForOneTurn();
@@ -177,6 +185,7 @@ namespace RecycleLife.Core
                 exploded++;
 
                 int radius = bomb.BlastRadius;
+                Exploded?.Invoke(center, radius);
                 for (int dy = -radius; dy <= radius; dy++)
                 {
                     for (int dx = -radius; dx <= radius; dx++)
@@ -227,8 +236,9 @@ namespace RecycleLife.Core
                 }
 
                 _marked[index] = true;
-                _player.TakeDamage(damage);
-                return damage;
+                int hurt = _bomb.PlayerDamage;
+                _player.TakeDamage(hurt);
+                return hurt;
             }
 
             var other = occupant as Bomb;

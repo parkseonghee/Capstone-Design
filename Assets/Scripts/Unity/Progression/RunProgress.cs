@@ -29,6 +29,17 @@ namespace RecycleLife.Unity
         /// <summary>마을에 보관 중인 재료를 담는 PlayerPrefs 키.</summary>
         private const string StashKey = "RecycleLife.Stash";
 
+        /// <summary>아이템 id 체계의 버전을 담는 PlayerPrefs 키.</summary>
+        private const string ItemIdVersionKey = "RecycleLife.ItemIdVersion";
+
+        /// <summary>
+        /// 지금 아이템 id 체계의 버전. 조합레시피 문서대로 id를 바꾼 것이 2다
+        /// (예전 M01 '나무'가 이제 '고철'이다). 저장된 버전이 이보다 낮으면 보관함과 배운 조합법이
+        /// 엉뚱한 아이템을 가리키므로 그 둘만 비운다 — 골드·스테이지 기록은 id와 무관해 그대로 둔다.
+        /// id를 또 갈아엎으면 이 숫자를 올린다.
+        /// </summary>
+        private const int ItemIdVersion = 2;
+
         [SerializeField, Tooltip("스테이지 목록. 지도가 이 순서대로 노드를 만든다.")]
         private WaveSet waveSet;
 
@@ -602,6 +613,14 @@ namespace RecycleLife.Unity
             _knownRecipes.Clear();
             _stash.Clear();
             _stashOrder.Clear();
+
+            if (!ignoreSavedProgress && PlayerPrefs.GetInt(ItemIdVersionKey, 1) < ItemIdVersion)
+            {
+                PlayerPrefs.DeleteKey(RecipesKey);
+                PlayerPrefs.DeleteKey(StashKey);
+                PlayerPrefs.SetInt(ItemIdVersionKey, ItemIdVersion);
+                PlayerPrefs.Save();
+            }
 
             if (!ignoreSavedProgress)
             {

@@ -222,6 +222,7 @@ namespace RecycleLife.Unity
             for (int i = 0; i < all.Length; i++)
             {
                 if (!Sells(all[i].kind)) { continue; }
+                if (all[i].craftOnly) { continue; }     // 가공 재료처럼 조합으로만 얻는 것은 팔지 않는다
                 if (!includeUnconfirmed && !all[i].confirmed) { continue; }
                 if (items.AlreadyOwned(all[i])) { continue; }
 

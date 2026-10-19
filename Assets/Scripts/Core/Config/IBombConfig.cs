@@ -27,6 +27,9 @@ namespace RecycleLife.Core
         /// </summary>
         bool DamagesPlayer { get; }
 
+        /// <summary>폭발이 플레이어에게 주는 피해. 적 피해(<see cref="Damage"/>)와 따로 둔다(문서: 적 5 / 플레이어 3).</summary>
+        int PlayerDamage { get; }
+
         /// <summary>
         /// 폭발 범위 안의 다른 폭탄이 즉시 연쇄 폭발하는지. <b>기획 미확정</b>.
         /// </summary>

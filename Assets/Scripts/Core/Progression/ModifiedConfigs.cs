@@ -30,6 +30,8 @@ namespace RecycleLife.Core
         /// <summary>R09 방폭 장비를 들면 자기 폭탄에도 안 맞는다(CSV 비고: "자신의 폭탄 피해 무효").</summary>
         public bool DamagesPlayer => _base.DamagesPlayer && !_mods.ImmuneToBlast;
 
+        public int PlayerDamage => _base.PlayerDamage;
+
         public bool ChainDetonates => _base.ChainDetonates;
     }
 

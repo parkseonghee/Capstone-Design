@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using RecycleLife.Core;
 
@@ -242,66 +243,46 @@ namespace RecycleLife.Unity
             Acquire(entry);
         }
 
-        /// <summary>
-        /// 재료 둘을 겹쳐 조합한다. 인벤토리 UI의 드래그앤드롭이 부른다.
-        ///
-        /// 성공하면 재료가 하나씩 빠지고 결과가 들어온다. 레시피가 없거나 결과를 못 받으면
-        /// <b>재료는 그대로 둔다</b> — 실패한 조합으로 재료를 잃으면 기획이 말한
-        /// "깡으로 때려맞추기"를 할 수가 없다.
-        /// </summary>
+        /// <summary>재료 둘을 겹쳐 조합한다. 인벤토리 UI의 드래그앤드롭이 부른다.</summary>
         /// <returns>조합에 성공했으면 true.</returns>
         public bool TryCraft(string idA, string idB)
         {
-            if (catalog == null || recipes == null || string.IsNullOrEmpty(idA) || string.IsNullOrEmpty(idB))
-            {
-                return false;
-            }
+            return TryCraft(new[] { idA, idB });
+        }
 
-            // 같은 재료끼리의 조합이면 두 개를 갖고 있어야 한다.
-            if (idA == idB)
-            {
-                if (Inventory.CountOf(idA) < 2)
-                {
-                    return false;
-                }
-            }
-            else if (Inventory.CountOf(idA) < 1 || Inventory.CountOf(idB) < 1)
-            {
-                return false;
-            }
-
+        /// <summary>
+        /// 재료 묶음(2~5개)으로 조합한다. 인벤토리의 두 칸 겹치기와 조합대가 부른다.
+        ///
+        /// 성공하면 넣은 재료가 빠지고 결과가 들어온다. 레시피가 없거나 결과를 못 받으면
+        /// <b>재료는 그대로 둔다</b> — 문서의 "실패 시 재료 소멸"은 아직 넣지 않기로 했다.
+        /// </summary>
+        /// <returns>조합에 성공했으면 true.</returns>
+        public bool TryCraft(IReadOnlyList<string> ingredients)
+        {
             CraftConfig.Recipe recipe;
-            if (!recipes.TryFind(idA, idB, out recipe))
-            {
-                return false;
-            }
-
             ItemConfig.Entry result;
-            if (!catalog.TryGet(recipe.result, out result))
-            {
-                Debug.LogWarning($"{nameof(ItemService)}: 조합 결과 '{recipe.result}'가 ItemConfig에 없습니다.", this);
-                return false;
-            }
-
-            // 결과를 못 받는 경우를 먼저 걸러야 재료가 헛되이 사라지지 않는다.
-            if (!CanReceive(result))
+            if (!TryResolve(ingredients, out recipe, out result))
             {
                 return false;
             }
 
-            if (!Inventory.Consume(idA))
+            // 하나씩 빼다가 중간에 실패하면 이미 뺀 것을 되돌린다 — 일부만 사라지면 안 된다.
+            for (int i = 0; i < ingredients.Count; i++)
             {
+                if (Inventory.Consume(ingredients[i]))
+                {
+                    continue;
+                }
+
+                for (int back = 0; back < i; back++)
+                {
+                    Inventory.Add(ingredients[back], true);
+                }
+
                 return false;
             }
 
-            if (!Inventory.Consume(idB))
-            {
-                // A만 사라지고 끝나면 안 된다. 되돌려 놓고 실패로 친다.
-                Inventory.Add(idA, true);
-                return false;
-            }
-
-            // 조합법을 몰라도 겹쳐 보는 건 막지 않는다(기획: "깡으로 조합 때려맞추기 O").
+            // 조합법을 몰라도 시도하는 건 막지 않는다(블라인드 조합).
             // 대신 한 번 맞히면 배운 것으로 남겨, 조합법 목록에 ???로 계속 뜨지 않게 한다.
             if (progress != null)
             {
@@ -309,6 +290,88 @@ namespace RecycleLife.Unity
             }
 
             return Acquire(result);
+        }
+
+        /// <summary>두 재료를 겹치면 무엇이 나오는지 미리 본다. 부작용 없는 질의다.</summary>
+        public bool TryPreviewCraft(string idA, string idB, out ItemConfig.Entry result, out bool known)
+        {
+            return TryPreviewCraft(new[] { idA, idB }, out result, out known);
+        }
+
+        /// <summary>
+        /// 재료 묶음으로 무엇이 나오는지 미리 본다. 부작용 없는 질의다 — 미리보기 창·조합대가 계속 부른다.
+        ///
+        /// 판단 조건은 <see cref="TryCraft(IReadOnlyList{string})"/>와 같다(개수·레시피·결과를 받을 수 있는지).
+        /// 여기서 true면 지금 조합하면 성공한다.
+        /// </summary>
+        /// <param name="known">그 조합법을 이미 아는지. 모르면 미리보기가 결과를 가린다.</param>
+        public bool TryPreviewCraft(IReadOnlyList<string> ingredients, out ItemConfig.Entry result, out bool known)
+        {
+            known = false;
+
+            CraftConfig.Recipe recipe;
+            if (!TryResolve(ingredients, out recipe, out result))
+            {
+                return false;
+            }
+
+            known = recipe.knownFromStart || progress == null || progress.IsRecipeKnown(recipe.id);
+            return true;
+        }
+
+        /// <summary>
+        /// 재료 묶음이 지금 조합 가능한지 — 재료를 그만큼 갖고 있는지, 레시피가 있는지,
+        /// 결과를 받을 수 있는지. 셋 다 되면 그 레시피와 결과를 돌려준다.
+        /// </summary>
+        private bool TryResolve(IReadOnlyList<string> ingredients, out CraftConfig.Recipe recipe, out ItemConfig.Entry result)
+        {
+            recipe = default(CraftConfig.Recipe);
+            result = default(ItemConfig.Entry);
+
+            if (catalog == null || recipes == null || ingredients == null || ingredients.Count < 2)
+            {
+                return false;
+            }
+
+            if (!HasAll(ingredients) || !recipes.TryFind(ingredients, out recipe))
+            {
+                return false;
+            }
+
+            if (!catalog.TryGet(recipe.result, out result))
+            {
+                Debug.LogWarning($"{nameof(ItemService)}: 조합 결과 '{recipe.result}'가 ItemConfig에 없습니다.", this);
+                return false;
+            }
+
+            // 결과를 못 받는 경우를 먼저 걸러야 재료가 헛되이 사라지지 않는다.
+            return CanReceive(result);
+        }
+
+        /// <summary>그 묶음만큼 재료를 갖고 있는지. 같은 재료가 두 번 들어 있으면 두 개가 있어야 한다.</summary>
+        private bool HasAll(IReadOnlyList<string> ingredients)
+        {
+            for (int i = 0; i < ingredients.Count; i++)
+            {
+                string id = ingredients[i];
+                if (string.IsNullOrEmpty(id))
+                {
+                    return false;
+                }
+
+                int need = 0;
+                for (int j = 0; j < ingredients.Count; j++)
+                {
+                    if (ingredients[j] == id) { need++; }
+                }
+
+                if (Inventory.CountOf(id) < need)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>그 유물을 이미 갖고 있어 더 살 수 없는지.</summary>
@@ -453,6 +516,23 @@ namespace RecycleLife.Unity
                 case ItemConfig.Effect.StatusImmunity:
                     mods.RevokeStatusImmunity();
                     break;
+
+                case ItemConfig.Effect.AttackUp:
+                    mods.RemoveAttack(item.amount);
+                    if (player != null) { player.DecreaseAttack(item.amount); }
+                    break;
+
+                case ItemConfig.Effect.TrapImmunity:
+                    mods.RevokeTrapImmunity();
+                    break;
+
+                case ItemConfig.Effect.DropChance:
+                    mods.RemoveDropChance(item.amount);
+                    break;
+
+                case ItemConfig.Effect.ChainHeal:
+                    mods.ClearChainHeal();
+                    break;
             }
         }
 
@@ -484,8 +564,84 @@ namespace RecycleLife.Unity
             }
 
             Inventory.Consume(id);
+
+            // 적 처치·덫 제거·몬스터 섞기는 턴을 안 쓰므로, 알려 주지 않으면 다음 턴까지 화면이 그대로다.
+            if (session != null)
+            {
+                session.NotifyBoardChanged();
+            }
+
             return true;
         }
+
+        /// <summary>그 아이템이 재료 전환기(C10)인지. 인벤토리가 "이 칸에 재료를 떨궜을 때"를 가르는 데 쓴다.</summary>
+        public bool IsConverter(string id)
+        {
+            ItemConfig.Entry entry;
+            return catalog != null && catalog.TryGet(id, out entry)
+                   && entry.kind == ItemConfig.Kind.Consumable && entry.effect == ItemConfig.Effect.ConvertMaterial;
+        }
+
+        /// <summary>기초 재료 목록(드랍·상점으로 얻는 재료). 재료 전환기가 고를 수 있는 대상이다.</summary>
+        public List<ItemConfig.Entry> BaseMaterials()
+        {
+            var list = new List<ItemConfig.Entry>(8);
+            if (catalog == null)
+            {
+                return list;
+            }
+
+            var all = catalog.Items;
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].kind == ItemConfig.Kind.Material && !all[i].craftOnly)
+                {
+                    list.Add(all[i]);
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// 재료 전환기(C10)를 써서 재료 하나를 다른 기초 재료로 바꾼다.
+        /// 전환기·바꿀 재료가 하나씩 빠지고 고른 기초 재료가 하나 들어온다.
+        /// </summary>
+        /// <returns>바꿨으면 true. 전환기나 재료가 없거나, 같은 재료로 바꾸려 하면 false.</returns>
+        public bool ConvertMaterial(string converterId, string fromId, string toId)
+        {
+            ItemConfig.Entry from, to;
+            if (!IsConverter(converterId) || fromId == toId
+                || catalog == null || !catalog.TryGet(fromId, out from) || !catalog.TryGet(toId, out to)
+                || from.kind != ItemConfig.Kind.Material
+                || to.kind != ItemConfig.Kind.Material || to.craftOnly)
+            {
+                return false;
+            }
+
+            if (!Inventory.Has(converterId) || !Inventory.Has(fromId))
+            {
+                return false;
+            }
+
+            if (!Inventory.Consume(converterId))
+            {
+                return false;
+            }
+
+            if (!Inventory.Consume(fromId))
+            {
+                Inventory.Add(converterId, true);   // 재료를 못 뺐으면 전환기도 돌려놓는다
+                return false;
+            }
+
+            return Inventory.Add(toId, true);
+        }
+
+        private IRandomSource _random;
+
+        /// <summary>재배치 물약이 쓸 난수. 판 진행과 엮이지 않게 따로 둔다.</summary>
+        private IRandomSource Random => _random ?? (_random = new SystemRandomSource(System.Environment.TickCount));
 
         /// <summary>
         /// 유물 효과를 효과 묶음에 더한다.
@@ -545,6 +701,23 @@ namespace RecycleLife.Unity
                     // 상태이상 기믹이 아직 없어 표시만 되고 아무 일도 일어나지 않는다.
                     mods.GrantStatusImmunity();
                     break;
+
+                case ItemConfig.Effect.AttackUp:
+                    mods.AddAttack(item.amount);
+                    if (player != null) { player.IncreaseAttack(item.amount); }
+                    break;
+
+                case ItemConfig.Effect.TrapImmunity:
+                    mods.GrantTrapImmunity();
+                    break;
+
+                case ItemConfig.Effect.DropChance:
+                    mods.AddDropChance(item.amount);
+                    break;
+
+                case ItemConfig.Effect.ChainHeal:
+                    mods.SetChainHeal(item.chance, item.amount);
+                    break;
             }
         }
 
@@ -564,6 +737,34 @@ namespace RecycleLife.Unity
 
                 case ItemConfig.Effect.KillEnemies:
                     return loop.KillEnemies(item.amount) >= 0;
+
+                // 회복류는 체력이 가득이면 쓰지 않는다 — 버튼을 잘못 눌러 날리지 않게.
+                case ItemConfig.Effect.HealPlayer:
+                    return loop.Player.Hp < loop.Player.MaxHp && loop.Player.Heal(Mathf.Max(1, item.amount)) > 0;
+
+                case ItemConfig.Effect.FullHeal:
+                    return loop.Player.HealFull() > 0;
+
+                // 덫이 하나도 없으면 쓰지 않는다.
+                case ItemConfig.Effect.RemoveTraps:
+                    return loop.RemoveAllTraps() > 0;
+
+                case ItemConfig.Effect.StageDropChance:
+                    if (session.Modifiers == null) { return false; }
+                    session.Modifiers.AddStageDropChance(item.amount);
+                    return true;
+
+                case ItemConfig.Effect.Shield:
+                    loop.Player.AddShield(Mathf.Max(1, item.amount));
+                    return true;
+
+                case ItemConfig.Effect.Invulnerable:
+                    loop.Player.GrantInvulnerability(Mathf.Max(1, item.amount));
+                    return true;
+
+                // 섞을 적이 둘 미만이면 쓰지 않는다.
+                case ItemConfig.Effect.ShuffleEnemies:
+                    return loop.ShuffleEnemies(Random) > 0;
             }
 
             return false;

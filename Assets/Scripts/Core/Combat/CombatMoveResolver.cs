@@ -122,6 +122,14 @@ namespace RecycleLife.Core
         /// </summary>
         private MoveResult Teleport(Vector2Int trapCell)
         {
+            // 튼튼한 장화(R12): 덫이 듣지 않는다. 덫을 밟아 없애고 그 칸으로 그냥 걸어 들어간다.
+            if (_player.Modifiers != null && _player.Modifiers.ImmuneToTraps)
+            {
+                _grid.Remove(trapCell);
+                _grid.Move(_player.Position, trapCell);
+                return MoveResult.Simple(MoveOutcome.Moved);
+            }
+
             if (_traps == null || !_traps.Trigger(trapCell, _player, _config.FirstPlayableRow))
             {
                 // 갈 빈 칸이 없는(보드가 거의 꽉 찬) 예외적인 상황. 그냥 막힌 것으로 처리한다.

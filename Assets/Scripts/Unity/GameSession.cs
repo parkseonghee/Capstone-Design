@@ -79,6 +79,15 @@ namespace RecycleLife.Unity
         /// <summary>시작 연출로 보드가 바뀌었을 때(줄 하나 낙하, 플레이어 등장).</summary>
         public event Action BoardChanged;
 
+        /// <summary>
+        /// 턴을 쓰지 않고 보드가 바뀌었을 때(아이템 사용 등) 뷰에 알린다.
+        /// 턴이 지나면 Stepped가 뷰를 맞추지만, 아이템은 턴을 안 쓰므로 이걸 따로 불러야 바로 보인다.
+        /// </summary>
+        public void NotifyBoardChanged()
+        {
+            BoardChanged?.Invoke();
+        }
+
         /// <summary>시작 연출이 끝나 입력을 받기 시작할 때.</summary>
         public event Action IntroFinished;
 

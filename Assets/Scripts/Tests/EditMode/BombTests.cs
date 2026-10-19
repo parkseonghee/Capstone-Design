@@ -118,8 +118,9 @@ namespace RecycleLife.Tests
         }
 
         [Test]
-        public void Placing_SpendsOneBombAndLeavesItUnarmed()
+        public void Placing_SpendsOneBombAndArmsItRightAway()
         {
+            // 조합레시피 문서 §5: 설치 후 플레이어가 3번 이동하면 기폭 — 때릴 필요가 없다.
             var config = new FakeBoardConfig();
             Player player = Make.Player(4, 1, 3);
             BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
@@ -129,7 +130,8 @@ namespace RecycleLife.Tests
             Assert.AreEqual(2, player.Bombs, "보유가 하나 줄어든다.");
             var bomb = grid[new Vector2Int(4, 6)] as Bomb;
             Assert.IsNotNull(bomb);
-            Assert.IsFalse(bomb.IsArmed, "설치만으로는 불이 붙지 않는다(기획 확정).");
+            Assert.IsTrue(bomb.IsArmed, "설치하는 순간 불이 붙는다.");
+            Assert.AreEqual(config.FuseTurns, bomb.FuseRemaining);
         }
 
         // ── 점화와 카운트다운 ───────────────────────────────────────────────
@@ -137,11 +139,12 @@ namespace RecycleLife.Tests
         [Test]
         public void UnarmedBomb_NeverTicksDown()
         {
+            // 설치한 폭탄은 이제 바로 점화되지만, 판에 직접 놓인(점화 안 된) 폭탄은 여전히 안 터진다.
             var config = new FakeBoardConfig();
             Player player = Make.Player(4, 1, 3);
             BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
             BombResolver bombs = Bombs(grid, player, config);
-            bombs.Place(new Vector2Int(4, 6));
+            grid.Place(new Bomb(config.FuseTurns, config.Damage, config.BlastRadius), new Vector2Int(4, 6));
 
             for (int i = 0; i < 10; i++)
             {
@@ -149,6 +152,38 @@ namespace RecycleLife.Tests
             }
 
             Assert.IsNotNull(grid[new Vector2Int(4, 6)] as Bomb);
+        }
+
+        [Test]
+        public void PlacedBomb_ExplodesOnTheThirdActionAfterPlacing()
+        {
+            // 설치한 턴은 세지 않는다. 그 뒤 세 번째 Tick에 터진다.
+            var config = new FakeBoardConfig { DamagesPlayer = false };
+            Player player = Make.Player(4, 1, 3);
+            BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 5));
+            BombResolver bombs = Bombs(grid, player, config);
+            bombs.Place(new Vector2Int(4, 6));
+
+            Assert.IsFalse(bombs.Tick().Happened, "설치한 턴");
+            Assert.IsFalse(bombs.Tick().Happened, "1번째 이동");
+            Assert.IsFalse(bombs.Tick().Happened, "2번째 이동");
+            Assert.IsTrue(bombs.Tick().Happened, "3번째 이동에 터진다");
+        }
+
+        [Test]
+        public void PlayerDamage_IsSeparateFromEnemyDamage()
+        {
+            // 문서: 적 피해 5, 플레이어 피격 3.
+            var config = new FakeBoardConfig { MaxHp = 20, Damage = 5, PlayerDamage = 3 };
+            Player player = Make.Player(20, 1, 3);
+            BoardGrid grid = EmptyBoard(config, player, new Vector2Int(4, 8));
+            grid.Place(new Bomb(config.FuseTurns, config.Damage, config.BlastRadius), new Vector2Int(4, 7));
+            ((Bomb)grid[new Vector2Int(4, 7)]).ForceDetonate();
+
+            BlastResult blast = Bombs(grid, player, config).Tick();
+
+            Assert.AreEqual(3, blast.PlayerDamage);
+            Assert.AreEqual(17, player.Hp);
         }
 
         [Test]
@@ -318,6 +353,31 @@ namespace RecycleLife.Tests
             Assert.AreEqual(15, player.Hp);
         }
 
+        [Test]
+        public void Exploded_FiresOncePerBomb_WithItsCellAndRadius_IncludingChains()
+        {
+            // 폭발 이펙트가 이걸 받아 터진 자리마다 하나씩 띄운다. 연쇄로 터진 것도 빠지면 안 된다.
+            var config = new FakeBoardConfig { MaxHp = 20, ChainDetonates = true, DamagesPlayer = false };
+            Player player = Make.Player(20, 1, 3);
+            BoardGrid grid = EmptyBoard(config, player, new Vector2Int(0, 5));
+
+            grid.Place(new Bomb(config.FuseTurns, config.Damage, config.BlastRadius), new Vector2Int(4, 8));
+            grid.Place(new Bomb(config.FuseTurns, config.Damage, config.BlastRadius), new Vector2Int(5, 8));
+            ((Bomb)grid[new Vector2Int(4, 8)]).ForceDetonate();
+
+            var cells = new System.Collections.Generic.List<Vector2Int>();
+            var radii = new System.Collections.Generic.List<int>();
+            BombResolver bombs = Bombs(grid, player, config);
+            bombs.Exploded += (cell, radius) => { cells.Add(cell); radii.Add(radius); };
+
+            bombs.Tick();
+
+            Assert.AreEqual(2, cells.Count, "직접 터진 것 하나 + 연쇄로 터진 것 하나");
+            Assert.AreEqual(new Vector2Int(4, 8), cells[0]);
+            Assert.AreEqual(new Vector2Int(5, 8), cells[1]);
+            Assert.AreEqual(config.BlastRadius, radii[0]);
+        }
+
         private static int PlayerDamageFromAdjacentBlast(bool damagesPlayer)
         {
             var config = new FakeBoardConfig { MaxHp = 20, DamagesPlayer = damagesPlayer };
@@ -432,9 +492,9 @@ namespace RecycleLife.Tests
         }
 
         [Test]
-        public void FullBombCycle_PlaceThenHitThenWait()
+        public void FullBombCycle_PlaceThenMoveThreeTimes()
         {
-            // 설치 -> 때려서 점화 -> 3턴 뒤 폭발. 기획서의 흐름 그대로다.
+            // 설치(바로 점화) -> 세 번 움직이면 폭발. 조합레시피 문서 §5의 흐름 그대로다.
             var config = new FakeBoardConfig
             {
                 PlayerStart = new Vector2Int(4, 8),
@@ -446,18 +506,14 @@ namespace RecycleLife.Tests
             Trash victim = Make.Trash(TrashType.Glass, 3, 0);
             loop.Grid.Place(victim, new Vector2Int(5, 7));
 
-            Assert.IsTrue(loop.PlaceBomb(new Vector2Int(4, 7)).Advanced, "① 설치");
+            Assert.IsTrue(loop.PlaceBomb(new Vector2Int(4, 7)).Advanced, "① 설치 — 이 턴은 세지 않는다");
 
-            StepResult armed = loop.Step(Direction.Up);
-            Assert.AreEqual(MoveOutcome.Armed, armed.Move, "② 때려서 점화");
-
-            // 점화한 턴은 세지 않으므로, 그다음 세 턴이 카운트다운이다.
-            Assert.AreEqual(0, loop.Step(Direction.Left).BombsExploded, "카운트 3 -> 2");
-            Assert.AreEqual(0, loop.Step(Direction.Right).BombsExploded, "2 -> 1");
+            Assert.AreEqual(0, loop.Step(Direction.Left).BombsExploded, "1번째 이동: 3 -> 2");
+            Assert.AreEqual(0, loop.Step(Direction.Right).BombsExploded, "2번째 이동: 2 -> 1");
 
             StepResult boom = loop.Step(Direction.Left);
 
-            Assert.AreEqual(1, boom.BombsExploded, "③ 3턴 뒤 폭발");
+            Assert.AreEqual(1, boom.BombsExploded, "② 3번째 이동에 폭발");
             Assert.AreEqual(1, boom.BlastDestroyed, "옆 블록이 날아간다.");
         }
     }

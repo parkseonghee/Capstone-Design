@@ -19,8 +19,12 @@ namespace RecycleLife.Core
         private readonly IMaterialDropTable _table;
         private readonly IRandomSource _random;
 
-        public MaterialDropResolver(IMaterialDropTable table, IRandomSource random)
+        private readonly RunModifiers _mods;
+
+        /// <param name="mods">유물 효과. 드랍 확률 보너스(R10)를 읽는다. 없으면 표 그대로다.</param>
+        public MaterialDropResolver(IMaterialDropTable table, IRandomSource random, RunModifiers mods = null)
         {
+            _mods = mods;
             _table = table ?? throw new ArgumentNullException(nameof(table));
             _random = random ?? throw new ArgumentNullException(nameof(random));
         }
@@ -47,13 +51,50 @@ namespace RecycleLife.Core
             }
 
             string materialId;
-            if (_table.TryRoll(killed.Type, _random, out materialId) && !string.IsNullOrEmpty(materialId))
-            {
-                Dropped?.Invoke(materialId);
 
-                // 죽은 뒤에도 Position은 마지막 칸을 들고 있다(BoardGrid.Remove는 좌표를 지우지 않는다).
-                DroppedAt?.Invoke(materialId, killed.Position);
+            // N마리마다 하나 보장(문서 §1). 그 처치에서는 일반 굴림을 하지 않는다 — 한 마리에 두 개가 나오지 않게.
+            if (IsGuaranteedKill() && _table.TryPickGuaranteed(_random, out materialId))
+            {
+                Emit(materialId, killed);
+                return;
             }
+
+            if (_table.TryRoll(killed.Type, _random, _mods != null ? _mods.TotalDropChance : 0, out materialId))
+            {
+                Emit(materialId, killed);
+            }
+        }
+
+        /// <summary>이번 처치가 보장 차례인지. 카운터는 런과 수명이 같은 RunModifiers에 있다(웨이브를 넘어 이어진다).</summary>
+        private bool IsGuaranteedKill()
+        {
+            int every = _table.GuaranteeEvery;
+            if (_mods == null || every <= 0)
+            {
+                return false;
+            }
+
+            _mods.KillsSinceGuaranteedDrop++;
+            if (_mods.KillsSinceGuaranteedDrop < every)
+            {
+                return false;
+            }
+
+            _mods.KillsSinceGuaranteedDrop = 0;
+            return true;
+        }
+
+        private void Emit(string materialId, Trash killed)
+        {
+            if (string.IsNullOrEmpty(materialId))
+            {
+                return;
+            }
+
+            Dropped?.Invoke(materialId);
+
+            // 죽은 뒤에도 Position은 마지막 칸을 들고 있다(BoardGrid.Remove는 좌표를 지우지 않는다).
+            DroppedAt?.Invoke(materialId, killed.Position);
         }
     }
 }

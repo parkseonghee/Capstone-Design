@@ -55,8 +55,11 @@ namespace RecycleLife.Unity
         private Row[] rows = new Row[0];
 
         [Header("문구")]
-        [SerializeField, Tooltip("한 줄의 형식. {0}·{1}이 재료, {2}가 결과다.")]
-        private string rowFormat = "{0}  +  {1}   →   {2}";
+        [SerializeField, Tooltip("한 줄의 형식. {0}이 재료들(+로 이어 붙인 것), {1}이 결과다.")]
+        private string rowFormat = "{0}   →   {1}";
+
+        [SerializeField, Tooltip("재료 사이에 끼울 글자.")]
+        private string inputSeparator = " + ";
 
         [SerializeField, Tooltip("아직 안 배운 조합법에서 재료 자리에 들어갈 글자.")]
         private string unknownInput = "???";
@@ -126,6 +129,15 @@ namespace RecycleLife.Unity
             SetInputBlocked(false);
         }
 
+        /// <summary>목록을 다시 그린다. 조합대에서 새 조합법을 배웠을 때 부른다.</summary>
+        public void RefreshList()
+        {
+            if (IsOpen)
+            {
+                Refresh();
+            }
+        }
+
         private void Refresh()
         {
             int shown = 0;
@@ -164,33 +176,37 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>
-        /// 한 줄을 "나무 + 철 → 튼튼한 몸"으로 푼다. id를 못 찾으면 null.
+        /// 한 줄을 "펠릿 + 펠릿 + 필름 → 튼튼한 몸"으로 푼다. id를 못 찾으면 null.
         ///
-        /// <b>아직 안 배운 조합법은 재료를 가린다</b>("??? + ??? → 튼튼한 몸").
+        /// <b>아직 안 배운 조합법은 재료를 가린다</b>("??? + ??? + ??? → 튼튼한 몸").
+        /// 재료 개수는 보여 준다 — 몇 개짜리인지는 조합대에서 시도할 때 필요한 정보다.
         /// 결과까지 숨기지 않는 건, 마을 상점에서 무엇을 사는지는 보여야 하고
         /// 기획이 가리라고 한 것도 "어떤 재료로 만드는가"이기 때문이다.
         /// </summary>
         private string Describe(CraftConfig.Recipe recipe)
         {
-            string a = NameOf(recipe.inputA);
-            string b = NameOf(recipe.inputB);
             string result = NameOf(recipe.result);
-
-            if (a == null || b == null || result == null)
+            if (recipe.inputs == null || recipe.inputs.Length == 0 || result == null)
             {
-                Debug.LogWarning(
-                    $"{nameof(RecipeView)}: 조합법 '{recipe.inputA}+{recipe.inputB}={recipe.result}'에 " +
-                    "ItemConfig에 없는 id가 있어 건너뜁니다.", this);
+                Debug.LogWarning($"{nameof(RecipeView)}: 조합법 '{recipe.id}'에 재료가 없거나 결과 '{recipe.result}'가 ItemConfig에 없어 건너뜁니다.", this);
                 return null;
             }
 
-            if (!IsKnown(recipe))
+            bool known = IsKnown(recipe);
+            var names = new string[recipe.inputs.Length];
+            for (int i = 0; i < names.Length; i++)
             {
-                a = unknownInput;
-                b = unknownInput;
+                string name = NameOf(recipe.inputs[i]);
+                if (name == null)
+                {
+                    Debug.LogWarning($"{nameof(RecipeView)}: 조합법 '{recipe.id}'의 재료 '{recipe.inputs[i]}'가 ItemConfig에 없어 건너뜁니다.", this);
+                    return null;
+                }
+
+                names[i] = known ? name : unknownInput;
             }
 
-            return string.Format(rowFormat, a, b, result);
+            return string.Format(rowFormat, string.Join(inputSeparator, names), result);
         }
 
         /// <summary>그 조합법을 알고 있는지. 기록할 곳이 없으면 전부 아는 것으로 본다.</summary>

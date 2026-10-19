@@ -13,15 +13,29 @@ MonoBehaviour:
   m_Name: MaterialDropConfig
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.MaterialDropConfig
   drops:
-  - type: 0
+  - type: 7
     materialId: M01
-    chance: 35
+    chance: 5
   - type: 1
     materialId: M02
-    chance: 35
-  - type: 7
+    chance: 5
+  - type: 0
     materialId: M03
-    chance: 35
+    chance: 5
   - type: 8
     materialId: M04
-    chance: 35
+    chance: 5
+  - type: 9
+    materialId: M04
+    chance: 5
+  - type: 12
+    materialId: M05
+    chance: 5
+  defaultChance: 5
+  randomPool:
+  - M01
+  - M02
+  - M03
+  - M04
+  - M05
+  guaranteeEvery: 50

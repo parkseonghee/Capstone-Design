@@ -13,21 +13,296 @@ MonoBehaviour:
   m_Name: CraftConfig
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.CraftConfig
   recipes:
-  - id: CR01
-    inputA: M01
-    inputB: M02
+  - id: CR_U01
+    inputs:
+    - M01
+    - M01
+    result: U01
+    price: 10
+    knownFromStart: 0
+  - id: CR_U02
+    inputs:
+    - M02
+    - M02
+    result: U02
+    price: 10
+    knownFromStart: 0
+  - id: CR_U03
+    inputs:
+    - M03
+    - M03
+    result: U03
+    price: 10
+    knownFromStart: 0
+  - id: CR_U04
+    inputs:
+    - M04
+    - M04
+    result: U04
+    price: 10
+    knownFromStart: 0
+  - id: CR_U05
+    inputs:
+    - M05
+    - M05
+    result: U05
+    price: 10
+    knownFromStart: 0
+  - id: CR_X01
+    inputs:
+    - M01
+    - M04
+    result: X01
+    price: 10
+    knownFromStart: 0
+  - id: CR_X02
+    inputs:
+    - M01
+    - M05
+    result: X02
+    price: 10
+    knownFromStart: 0
+  - id: CR_X03
+    inputs:
+    - M02
+    - M03
+    result: X03
+    price: 10
+    knownFromStart: 0
+  - id: CR_X04
+    inputs:
+    - M02
+    - M04
+    result: X04
+    price: 10
+    knownFromStart: 0
+  - id: CR_X05
+    inputs:
+    - M03
+    - M05
+    result: X05
+    price: 10
+    knownFromStart: 0
+  - id: CR_X06
+    inputs:
+    - M04
+    - M05
+    result: X06
+    price: 10
+    knownFromStart: 0
+  - id: CR_R01
+    inputs:
+    - M02
+    - M02
+    - M04
     result: R01
     price: 30
     knownFromStart: 0
-  - id: CR02
-    inputA: M03
-    inputB: M04
-    result: R03
+  - id: CR_R05
+    inputs:
+    - M03
+    - M03
+    - M05
+    result: R05
+    price: 30
+    knownFromStart: 0
+  - id: CR_R10
+    inputs:
+    - M03
+    - M04
+    - M05
+    result: R10
+    price: 30
+    knownFromStart: 0
+  - id: CR_R12
+    inputs:
+    - M04
+    - M04
+    - M02
+    result: R12
+    price: 30
+    knownFromStart: 0
+  - id: CR_R02
+    inputs:
+    - X04
+    - M02
+    - M04
+    - M04
+    result: R02
     price: 50
     knownFromStart: 0
-  - id: CR03
-    inputA: M02
-    inputB: M03
+  - id: CR_R06
+    inputs:
+    - X02
+    - M01
+    - M03
+    - M04
+    result: R06
+    price: 50
+    knownFromStart: 0
+  - id: CR_R07
+    inputs:
+    - X01
+    - M02
+    - M02
+    - M01
+    result: R07
+    price: 50
+    knownFromStart: 0
+  - id: CR_R08
+    inputs:
+    - X04
+    - M03
+    - M03
+    - M05
+    result: R08
+    price: 50
+    knownFromStart: 0
+  - id: CR_R11
+    inputs:
+    - X05
+    - M04
+    - M02
+    - M05
+    result: R11
+    price: 50
+    knownFromStart: 0
+  - id: CR_R03
+    inputs:
+    - X05
+    - U03
+    - M02
+    - M04
+    - M05
+    result: R03
+    price: 80
+    knownFromStart: 0
+  - id: CR_R04
+    inputs:
+    - X02
+    - X06
+    - M01
+    - M03
+    - M05
+    result: R04
+    price: 80
+    knownFromStart: 0
+  - id: CR_R09
+    inputs:
+    - X01
+    - U01
+    - M01
+    - M02
+    - M04
+    result: R09
+    price: 80
+    knownFromStart: 0
+  - id: CR_R13
+    inputs:
+    - X04
+    - U02
+    - M04
+    - M04
+    - M05
+    result: R13
+    price: 80
+    knownFromStart: 0
+  - id: CR_C01
+    inputs:
+    - X05
+    - M05
+    result: C01
+    price: 20
+    knownFromStart: 0
+  - id: CR_C03
+    inputs:
+    - M01
+    - M03
     result: C03
-    price: 0
-    knownFromStart: 1
+    price: 20
+    knownFromStart: 0
+  - id: CR_C04
+    inputs:
+    - M03
+    - M04
+    result: C04
+    price: 20
+    knownFromStart: 0
+  - id: CR_C05
+    inputs:
+    - M02
+    - M05
+    result: C05
+    price: 20
+    knownFromStart: 0
+  - id: CR_C10
+    inputs:
+    - M01
+    - M02
+    result: C10
+    price: 20
+    knownFromStart: 0
+  - id: CR_C11
+    inputs:
+    - X04
+    - M04
+    result: C11
+    price: 20
+    knownFromStart: 0
+  - id: CR_C02
+    inputs:
+    - X06
+    - M03
+    - M01
+    result: C02
+    price: 35
+    knownFromStart: 0
+  - id: CR_C06
+    inputs:
+    - X04
+    - M02
+    - M03
+    result: C06
+    price: 35
+    knownFromStart: 0
+  - id: CR_C07
+    inputs:
+    - X03
+    - M05
+    - M04
+    result: C07
+    price: 35
+    knownFromStart: 0
+  - id: CR_C08
+    inputs:
+    - X05
+    - M05
+    - M05
+    result: C08
+    price: 35
+    knownFromStart: 0
+  - id: CR_C12
+    inputs:
+    - X05
+    - M03
+    - M02
+    result: C12
+    price: 35
+    knownFromStart: 0
+  - id: CR_C09
+    inputs:
+    - X05
+    - X06
+    - M05
+    - M01
+    result: C09
+    price: 50
+    knownFromStart: 0
+  - id: CR_B01
+    inputs:
+    - X02
+    - M01
+    - M05
+    result: B01
+    price: 35
+    knownFromStart: 0

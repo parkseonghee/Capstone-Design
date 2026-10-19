@@ -80,12 +80,14 @@ namespace RecycleLife.Core
             // 재료 드롭도 덫과 같은 자리다 — 적이 죽는 네 군데가 전부 이 인스턴스를 물어야
             // 어디서 죽든 같은 확률로 떨어진다. 표를 안 넘기면 null이라 아무 일도 안 일어난다.
             MaterialDropResolver drops = materialDrops != null
-                ? new MaterialDropResolver(materialDrops, random)
+                ? new MaterialDropResolver(materialDrops, random, modifiers)
                 : null;
 
             // 최대 체력 유물(R01·R02)은 생성 시점에 이미 반영돼야 하트가 맞게 그려진다.
             int maxHp = character.MaxHp + (modifiers != null ? modifiers.BonusMaxHp : 0);
-            var player = new Player(maxHp, character.Attack, bomb.StartingCount);
+            // 공격력 유물(R09)도 같은 이유로 생성 시점에 얹는다 — 플레이어는 웨이브마다 새로 만들어진다.
+            int attack = character.Attack + (modifiers != null ? modifiers.BonusAttack : 0);
+            var player = new Player(maxHp, attack, bomb.StartingCount);
             player.AttachModifiers(modifiers);
 
             // 독 몬스터 기믹. 덱·드롭과 같은 자리에서 한 번만 만들어 중력·전투·폭발·루프가
