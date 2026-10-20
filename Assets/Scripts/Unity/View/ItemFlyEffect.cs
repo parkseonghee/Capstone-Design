@@ -511,6 +511,19 @@ namespace RecycleLife.Unity
 
         private void ApplyIcon(Flight f, string id)
         {
+            Sprite sprite;
+            Color color;
+            ResolveIcon(id, out sprite, out color);
+            f.Icon.sprite = sprite;
+            f.Icon.color = color;
+        }
+
+        /// <summary>
+        /// 아이템 id의 아이콘과 색. 날아가는 아이콘과 같은 표를 쓴다 — 클리어 영수증도 이걸 빌려 간다.
+        /// 표에 없으면 기본 아이콘을 준다.
+        /// </summary>
+        public void ResolveIcon(string id, out Sprite sprite, out Color color)
+        {
             for (int i = 0; i < icons.Length; i++)
             {
                 if (icons[i].id != id)
@@ -518,16 +531,16 @@ namespace RecycleLife.Unity
                     continue;
                 }
 
-                f.Icon.sprite = icons[i].sprite != null ? icons[i].sprite : fallbackSprite;
+                sprite = icons[i].sprite != null ? icons[i].sprite : fallbackSprite;
 
                 // 색을 안 고른 채(투명)로 두면 아이콘이 안 보인다. 그때는 흰색으로 본다.
                 Color c = icons[i].color;
-                f.Icon.color = c.a > 0f ? c : Color.white;
+                color = c.a > 0f ? c : Color.white;
                 return;
             }
 
-            f.Icon.sprite = fallbackSprite;
-            f.Icon.color = fallbackColor;
+            sprite = fallbackSprite;
+            color = fallbackColor;
         }
     }
 }
