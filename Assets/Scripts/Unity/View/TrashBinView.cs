@@ -13,7 +13,7 @@ namespace RecycleLife.Unity
     ///
     /// 칸의 위치·크기는 씬이 정하고, 여기서는 글자와 활성 상태만 만진다(Hard Rule 2).
     /// </summary>
-    public sealed class TrashBinView : MonoBehaviour
+    public sealed class TrashBinView : MonoBehaviour, IVillageFeature
     {
         /// <summary>목록 한 줄.</summary>
         [System.Serializable]

@@ -20,7 +20,7 @@ namespace RecycleLife.Unity
     /// 잠금·클리어 판정은 전부 RunProgress가 한다(Hard Rule 5).
     /// </summary>
     public sealed class StageMapView : MonoBehaviour,
-        IBeginDragHandler, IDragHandler, IEndDragHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler, IVillageFeature
     {
         [Header("연결")]
         [SerializeField, Tooltip("스테이지 목록과 클리어 기록. 마을과 게임 씬이 같은 에셋을 물어야 한다.")]
