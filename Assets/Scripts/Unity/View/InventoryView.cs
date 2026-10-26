@@ -11,7 +11,7 @@ namespace RecycleLife.Unity
     /// <b>여는 버튼은 없다.</b> 재료·조합 시스템이 들어오면서 인벤토리가 가방 버튼의 자리를
     /// 대신하기 때문에, 전용 버튼 대신 <see cref="Open"/>을 부르는 쪽이 여는 시점을 정한다.
     ///
-    /// 유물은 이름과 설명만 보이고, 일회성은 개수와 <b>사용</b> 버튼이 붙는다.
+    /// 칸에는 이름과 아이콘이 보인다(설명 글은 숨긴다). 일회성은 개수와 <b>사용</b> 버튼이 붙는다.
     /// <b>폭탄</b>은 개수와 <b>설치</b> 버튼이 붙고, 누르면 보드에 설치 자리가 표시된다
     /// (전용 설치 버튼은 없어졌다).
     ///
@@ -25,6 +25,11 @@ namespace RecycleLife.Unity
         {
             public GameObject root;
             public Text nameLabel;
+
+            [Tooltip("칸에 띄울 아이콘. 그림은 flyEffect의 아이콘 표에서 가져온다 — 표에 없는 아이템은 아이콘을 숨긴다.")]
+            public Image icon;
+
+            [Tooltip("설명 글. 아이콘으로 대신하므로 칸에서는 숨긴다.")]
             public Text descriptionLabel;
             public Button useButton;
             public Text useLabel;
@@ -558,9 +563,24 @@ namespace RecycleLife.Unity
                         : entry.displayName;
                 }
 
-                if (rows[i].descriptionLabel != null)
+                // 설명 대신 아이콘을 보여 준다. 아이콘이 없는 아이템도 설명은 띄우지 않는다.
+                if (rows[i].descriptionLabel != null && rows[i].descriptionLabel.gameObject.activeSelf)
                 {
-                    rows[i].descriptionLabel.text = entry.description;
+                    rows[i].descriptionLabel.gameObject.SetActive(false);
+                }
+
+                if (rows[i].icon != null)
+                {
+                    Sprite sprite = null;
+                    Color color = Color.white;
+                    if (flyEffect != null)
+                    {
+                        flyEffect.ResolveIcon(entry.id, out sprite, out color);
+                    }
+
+                    rows[i].icon.sprite = sprite;
+                    rows[i].icon.color = color;
+                    rows[i].icon.enabled = sprite != null;
                 }
 
                 // 유물은 쓰는 게 아니라 계속 붙어 있는 것이라 버튼이 없다.

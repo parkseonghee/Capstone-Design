@@ -29,6 +29,9 @@ namespace RecycleLife.Unity
         {
             public CraftingStationSlot root;
             public Text label;
+
+            [Tooltip("올려 둔 재료의 아이콘. 그림은 iconSource의 아이콘 표에서 가져온다. 빈 칸이면 숨긴다.")]
+            public Image icon;
         }
 
         [Header("연결")]
@@ -40,6 +43,9 @@ namespace RecycleLife.Unity
 
         [SerializeField, Tooltip("조합 가능할 때·완성될 때의 이펙트. 비워도 된다.")]
         private CombineEffects effects;
+
+        [SerializeField, Tooltip("아이템 아이콘 표를 가진 획득 연출. 인벤토리와 같은 그림을 쓴다. 비우면 칸에 이름만 뜬다.")]
+        private ItemFlyEffect iconSource;
 
         [Header("칸")]
         [SerializeField, Tooltip("재료 칸들. 최대 5개(T3 유물).")]
@@ -212,12 +218,26 @@ namespace RecycleLife.Unity
         {
             for (int i = 0; i < slots.Length; i++)
             {
-                if (slots[i].label == null)
+                bool filled = i < _contents.Count;
+
+                if (slots[i].label != null)
                 {
-                    continue;
+                    slots[i].label.text = filled ? NameOf(_contents[i]) : emptySlotText;
                 }
 
-                slots[i].label.text = i < _contents.Count ? NameOf(_contents[i]) : emptySlotText;
+                if (slots[i].icon != null)
+                {
+                    Sprite sprite = null;
+                    Color color = Color.white;
+                    if (filled && iconSource != null)
+                    {
+                        iconSource.ResolveIcon(_contents[i], out sprite, out color);
+                    }
+
+                    slots[i].icon.sprite = sprite;
+                    slots[i].icon.color = color;
+                    slots[i].icon.enabled = sprite != null;
+                }
             }
 
             ItemConfig.Entry result = default(ItemConfig.Entry);
