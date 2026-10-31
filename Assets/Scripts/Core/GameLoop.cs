@@ -278,10 +278,11 @@ namespace RecycleLife.Core
         /// 성공하면 다른 행동과 똑같이 한 턴을 쓴다(폭탄 기획 §1-3, 임시 확정).
         ///
         /// 놓기만 할 뿐 <b>불은 붙지 않는다</b>. 카운트다운은 플레이어가 때려야 시작된다.
+        /// 상점 방에서는 놓을 수 없다 — 상품이 깔린 방이라 터뜨릴 것도 없고 상품을 가린다.
         /// </summary>
         public StepResult PlaceBomb(Vector2Int cell)
         {
-            if (!IsReady || IsOver)
+            if (!IsReady || IsOver || InShop)
             {
                 return new StepResult(MoveResult.Simple(MoveOutcome.BlockedByEntity), false, 0, 0, false, Reason);
             }
@@ -509,12 +510,22 @@ namespace RecycleLife.Core
         /// 뷰가 "설치 버튼을 꾹 눌렀을 때 표시할 자리"를 이걸로 가져간다.
         /// </summary>
         /// <returns>후보 칸 수.</returns>
-        public int CollectBombPlacements() => _bombs.CollectPlacements();
+        /// 상점 방에서는 언제나 0이다(<see cref="PlaceBomb"/>).
+        public int CollectBombPlacements()
+        {
+            if (InShop)
+            {
+                _bombs.ClearPlacements();
+                return 0;
+            }
+
+            return _bombs.CollectPlacements();
+        }
 
         /// <summary>직전 <see cref="CollectBombPlacements"/>의 결과. 다음 호출 전까지만 유효하다.</summary>
         public IReadOnlyList<Vector2Int> BombPlacements => _bombs.Placements;
 
-        public bool CanPlaceBombAt(Vector2Int cell) => _bombs.CanPlace(cell);
+        public bool CanPlaceBombAt(Vector2Int cell) => !InShop && _bombs.CanPlace(cell);
 
         /// <summary>
         /// 행동이 끝난 뒤의 공통 페이즈. 이동·공격·획득·폭탄 설치가 전부 여기로 모인다.

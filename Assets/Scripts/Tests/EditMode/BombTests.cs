@@ -492,6 +492,30 @@ namespace RecycleLife.Tests
         }
 
         [Test]
+        public void InShop_BombCannotBePlaced()
+        {
+            // 상점 방은 상품이 깔린 방이다. 폭탄을 놓으면 상품을 가리고 터뜨릴 것도 없다.
+            var config = new FakeBoardConfig { PlayerStart = new Vector2Int(4, 8) };
+            GameLoop loop = Make.Week1(config, new MinRandom());
+            loop.EnterShop();
+
+            var spot = new Vector2Int(4, 7);
+
+            Assert.AreEqual(0, loop.CollectBombPlacements(), "상점에서는 설치 자리가 뜨지 않는다.");
+            Assert.IsFalse(loop.CanPlaceBombAt(spot));
+
+            StepResult result = loop.PlaceBomb(spot);
+
+            Assert.IsFalse(result.Advanced, "무효 입력이므로 보드가 진행되지 않는다.");
+            Assert.IsNull(loop.Grid[spot], "칸에 폭탄이 놓이지 않는다.");
+            Assert.AreEqual(config.StartingCount, loop.Player.Bombs, "보유도 안 깎인다.");
+
+            // 상점을 나오면 다시 놓을 수 있다.
+            loop.ExitShop();
+            Assert.IsTrue(loop.CanPlaceBombAt(spot));
+        }
+
+        [Test]
         public void FullBombCycle_PlaceThenMoveThreeTimes()
         {
             // 설치(바로 점화) -> 세 번 움직이면 폭발. 조합레시피 문서 §5의 흐름 그대로다.

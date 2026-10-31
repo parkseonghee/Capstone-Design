@@ -407,7 +407,7 @@ namespace RecycleLife.Unity
         private Vector2 TargetInLayer(string id, Vector2 fallback)
         {
             RectTransform target;
-            if (!inventory.TryGetSlotRect(id, out target) || !target.gameObject.activeInHierarchy)
+            if (!inventory.TryGetArrivalSlotRect(id, out target) || !target.gameObject.activeInHierarchy)
             {
                 target = inventory.PanelRect;
             }

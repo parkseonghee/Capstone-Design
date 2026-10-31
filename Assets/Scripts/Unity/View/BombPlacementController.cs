@@ -171,6 +171,12 @@ namespace RecycleLife.Unity
                 return;
             }
 
+            // 상점 방에서는 폭탄을 놓을 수 없다(GameLoop.PlaceBomb). 같은 이유로 켜지 않는다.
+            if (session.Loop.InShop)
+            {
+                return;
+            }
+
             IsShowingPlacements = true;
             RefreshPlacements();
         }
@@ -196,6 +202,13 @@ namespace RecycleLife.Unity
 
         private void HandleStepped(StepResult result)
         {
+            // 조준을 켠 채로 상점에 들어가면 거기서 끈다.
+            if (IsShowingPlacements && session.Loop != null && session.Loop.InShop)
+            {
+                HidePlacements();
+                return;
+            }
+
             if (IsShowingPlacements)
             {
                 RefreshPlacements();

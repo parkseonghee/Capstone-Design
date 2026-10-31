@@ -66,6 +66,12 @@ namespace RecycleLife.Core
         /// </summary>
         public event Action<Vector2Int, int> Exploded;
 
+        /// <summary>설치 가능 칸 목록을 비운다. 놓을 수 없는 상황(상점 방)에서 GameLoop가 부른다.</summary>
+        public void ClearPlacements()
+        {
+            _placements.Clear();
+        }
+
         /// <summary>
         /// 플레이어 한 칸 거리의 설치 가능 칸을 모은다.
         /// 몬스터·블록·벽이 있는 칸은 빠지고 <b>빈 칸만</b> 남는다(기획 확정).

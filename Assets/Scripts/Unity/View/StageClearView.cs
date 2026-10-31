@@ -16,6 +16,11 @@ namespace RecycleLife.Unity
     /// 버튼 입력을 다시 세션에 돌려줄 뿐이다(Hard Rule 5).
     ///
     /// 패널의 위치·크기는 씬에서 정한다 — 여기서는 활성 상태와 문자열만 만진다(Hard Rule 2).
+    ///
+    /// <b>패배</b>했을 때는 같은 영수증을 빨갛게 칠한 실패 화면(FAIL 도장)을 띄운다.
+    /// 정산(처치 수·재료·시간)은 여기서 모으고 있으므로 실패 화면도 여기서 함께 다룬다.
+    /// 실패 화면의 '다시 시작'은 1스테이지로 되돌아가고(RestartAfterDefeat), '마을로'는 마을로 돌아간다.
+    /// 실패했으므로 이번 런의 재료는 마을에 맡기지 않는다 — 실패해야만 비워진다는 전제 그대로다.
     /// </summary>
     public sealed class StageClearView : MonoBehaviour
     {
@@ -38,6 +43,19 @@ namespace RecycleLife.Unity
 
         [SerializeField, Tooltip("마을로 돌아가는 버튼.")]
         private Button villageButton;
+
+        [Header("실패 화면 (씬에서 배치)")]
+        [SerializeField, Tooltip("패배했을 때 뜨는 화면. 클리어 화면을 복제해 빨갛게 칠한 것. 평소에는 꺼져 있어야 한다.")]
+        private GameObject failPanel;
+
+        [SerializeField, Tooltip("실패 화면의 정산 영수증.")]
+        private ReceiptRevealAnimator failReceipt;
+
+        [SerializeField, Tooltip("1스테이지부터 다시 시작하는 버튼.")]
+        private Button restartButton;
+
+        [SerializeField, Tooltip("실패 화면에서 마을로 돌아가는 버튼. 재료는 맡기지 않는다.")]
+        private Button failVillageButton;
 
         [Header("이동")]
         [SerializeField, Tooltip("마을 씬 이름. Build Settings에 등록돼 있어야 한다.")]
@@ -90,6 +108,8 @@ namespace RecycleLife.Unity
 
             if (nextButton != null) { nextButton.onClick.AddListener(GoToNextStage); }
             if (villageButton != null) { villageButton.onClick.AddListener(GoToVillage); }
+            if (restartButton != null) { restartButton.onClick.AddListener(Restart); }
+            if (failVillageButton != null) { failVillageButton.onClick.AddListener(GoToVillageAfterDefeat); }
 
             Hide();
         }
@@ -104,6 +124,8 @@ namespace RecycleLife.Unity
 
             if (nextButton != null) { nextButton.onClick.RemoveListener(GoToNextStage); }
             if (villageButton != null) { villageButton.onClick.RemoveListener(GoToVillage); }
+            if (restartButton != null) { restartButton.onClick.RemoveListener(Restart); }
+            if (failVillageButton != null) { failVillageButton.onClick.RemoveListener(GoToVillageAfterDefeat); }
 
             SubscribeDrops(null);
 
@@ -199,12 +221,7 @@ namespace RecycleLife.Unity
             // 죽었을 때 번 돈을 살릴지는 설정이다. 기본은 잃는다(로그라이트 관례).
             if (result.IsGameOver)
             {
-                if (!_banked && runProgress != null && runProgress.KeepGoldOnDefeat)
-                {
-                    _banked = true;
-                    runProgress.AddGold(session.Loop.Player.Gold);
-                }
-
+                ShowFail(session.Loop.Waves);
                 return;
             }
 
@@ -261,6 +278,66 @@ namespace RecycleLife.Unity
             SetInputBlocked(true);
         }
 
+        /// <summary>
+        /// 패배 화면. 클리어 영수증과 같은 정산을 FAIL 도장으로 찍는다.
+        /// 골드는 살리는 설정일 때만 적립되고, 영수증의 획득 골드도 실제로 적립된 만큼만 찍힌다.
+        /// </summary>
+        private void ShowFail(WaveRunner waves)
+        {
+            if (!_banked)
+            {
+                _banked = true;
+
+                // 지금 싸우던 웨이브의 시간도 넣는다 — 깨지 못했으니 위에서 더해지지 않았다.
+                if (!_waveTimed)
+                {
+                    _waveTimed = true;
+                    _elapsed += Time.unscaledTime - _waveStart;
+                }
+
+                int previous = runProgress != null ? runProgress.Gold : 0;
+                int kept = 0;
+                if (runProgress != null && runProgress.KeepGoldOnDefeat)
+                {
+                    kept = session.Loop.Player.Gold;
+                    runProgress.AddGold(kept);
+                }
+
+                _receiptData = waves != null
+                    ? BuildReceipt(waves, kept, previous)
+                    : new StageReceiptData { Materials = new List<StageReceiptData.Material>(), PreviousGold = previous };
+            }
+
+            if (failPanel == null)
+            {
+                return;
+            }
+
+            if (!failPanel.activeSelf)
+            {
+                failPanel.SetActive(true);
+            }
+
+            if (failReceipt != null)
+            {
+                failReceipt.Play(_receiptData);
+            }
+
+            SetInputBlocked(true);
+        }
+
+        /// <summary>실패 화면의 '다시 시작'. 어느 스테이지에서 죽었든 1스테이지로 되돌아간다.</summary>
+        private void Restart()
+        {
+            if (session == null)
+            {
+                return;
+            }
+
+            Hide();
+            session.RestartAfterDefeat();
+        }
+
         private StageReceiptData BuildReceipt(WaveRunner waves, int earned, int previous)
         {
             // 깬 것은 웨이브가 아니라 <b>스테이지</b>다(1스테이지 = 3웨이브).
@@ -300,6 +377,11 @@ namespace RecycleLife.Unity
                 panel.SetActive(false);
             }
 
+            if (failPanel != null && failPanel.activeSelf)
+            {
+                failPanel.SetActive(false);
+            }
+
             SetInputBlocked(false);
         }
 
@@ -332,6 +414,17 @@ namespace RecycleLife.Unity
 
         private void GoToVillage()
         {
+            LoadVillage(depositMaterials: true);
+        }
+
+        /// <summary>실패 화면의 '마을로'. 진 판의 재료는 맡기지 않고 그대로 사라진다.</summary>
+        private void GoToVillageAfterDefeat()
+        {
+            LoadVillage(depositMaterials: false);
+        }
+
+        private void LoadVillage(bool depositMaterials)
+        {
             if (string.IsNullOrEmpty(villageSceneName))
             {
                 Debug.LogWarning($"{nameof(StageClearView)}: villageSceneName이 비어 있습니다.", this);
@@ -340,7 +433,7 @@ namespace RecycleLife.Unity
 
             // 씬을 갈아타면 인벤토리는 사라진다. 넘어가기 <b>전에</b> 재료를 마을에 맡긴다.
             // 유물은 여기서 버려진다 — 런 한정이라는 전제 그대로다.
-            if (items != null)
+            if (depositMaterials && items != null)
             {
                 items.DepositToVillage();
             }

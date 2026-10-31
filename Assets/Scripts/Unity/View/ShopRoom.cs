@@ -361,7 +361,9 @@ namespace RecycleLife.Unity
 
             session.Loop.ExitShop();
             Hide();
-            session.StartNextWave();
+
+            // 상점을 지나 다음 웨이브로 들어갈 때는 체력을 가득 채워 준다.
+            session.StartNextWave(healFull: true);
         }
     }
 }

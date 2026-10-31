@@ -172,9 +172,11 @@ namespace RecycleLife.Unity
         /// 보드는 새로 깔리지만 <b>플레이어는 그대로다</b> — 체력·폭탄·골드가 이어진다.
         /// 스테이지 안에서 상태가 이어져야 상점이 의미를 갖기 때문이다
         /// (팀 확정 구조: 1스테이지 = 3웨이브 + 상점 2회).
+        ///
+        /// <paramref name="healFull"/>이면 물려받은 뒤 체력을 가득 채운다 — 상점을 지나 나갈 때 쓴다.
         /// </summary>
         /// <returns>넘어갔으면 true. 스테이지의 마지막 웨이브였으면 false.</returns>
-        public bool StartNextWave()
+        public bool StartNextWave(bool healFull = false)
         {
             if (Loop == null || Loop.Waves == null || !Loop.Waves.AdvanceToNext())
             {
@@ -182,12 +184,16 @@ namespace RecycleLife.Unity
             }
 
             _carryOver = Loop.Player;
+            _healOnCarryOver = healFull;
             StartNewRun();
             return true;
         }
 
         /// <summary>다음 런에 물려줄 직전 플레이어. StartNewRun이 한 번 쓰고 비운다.</summary>
         private Player _carryOver;
+
+        /// <summary>인계한 뒤 체력을 가득 채울지. StartNewRun이 한 번 쓰고 끈다.</summary>
+        private bool _healOnCarryOver;
 
         /// <summary>
         /// 이번 <b>스테이지</b>에 걸린 유물 효과. 웨이브 사이에는 유지되고,
@@ -300,7 +306,14 @@ namespace RecycleLife.Unity
             {
                 Loop.Player.CarryOver(_carryOver);
                 _carryOver = null;
+
+                if (_healOnCarryOver)
+                {
+                    Loop.Player.HealFull();
+                }
             }
+
+            _healOnCarryOver = false;
 
             // 첫 줄은 아래의 introRowInterval 대기만 거치고 바로 나오게 한다
             // (빈 보드에서 쉬는 박자를 한 번 더 먹지 않도록).

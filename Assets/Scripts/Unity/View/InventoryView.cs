@@ -11,7 +11,8 @@ namespace RecycleLife.Unity
     /// <b>여는 버튼은 없다.</b> 재료·조합 시스템이 들어오면서 인벤토리가 가방 버튼의 자리를
     /// 대신하기 때문에, 전용 버튼 대신 <see cref="Open"/>을 부르는 쪽이 여는 시점을 정한다.
     ///
-    /// 칸에는 이름과 아이콘이 보인다(설명 글은 숨긴다). 일회성은 개수와 <b>사용</b> 버튼이 붙는다.
+    /// 칸에는 이름과 아이콘이 보인다(설명 글은 숨긴다). 아이템 하나가 한 칸을 차지하고(겹치지 않는다),
+    /// 일회성은 <b>사용</b> 버튼이 붙는다.
     /// <b>폭탄</b>은 개수와 <b>설치</b> 버튼이 붙고, 누르면 보드에 설치 자리가 표시된다
     /// (전용 설치 버튼은 없어졌다).
     ///
@@ -99,6 +100,12 @@ namespace RecycleLife.Unity
         /// 재료를 줍고 쓸 때마다 설치 버튼이 줄 사이를 옮겨 다니지 않게 하려는 것이다.
         /// </summary>
         private readonly List<string> _slots = new List<string>(8);
+
+        /// <summary>
+        /// <see cref="_slots"/>와 같은 순서로, 그 칸이 아직 날아오는 중인 몫인지.
+        /// 날아오는 몫은 칸 자리만 잡아 두고 비워 그린다 — 아이콘이 그 칸으로 날아와 채운다.
+        /// </summary>
+        private readonly List<bool> _slotPending = new List<bool>(8);
 
         public bool IsOpen => panel != null && panel.activeSelf;
 
@@ -402,7 +409,7 @@ namespace RecycleLife.Unity
         {
             entry = default(ItemConfig.Entry);
 
-            if (items == null || items.Catalog == null || index < 0 || index >= _slots.Count)
+            if (items == null || items.Catalog == null || index < 0 || index >= _slots.Count || _slotPending[index])
             {
                 return false;
             }
@@ -415,10 +422,15 @@ namespace RecycleLife.Unity
         ///
         /// 폭탄이 0개면 칸을 아예 내린다 — 설치할 수도 없는 줄이 자리를 차지하면
         /// 재료가 그만큼 덜 보인다. 보유 수는 HUD에도 계속 떠 있다.
+        ///
+        /// 인벤토리 아이템은 <b>하나가 한 칸</b>이다 — 같은 아이템을 또 얻으면 겹치지 않고 새 칸을 차지한다.
+        /// 같은 아이템끼리는 붙여 놓고, 날아오는 중인 몫은 그 뒤에 빈 칸으로 잡아 둔다.
+        /// 조합대에 올려 둔 몫은 칸에서 꺼낸 것이라 아예 그리지 않는다.
         /// </summary>
         private void RebuildSlots()
         {
             _slots.Clear();
+            _slotPending.Clear();
 
             if (items == null)
             {
@@ -431,12 +443,23 @@ namespace RecycleLife.Unity
             if (hasBombSlot)
             {
                 _slots.Add(bombId);
+                _slotPending.Add(false);
             }
 
             var owned = items.Inventory.Ids;
             for (int i = 0; i < owned.Count; i++)
             {
-                _slots.Add(owned[i]);
+                string id = owned[i];
+                int count = items.Inventory.CountOf(id);
+                int pending = flyEffect != null ? Mathf.Min(count, flyEffect.PendingCount(id)) : 0;
+                int reserved = craftingStation != null ? craftingStation.ReservedCount(id) : 0;
+                int filled = Mathf.Max(0, count - pending - reserved);
+
+                for (int n = 0; n < filled + pending; n++)
+                {
+                    _slots.Add(id);
+                    _slotPending.Add(n >= filled);
+                }
             }
         }
 
@@ -452,14 +475,45 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>
-        /// 그 아이템이 그려진 칸. 획득 연출이 날아갈 목적지로 쓴다.
+        /// 그 아이템이 마지막으로 채워진 칸 — 방금 들어온(조합되어 나온·도착한) 칸이다.
         /// 칸이 모자라 목록에 못 올라간 아이템이면 false.
         /// </summary>
         public bool TryGetSlotRect(string id, out RectTransform rect)
         {
+            int index = -1;
+            for (int i = _slots.Count - 1; i >= 0; i--)
+            {
+                if (_slots[i] == id && !_slotPending[i])
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            return TryRowRect(index, out rect);
+        }
+
+        /// <summary>
+        /// 날아오는 아이콘이 내려앉을 칸 — 그 아이템의 첫 빈(날아오는 중인) 칸.
+        /// 빈 칸이 없으면 마지막으로 채워진 칸으로 간다.
+        /// </summary>
+        public bool TryGetArrivalSlotRect(string id, out RectTransform rect)
+        {
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                if (_slots[i] == id && _slotPending[i])
+                {
+                    return TryRowRect(i, out rect);
+                }
+            }
+
+            return TryGetSlotRect(id, out rect);
+        }
+
+        private bool TryRowRect(int index, out RectTransform rect)
+        {
             rect = null;
 
-            int index = _slots.IndexOf(id);
             if (index < 0 || index >= rows.Length || rows[index].root == null)
             {
                 return false;
@@ -539,28 +593,27 @@ namespace RecycleLife.Unity
                     continue;
                 }
 
-                int count = CountOf(entry.id);
                 bool bomb = items.IsBombItem(entry.id);
 
-                // 유물만 한 개뿐이다. 일회성·재료·폭탄은 쌓이므로 개수를 같이 보여 준다.
-                bool stacks = entry.kind != ItemConfig.Kind.Relic;
+                // 아직 날아오는 중인 칸 — 자리만 잡아 두고 비워 둔다. 아이콘이 닿는 순간 채워진다.
+                bool waiting = _slotPending[i];
 
                 // 누를 수 있는 버튼은 일회성과 폭탄에만 붙는다. 재료는 조합으로만 쓰인다.
                 // 재료 전환기는 누르는 게 아니라 재료를 끌어다 놓아 쓰므로 버튼이 없다.
-                bool pressable = entry.kind == ItemConfig.Kind.Consumable && !items.IsConverter(entry.id);
+                bool pressable = !waiting && entry.kind == ItemConfig.Kind.Consumable && !items.IsConverter(entry.id);
 
-                // 아직 날아오는 중인 몫은 빼고 보여 준다 — 아이콘이 칸에 닿는 순간 오른다.
-                // 처음 얻는 아이템이면 0이 되어 칸만 먼저 뜨고 수량은 숨는다.
-                // 조합대에 올려 둔 몫도 뺀다 — 올려 둔 재료는 칸에서 꺼낸 것처럼 보인다(조합대를 닫으면 돌아온다).
-                int pending = flyEffect != null ? flyEffect.PendingCount(entry.id) : 0;
-                int reserved = craftingStation != null ? craftingStation.ReservedCount(entry.id) : 0;
-                int shown = Mathf.Max(0, count - pending - reserved);
+                // 상점 방에서는 폭탄을 놓을 수 없으니(GameLoop.PlaceBomb) 설치 버튼도 내린다.
+                if (bomb && session != null && session.Loop != null && session.Loop.InShop)
+                {
+                    pressable = false;
+                }
 
+                // 인벤토리 아이템은 한 칸에 하나라 개수를 붙이지 않는다. 폭탄만 한 칸에 쌓여 개수가 붙는다.
                 if (rows[i].nameLabel != null)
                 {
-                    rows[i].nameLabel.text = stacks && (pending == 0 || shown > 0)
-                        ? string.Format(countFormat, entry.displayName, shown)
-                        : entry.displayName;
+                    rows[i].nameLabel.text = waiting
+                        ? string.Empty
+                        : bomb ? string.Format(countFormat, entry.displayName, CountOf(entry.id)) : entry.displayName;
                 }
 
                 // 설명 대신 아이콘을 보여 준다. 아이콘이 없는 아이템도 설명은 띄우지 않는다.
@@ -580,7 +633,7 @@ namespace RecycleLife.Unity
 
                     rows[i].icon.sprite = sprite;
                     rows[i].icon.color = color;
-                    rows[i].icon.enabled = sprite != null;
+                    rows[i].icon.enabled = sprite != null && !waiting;
                 }
 
                 // 유물은 쓰는 게 아니라 계속 붙어 있는 것이라 버튼이 없다.
