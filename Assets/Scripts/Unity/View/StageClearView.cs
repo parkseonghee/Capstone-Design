@@ -20,7 +20,12 @@ namespace RecycleLife.Unity
     /// <b>패배</b>했을 때는 같은 영수증을 빨갛게 칠한 실패 화면(FAIL 도장)을 띄운다.
     /// 정산(처치 수·재료·시간)은 여기서 모으고 있으므로 실패 화면도 여기서 함께 다룬다.
     /// 실패 화면의 '다시 시작'은 1스테이지로 되돌아가고(RestartAfterDefeat), '마을로'는 마을로 돌아간다.
-    /// 실패했으므로 이번 런의 재료는 마을에 맡기지 않는다 — 실패해야만 비워진다는 전제 그대로다.
+    ///
+    /// <b>런 종료 정산</b>(재화 문서 §1·§2): 남은 재료를 스크랩으로 녹이고, 스크랩 전체를 1:1로 골드에 이관한다.
+    /// 정산은 <b>런이 실제로 끝날 때</b>만 한다 — 죽었을 때, 또는 클리어 후 '마을로'를 눌렀을 때.
+    /// 클리어 후 '다음 스테이지'를 누르면 예전처럼 런이 이어진다(팀 요청) — 체력·폭탄·아이템·스크랩·재료가
+    /// 그대로 넘어가고, 정산은 나중에 마을로 가거나 죽을 때 한 번에 한다.
+    /// 그래서 클리어 영수증의 골드는 "지금 마을로 가면 받을 골드"를 미리 보여 주는 값이다.
     /// </summary>
     public sealed class StageClearView : MonoBehaviour
     {
@@ -38,10 +43,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("정산 영수증. 데이터를 넘기면 채우고 등장 연출까지 한다.")]
         private ReceiptRevealAnimator receipt;
 
-        [SerializeField, Tooltip("다음 스테이지로 넘어가는 버튼. 마지막 스테이지면 자동으로 꺼진다.")]
+        [SerializeField, Tooltip("다음 스테이지로 이어 가는 버튼. 정산하지 않고 런을 계속한다. 마지막 스테이지면 자동으로 꺼진다.")]
         private Button nextButton;
 
-        [SerializeField, Tooltip("마을로 돌아가는 버튼.")]
+        [SerializeField, Tooltip("정산하고 마을로 돌아가는 버튼.")]
         private Button villageButton;
 
         [Header("실패 화면 (씬에서 배치)")]
@@ -54,7 +59,7 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("1스테이지부터 다시 시작하는 버튼.")]
         private Button restartButton;
 
-        [SerializeField, Tooltip("실패 화면에서 마을로 돌아가는 버튼. 재료는 맡기지 않는다.")]
+        [SerializeField, Tooltip("실패 화면에서 마을로 돌아가는 버튼.")]
         private Button failVillageButton;
 
         [Header("이동")]
@@ -64,10 +69,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("화면이 떠 있는 동안 조작을 막을 라우터. 비워 두면 같은 오브젝트에서 찾는다.")]
         private InputRouter input;
 
-        [SerializeField, Tooltip("마을로 갈 때 재료를 넘길 곳. 비워 두면 같은 오브젝트에서 찾는다.")]
+        [SerializeField, Tooltip("정산할 때 재료를 녹일 인벤토리. 비워 두면 같은 오브젝트에서 찾는다.")]
         private ItemService items;
 
-        /// <summary>이번 스테이지 골드를 이미 적립했는지. 패널이 여러 번 떠도 두 번 넣지 않는다.</summary>
+        /// <summary>이번 런을 이미 정산했는지. 패널이 여러 번 떠도 두 번 넣지 않는다.</summary>
         private bool _banked;
 
         // ---- 영수증에 찍을 스테이지 정산. 웨이브마다 루프가 새로 생기므로 여기서 모은다. ----
@@ -84,8 +89,11 @@ namespace RecycleLife.Unity
 
         private MaterialDropResolver _drops;
 
-        /// <summary>적립 직후 만든 정산. 패널이 다시 떠도 같은 숫자를 보여 준다.</summary>
+        /// <summary>영수증에 찍을 정산. 패널이 다시 떠도 같은 숫자를 보여 준다. 클리어 때는 미리보기 값이다.</summary>
         private StageReceiptData _receiptData;
+
+        /// <summary>이번 클리어의 영수증을 이미 만들었는지. 새 웨이브가 시작되면 지운다.</summary>
+        private bool _receiptReady;
 
         private void OnEnable()
         {
@@ -109,7 +117,7 @@ namespace RecycleLife.Unity
             if (nextButton != null) { nextButton.onClick.AddListener(GoToNextStage); }
             if (villageButton != null) { villageButton.onClick.AddListener(GoToVillage); }
             if (restartButton != null) { restartButton.onClick.AddListener(Restart); }
-            if (failVillageButton != null) { failVillageButton.onClick.AddListener(GoToVillageAfterDefeat); }
+            if (failVillageButton != null) { failVillageButton.onClick.AddListener(GoToVillage); }
 
             Hide();
         }
@@ -125,7 +133,7 @@ namespace RecycleLife.Unity
             if (nextButton != null) { nextButton.onClick.RemoveListener(GoToNextStage); }
             if (villageButton != null) { villageButton.onClick.RemoveListener(GoToVillage); }
             if (restartButton != null) { restartButton.onClick.RemoveListener(Restart); }
-            if (failVillageButton != null) { failVillageButton.onClick.RemoveListener(GoToVillageAfterDefeat); }
+            if (failVillageButton != null) { failVillageButton.onClick.RemoveListener(GoToVillage); }
 
             SubscribeDrops(null);
 
@@ -152,6 +160,7 @@ namespace RecycleLife.Unity
         {
             Hide();
             _banked = false;
+            _receiptReady = false;
 
             SubscribeDrops(loop);
 
@@ -218,7 +227,7 @@ namespace RecycleLife.Unity
                 }
             }
 
-            // 죽었을 때 번 돈을 살릴지는 설정이다. 기본은 잃는다(로그라이트 관례).
+            // 죽어도 런 종료다 — 클리어와 똑같이 정산한다(재화 문서 §1).
             if (result.IsGameOver)
             {
                 ShowFail(session.Loop.Waves);
@@ -240,24 +249,16 @@ namespace RecycleLife.Unity
         {
             int index = waves.Index;
 
-            if (!_banked)
+            if (!_receiptReady)
             {
-                // 이번 판에서 번 돈을 총액에 적립한다. 죽었을 때 어떻게 할지는 RunProgress의 설정이다.
-                int earned = session.Loop.Player.Gold;
-                int previous = runProgress != null ? runProgress.Gold : 0;
-
+                _receiptReady = true;
                 if (runProgress != null)
                 {
-                    _banked = true;
                     runProgress.MarkCleared(index);
-                    runProgress.AddGold(earned);
-
-                    // 다음 스테이지부터도 체력·폭탄과 함께 지갑이 그대로 이어진다(로그라이크: 실패해야만 비워짐).
-                    // 방금 적립한 돈을 지갑에 그대로 두면 다음 스테이지 클리어 때 또 적립돼 버린다.
-                    session.Loop.Player.BankGold();
                 }
 
-                _receiptData = BuildReceipt(waves, earned, previous);
+                // 아직 정산하지 않는다 — 다음 스테이지로 이어 갈 수도 있다. 마을로 갈 때 받을 값만 미리 찍는다.
+                _receiptData = Preview(waves);
             }
 
             if (nextButton != null)
@@ -280,14 +281,12 @@ namespace RecycleLife.Unity
 
         /// <summary>
         /// 패배 화면. 클리어 영수증과 같은 정산을 FAIL 도장으로 찍는다.
-        /// 골드는 살리는 설정일 때만 적립되고, 영수증의 획득 골드도 실제로 적립된 만큼만 찍힌다.
+        /// 죽어도 런 종료라 클리어와 똑같이 정산한다(재화 문서 §1).
         /// </summary>
         private void ShowFail(WaveRunner waves)
         {
             if (!_banked)
             {
-                _banked = true;
-
                 // 지금 싸우던 웨이브의 시간도 넣는다 — 깨지 못했으니 위에서 더해지지 않았다.
                 if (!_waveTimed)
                 {
@@ -295,17 +294,7 @@ namespace RecycleLife.Unity
                     _elapsed += Time.unscaledTime - _waveStart;
                 }
 
-                int previous = runProgress != null ? runProgress.Gold : 0;
-                int kept = 0;
-                if (runProgress != null && runProgress.KeepGoldOnDefeat)
-                {
-                    kept = session.Loop.Player.Gold;
-                    runProgress.AddGold(kept);
-                }
-
-                _receiptData = waves != null
-                    ? BuildReceipt(waves, kept, previous)
-                    : new StageReceiptData { Materials = new List<StageReceiptData.Material>(), PreviousGold = previous };
+                _receiptData = Settle(waves);
             }
 
             if (failPanel == null)
@@ -336,6 +325,62 @@ namespace RecycleLife.Unity
 
             Hide();
             session.RestartAfterDefeat();
+        }
+
+        /// <summary>
+        /// 런 종료 정산. 남은 재료 → 스크랩 → 골드(재화 문서 §1·§2).
+        ///
+        /// 녹인 직후 마을 보관함도 덮어쓴다. 보관함은 판에 들어갈 때 <b>복사</b>해 들고 들어오는데
+        /// (ItemService.LoadStash), 그걸 이미 녹였으니 보관함에 남겨 두면 다음 런에 같은 재료가 또 나온다.
+        /// '다시 시작'처럼 마을을 거치지 않는 경로도 있어서 씬을 떠날 때가 아니라 여기서 한다.
+        /// </summary>
+        private StageReceiptData Settle(WaveRunner waves)
+        {
+            _banked = true;
+
+            int previous = runProgress != null ? runProgress.Gold : 0;
+            int materialScrap = 0;
+            if (items != null)
+            {
+                materialScrap = items.MeltAllMaterials();
+                items.DepositToVillage();
+            }
+
+            RunSettlement settlement = RunSettlement.Settle(session.Loop.Player, materialScrap);
+            if (runProgress != null)
+            {
+                runProgress.AddGold(settlement.Gold);
+            }
+
+            StageReceiptData data = waves != null
+                ? BuildReceipt(waves, settlement.Gold, previous)
+                : new StageReceiptData
+                {
+                    Materials = new List<StageReceiptData.Material>(),
+                    EarnedGold = settlement.Gold,
+                    PreviousGold = previous,
+                };
+
+            data.LeftoverScrap = settlement.LeftoverScrap;
+            data.MaterialScrap = settlement.MaterialScrap;
+            return data;
+        }
+
+        /// <summary>
+        /// 지금 런을 끝내면 받을 정산을 지갑·인벤토리를 건드리지 않고 계산한다(클리어 영수증용).
+        /// 실제 정산(<see cref="Settle"/>)과 같은 규칙이다 — 남은 스크랩 + 재료 변환 가치, 1:1.
+        /// </summary>
+        private StageReceiptData Preview(WaveRunner waves)
+        {
+            int previous = runProgress != null ? runProgress.Gold : 0;
+            int leftover = Mathf.Max(0, session.Loop.Player.Scrap);
+            int materialScrap = items != null ? items.MaterialScrapValue() : 0;
+            int gold = (leftover + materialScrap) * RunSettlement.GoldPerScrap;
+
+            StageReceiptData data = BuildReceipt(waves, gold, previous);
+            data.LeftoverScrap = leftover;
+            data.MaterialScrap = materialScrap;
+            return data;
         }
 
         private StageReceiptData BuildReceipt(WaveRunner waves, int earned, int previous)
@@ -387,9 +432,8 @@ namespace RecycleLife.Unity
 
         /// <summary>
         /// 다음 스테이지로. 보드는 새로 깔리지만(WaveRunner가 다음 웨이브로 넘어간다),
-        /// <b>플레이어는 그대로다</b> — 체력·폭탄·아이템이 스테이지를 넘어 이어진다
-        /// (로그라이크 방식, 팀 요청: 실패해야만 비워진다). 그래서 상점 나갈 때와 같은 경로인
-        /// StartNextWave를 그대로 쓴다 — 여기서 따로 런을 새로 시작하지 않는다.
+        /// <b>플레이어는 그대로다</b> — 체력·폭탄·아이템·스크랩이 스테이지를 넘어 이어진다.
+        /// 상점 나갈 때와 같은 경로인 StartNextWave를 그대로 쓴다. 정산은 하지 않는다 — 런이 안 끝났다.
         /// </summary>
         private void GoToNextStage()
         {
@@ -414,30 +458,21 @@ namespace RecycleLife.Unity
 
         private void GoToVillage()
         {
-            LoadVillage(depositMaterials: true);
-        }
+            // 클리어 화면에서 오면 여기서 런이 끝난다 — 미리 보여 준 값 그대로 실제 정산한다.
+            // (실패 화면에서 오면 이미 정산했다.)
+            if (!_banked && session != null && session.Loop != null)
+            {
+                Settle(session.Loop.Waves);
+            }
 
-        /// <summary>실패 화면의 '마을로'. 진 판의 재료는 맡기지 않고 그대로 사라진다.</summary>
-        private void GoToVillageAfterDefeat()
-        {
-            LoadVillage(depositMaterials: false);
-        }
-
-        private void LoadVillage(bool depositMaterials)
-        {
             if (string.IsNullOrEmpty(villageSceneName))
             {
                 Debug.LogWarning($"{nameof(StageClearView)}: villageSceneName이 비어 있습니다.", this);
                 return;
             }
 
-            // 씬을 갈아타면 인벤토리는 사라진다. 넘어가기 <b>전에</b> 재료를 마을에 맡긴다.
-            // 유물은 여기서 버려진다 — 런 한정이라는 전제 그대로다.
-            if (depositMaterials && items != null)
-            {
-                items.DepositToVillage();
-            }
-
+            // 재료는 정산(Settle)에서 이미 녹였고 보관함도 그때 정리했다.
+            // 유물·일회성은 씬을 갈아타며 사라진다 — 런 한정이라는 전제 그대로다.
             SceneManager.LoadScene(villageSceneName);
         }
     }

@@ -11,9 +11,9 @@ namespace RecycleLife.Core
         }
 
         public BlastResult(
-            int exploded, int destroyed, int enemiesKilled, int wallsDestroyed, int playerDamage, int gold)
+            int exploded, int destroyed, int enemiesKilled, int wallsDestroyed, int playerDamage, int scrap)
         {
-            Gold = gold;
+            Scrap = scrap;
             Exploded = exploded;
             Destroyed = destroyed;
             EnemiesKilled = enemiesKilled;
@@ -33,8 +33,8 @@ namespace RecycleLife.Core
         /// <summary>그중 <b>벽</b>만 센 수.</summary>
         public int WallsDestroyed { get; }
 
-        /// <summary>폭발로 떨어진 골드 합계. 폭탄으로 죽여도 돈은 나온다(폭탄 기획 §1-1).</summary>
-        public int Gold { get; }
+        /// <summary>폭발로 떨어진 스크랩 합계. 폭탄으로 죽여도 스크랩은 나온다(폭탄 기획 §1-1).</summary>
+        public int Scrap { get; }
 
         /// <summary>폭발로 플레이어가 받은 피해.</summary>
         public int PlayerDamage { get; }

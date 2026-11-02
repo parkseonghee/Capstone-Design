@@ -42,6 +42,33 @@ namespace RecycleLife.Tests
         private static WaveRunner Runner(bool countWalls, params IWaveConfig[] waves)
             => new WaveRunner(waves, countWalls);
 
+        // ── 스테이지 안에서 몇 번째 웨이브인지 (상점 회차, 재화 문서 §4) ──────
+
+        [Test]
+        public void WaveInStage_CountsFromOneWithinTheStage()
+        {
+            // 2스테이지의 첫 웨이브는 전체로는 4번째지만 스테이지 안에서는 1번째다.
+            WaveRunner runner = Runner(false,
+                new FakeWave(1, 1, 1), new FakeWave(1, 2, 1), new FakeWave(1, 3, 1),
+                new FakeWave(2, 4, 1), new FakeWave(2, 5, 1));
+
+            Assert.AreEqual(1, runner.WaveInStage);
+            runner.Report(1, 0);
+            Assert.AreEqual(2, runner.WaveInStage);
+            runner.Report(1, 0);
+            Assert.AreEqual(3, runner.WaveInStage);
+            runner.Report(1, 0);
+            Assert.AreEqual(1, runner.WaveInStage, "스테이지가 바뀌면 다시 1부터다");
+            runner.Report(1, 0);
+            Assert.AreEqual(2, runner.WaveInStage);
+        }
+
+        [Test]
+        public void WaveInStage_IsZeroWithoutWaves()
+        {
+            Assert.AreEqual(0, Runner(false).WaveInStage);
+        }
+
         // ── 진행도 ───────────────────────────────────────────────────────
 
         [Test]

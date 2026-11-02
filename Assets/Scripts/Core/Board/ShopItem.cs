@@ -23,7 +23,7 @@ namespace RecycleLife.Core
         /// <summary>아이템 표의 id(R01, C01 …). Unity 계층이 이걸로 효과를 찾는다.</summary>
         public string Id { get; }
 
-        /// <summary>가격(골드).</summary>
+        /// <summary>가격(스크랩). 런 중 상점은 스크랩으로 산다(재화 문서 §4).</summary>
         public int Price { get; }
 
         public override EntityKind Kind => EntityKind.ShopItem;

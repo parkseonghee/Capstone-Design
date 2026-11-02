@@ -37,6 +37,7 @@ namespace RecycleLife.Unity
 
         private readonly List<string> _ids = new List<string>(8);
         private Action<string> _onPick;
+        private Action _onCancel;
 
         public bool IsOpen => panel != null && panel.activeSelf;
 
@@ -52,7 +53,7 @@ namespace RecycleLife.Unity
 
             if (cancelButton != null)
             {
-                cancelButton.onClick.AddListener(Hide);
+                cancelButton.onClick.AddListener(Cancel);
             }
 
             Hide();
@@ -64,9 +65,11 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>창을 띄운다. 후보가 버튼보다 많으면 앞에서부터만 보인다.</summary>
-        public void Show(string title, IReadOnlyList<ItemConfig.Entry> choices, Action<string> onPick)
+        /// <param name="onCancel">취소 버튼을 눌렀을 때. 미리 돈을 낸 경우(상점 재료 지정 구매) 환불하는 데 쓴다.</param>
+        public void Show(string title, IReadOnlyList<ItemConfig.Entry> choices, Action<string> onPick, Action onCancel = null)
         {
             _onPick = onPick;
+            _onCancel = onCancel;
             _ids.Clear();
 
             if (titleLabel != null)
@@ -120,9 +123,17 @@ namespace RecycleLife.Unity
             action?.Invoke(id);
         }
 
+        private void Cancel()
+        {
+            Action action = _onCancel;
+            Hide();
+            action?.Invoke();
+        }
+
         private void Hide()
         {
             _onPick = null;
+            _onCancel = null;
 
             if (panel != null && panel.activeSelf)
             {

@@ -148,7 +148,7 @@ namespace RecycleLife.Tests
 
         private sealed class NeverDropsTable : IMaterialDropTable
         {
-            public bool TryRoll(TrashType type, IRandomSource random, int bonusChance, out string materialId)
+            public bool TryRoll(TrashType type, int waveInStage, IRandomSource random, int bonusChance, out string materialId)
             {
                 materialId = null;
                 return false;

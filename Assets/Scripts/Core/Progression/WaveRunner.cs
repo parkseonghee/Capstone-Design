@@ -112,6 +112,30 @@ namespace RecycleLife.Core
         public bool HasNext => Index + 1 < _waves.Count;
 
         /// <summary>
+        /// 지금 웨이브가 자기 스테이지에서 몇 번째인지(1부터). 웨이브가 없으면 0.
+        /// 상점이 1회차·2회차 가격을 고르는 데 쓴다 — N웨이브 뒤의 상점이 N회차다(재화 문서 §4).
+        /// </summary>
+        public int WaveInStage
+        {
+            get
+            {
+                IWaveConfig wave = Current;
+                if (wave == null)
+                {
+                    return 0;
+                }
+
+                int n = 1;
+                for (int i = Index - 1; i >= 0 && _waves[i].StageNumber == wave.StageNumber; i--)
+                {
+                    n++;
+                }
+
+                return n;
+            }
+        }
+
+        /// <summary>
         /// 지금 웨이브가 자기 스테이지의 <b>마지막</b> 웨이브인지.
         ///
         /// 팀 확정 구조(2026-09-22): 1스테이지 = 3웨이브이고 웨이브 사이마다 상점이 낀다.

@@ -26,6 +26,9 @@ namespace RecycleLife.Core
         private readonly TrapResolver _traps;
         private readonly MaterialDropResolver _drops;
 
+        /// <summary>적을 잡았을 때 스크랩을 굴린다. 없으면 스크랩이 안 떨어진다.</summary>
+        private readonly ScrapDropResolver _scrap;
+
         /// <summary>독 몬스터를 잡았을 때 그 자리에 독을 깔기 위해 쓴다. 없으면 독 기믹이 꺼진다.</summary>
         private readonly PoisonResolver _poison;
 
@@ -39,7 +42,7 @@ namespace RecycleLife.Core
 
         public BombResolver(
             BoardGrid grid, Player player, IBoardConfig board, IBombConfig bomb, TrapResolver traps = null,
-            MaterialDropResolver drops = null, PoisonResolver poison = null)
+            MaterialDropResolver drops = null, PoisonResolver poison = null, ScrapDropResolver scrap = null)
         {
             _grid = grid ?? throw new ArgumentNullException(nameof(grid));
             _player = player ?? throw new ArgumentNullException(nameof(player));
@@ -48,6 +51,7 @@ namespace RecycleLife.Core
             _traps = traps;
             _drops = drops;
             _poison = poison;
+            _scrap = scrap;
 
             _placements = new List<Vector2Int>(4);
             _detonating = new List<Vector2Int>(grid.CellCount);
@@ -173,7 +177,7 @@ namespace RecycleLife.Core
             int destroyed = 0;
             int enemiesKilled = 0;
             int wallsDestroyed = 0;
-            int gold = 0;
+            int scrap = 0;
             int playerDamage = 0;
 
             // _detonating은 루프 도중 늘어날 수 있다(연쇄). 인덱스로 돌아야 하는 이유다.
@@ -209,21 +213,21 @@ namespace RecycleLife.Core
                         }
 
                         playerDamage += ApplyBlast(
-                            cell, bomb.Damage, ref destroyed, ref enemiesKilled, ref wallsDestroyed, ref gold);
+                            cell, bomb.Damage, ref destroyed, ref enemiesKilled, ref wallsDestroyed, ref scrap);
                     }
                 }
             }
 
-            _player.AddGold(gold);
+            _player.AddScrap(scrap);
 
-            return new BlastResult(exploded, destroyed, enemiesKilled, wallsDestroyed, playerDamage, gold);
+            return new BlastResult(exploded, destroyed, enemiesKilled, wallsDestroyed, playerDamage, scrap);
         }
 
         /// <summary>한 칸에 폭발을 적용한다.</summary>
         /// <returns>이 칸에서 플레이어가 받은 피해.</returns>
         private int ApplyBlast(
             Vector2Int cell, int damage, ref int destroyed, ref int enemiesKilled, ref int wallsDestroyed,
-            ref int gold)
+            ref int scrap)
         {
             Entity occupant = _grid[cell];
             if (occupant == null)
@@ -275,11 +279,11 @@ namespace RecycleLife.Core
                 bool leavesPoison = trash.LeavesPoison;
                 _grid.Remove(cell);
                 destroyed++;
-                gold += trash.Gold;
                 if (trash.IsEnemy) { enemiesKilled++; } else { wallsDestroyed++; }
                 _traps?.MaybeLeaveTrap(leavesTrap, cell);
                 _poison?.MaybeLeavePoison(leavesPoison, cell);
                 _drops?.MaybeDrop(trash);
+                scrap += _scrap != null ? _scrap.Roll(trash) : 0;
             }
 
             return 0;

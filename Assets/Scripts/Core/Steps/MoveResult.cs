@@ -24,10 +24,10 @@ namespace RecycleLife.Core
             int wallsDestroyed,
             int damageTaken,
             int healed,
-            int gold,
+            int scrap,
             string purchasedId = null)
         {
-            Gold = gold;
+            Scrap = scrap;
             PurchasedId = purchasedId;
             Outcome = outcome;
             ChainSize = chainSize;
@@ -55,8 +55,8 @@ namespace RecycleLife.Core
         /// <summary>그중 <b>벽</b>만 센 수. 진행도에 넣을지는 설정으로 정한다.</summary>
         public int WallsDestroyed { get; }
 
-        /// <summary>이번 공격으로 떨어진 골드 합계.</summary>
-        public int Gold { get; }
+        /// <summary>이번 공격으로 떨어진 스크랩 합계.</summary>
+        public int Scrap { get; }
 
         /// <summary>
         /// 이번에 산 상점 상품의 id. 안 샀으면 null이다.

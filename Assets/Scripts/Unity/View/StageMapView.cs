@@ -66,8 +66,8 @@ namespace RecycleLife.Unity
 
         [SerializeField] private string unlockedHint = "눌러서 시작";
 
-        [SerializeField, Tooltip("돈을 내면 바로 들어갈 수 있는 스테이지일 때. {0} = 필요 골드.")]
-        private string payToEnterHint = "{0}G 지불하고 시작";
+        [SerializeField, Tooltip("아직 잠겨 있지만 지금 골드로 해금할 수 있을 때. {0} = 해금 골드.")]
+        private string payToEnterHint = "{0}G로 해금하고 시작";
 
         [SerializeField, Tooltip("돈이 모자라 못 들어갈 때. {0} = 필요 골드, {1} = 보유 골드.")]
         private string lockedHint = "{0}G 필요 (보유 {1}G)";
@@ -260,12 +260,12 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>
-        /// 가운데 카드에 띄울 안내 문구. 무료(1스테이지·이미 클리어)면 시작 안내,
-        /// 아니면 골드 지불 필요/부족 안내다(예전의 "먼저 클리어하세요"를 대체, 팀 요청).
+        /// 가운데 카드에 띄울 안내 문구. 이미 해금됐으면(1스테이지 포함) 시작 안내,
+        /// 아니면 해금 골드 안내다(재화 문서 §7 — 한 번 해금하면 계속 열려 있다).
         /// </summary>
         private string HintFor(int index)
         {
-            if (runProgress.IsChapterCleared(index) || index == 0)
+            if (runProgress.IsChapterUnlocked(index))
             {
                 return unlockedHint;
             }
@@ -292,8 +292,7 @@ namespace RecycleLife.Unity
 
             bool cleared = runProgress.IsChapterCleared(index);
 
-            // "열려 있다" = 지금 골드로 들어갈 수 있다(1스테이지·이미 클리어는 항상 포함).
-            // 예전의 "바로 앞 챕터를 깨야 한다" 순서 잠금은 골드 지불로 대체됐다(팀 요청).
+            // "열려 있다" = 이미 해금했거나 지금 골드로 해금할 수 있다(재화 문서 §7).
             bool affordable = runProgress.CanAffordChapter(index);
 
             // 양옆 카드는 "넘기기"용이라 돈이 모자라도 눌러서 볼 수 있어야 한다.

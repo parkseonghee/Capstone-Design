@@ -9,6 +9,9 @@ namespace RecycleLife.Unity
     /// 마을과 게임 씬이 같은 에셋을 인스펙터에서 물고 값을 주고받는다.
     ///
     /// 마을에서 캐릭터 상에 부딪히면 확인창 없이 바로 <see cref="Select"/>가 불린다(기획 2026-09-29).
+    ///
+    /// 표에 가격이 붙은 캐릭터는 마을 골드로 한 번 사야 고를 수 있다(재화 문서 §5 — B 75 · C 525).
+    /// 산 기록은 골드와 같은 곳(<see cref="RunProgress"/>)에 둔다 — 진행 초기화 때 함께 지워진다.
     /// </summary>
     [CreateAssetMenu(fileName = "CharacterSelection", menuName = "RecycleLife/Character Selection", order = 13)]
     public sealed class CharacterSelection : ScriptableObject
@@ -17,6 +20,9 @@ namespace RecycleLife.Unity
 
         [SerializeField, Tooltip("고를 수 있는 캐릭터 표.")]
         private CharacterRoster roster;
+
+        [SerializeField, Tooltip("골드를 내고 산 캐릭터 기록. 비워 두면 가격과 상관없이 모든 캐릭터가 열린다.")]
+        private RunProgress progress;
 
         [SerializeField, Tooltip("켜면 저장된 선택을 불러오지 않는다(항상 표의 첫 캐릭터로 시작). 개발용.")]
         private bool ignoreSavedSelection;
@@ -32,8 +38,48 @@ namespace RecycleLife.Unity
             get
             {
                 EnsureLoaded();
-                return _selectedId;
+
+                // 저장된 선택이 잠긴 캐릭터면(진행 초기화 등) 기본 캐릭터로 되돌린다.
+                return IsUnlocked(_selectedId) ? _selectedId : DefaultId();
             }
+        }
+
+        /// <summary>캐릭터를 살 때 쓰는 마을 골드. 기록이 안 꽂혀 있으면 0.</summary>
+        public int Gold => progress != null ? progress.Gold : 0;
+
+        /// <summary>그 캐릭터의 해금 골드. 0이면 기본 제공.</summary>
+        public int PriceOf(string characterId) => roster != null ? roster.PriceOf(characterId) : 0;
+
+        /// <summary>그 캐릭터를 지금 고를 수 있는지. 기본 제공이거나 이미 샀으면 true.</summary>
+        public bool IsUnlocked(string characterId)
+        {
+            return progress == null || PriceOf(characterId) <= 0 || progress.IsCharacterOwned(characterId);
+        }
+
+        /// <summary>지금 가진 골드로 그 캐릭터를 살 수 있는지. 이미 열려 있으면 true.</summary>
+        public bool CanAfford(string characterId)
+        {
+            return IsUnlocked(characterId) || progress.Gold >= PriceOf(characterId);
+        }
+
+        /// <summary>
+        /// 마을 골드를 내고 캐릭터를 산 뒤 바로 고른다. 이미 열려 있으면 돈 없이 고르기만 한다.
+        /// 골드가 모자라면 아무것도 안 하고 false.
+        /// </summary>
+        public bool TryBuy(string characterId)
+        {
+            if (string.IsNullOrEmpty(characterId))
+            {
+                return false;
+            }
+
+            if (!IsUnlocked(characterId) && !progress.TryBuyCharacter(characterId, PriceOf(characterId)))
+            {
+                return false;
+            }
+
+            Select(characterId);
+            return true;
         }
 
         /// <summary>지금 고른 캐릭터의 실제 설정. 표에 없으면 표의 첫 캐릭터로 대신한다.</summary>
@@ -44,7 +90,7 @@ namespace RecycleLife.Unity
                 EnsureLoaded();
 
                 CharacterConfig config;
-                if (roster != null && roster.TryGet(_selectedId, out config))
+                if (roster != null && roster.TryGet(SelectedId, out config))
                 {
                     return config;
                 }
@@ -53,12 +99,12 @@ namespace RecycleLife.Unity
             }
         }
 
-        /// <summary>마을에서 캐릭터 상에 부딪혔을 때 부른다. 표에 없는 id는 무시한다.</summary>
+        /// <summary>마을에서 캐릭터 상에 부딪혔을 때 부른다. 표에 없거나 아직 안 산 캐릭터는 무시한다.</summary>
         public void Select(string characterId)
         {
             EnsureLoaded();
 
-            if (string.IsNullOrEmpty(characterId) || characterId == _selectedId)
+            if (string.IsNullOrEmpty(characterId) || characterId == SelectedId || !IsUnlocked(characterId))
             {
                 return;
             }

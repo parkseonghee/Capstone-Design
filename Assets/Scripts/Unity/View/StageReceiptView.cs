@@ -17,6 +17,13 @@ namespace RecycleLife.Unity
 
         public float ClearSeconds;
 
+        /// <summary>런이 끝날 때 쓰지 않고 남은 스크랩(재화 문서 §1).</summary>
+        public int LeftoverScrap;
+
+        /// <summary>남은 재료를 녹여서 나온 스크랩(§2).</summary>
+        public int MaterialScrap;
+
+        /// <summary>이번 정산으로 마을에 넘어간 골드. 스크랩 전체를 1:1로 바꾼 값이다.</summary>
         public int EarnedGold;
 
         /// <summary>적립 전 보유 골드. 보유 골드는 여기서 (이전 + 획득)까지 카운트업한다.</summary>
@@ -66,6 +73,15 @@ namespace RecycleLife.Unity
 
         [SerializeField] private RectTransform timeLine;
         [SerializeField] private Text timeValue;
+
+        [Header("스크랩 정산 (비우면 표시하지 않는다)")]
+        [SerializeField, Tooltip("'남은 스크랩 + 재료 변환' 줄. 연출이 다른 줄처럼 찍어 낸다.")]
+        private RectTransform scrapLine;
+
+        [SerializeField] private Text scrapValue;
+
+        [SerializeField, Tooltip("{0} = 남은 스크랩, {1} = 재료를 녹인 스크랩.")]
+        private string scrapFormat = "{0} + 재료 {1}";
 
         [Header("골드")]
         [SerializeField] private Text earnedGoldValue;
@@ -128,6 +144,13 @@ namespace RecycleLife.Unity
             }
 
             AddLine(lines, timeLine, null);
+
+            if (scrapValue != null)
+            {
+                scrapValue.text = string.Format(scrapFormat, data.LeftoverScrap, data.MaterialScrap);
+            }
+
+            AddLine(lines, scrapLine, null);
 
             SetGold(data.EarnedGold, data.TotalGold);
             return lines;

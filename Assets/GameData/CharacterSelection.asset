@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: CharacterSelection
   m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.CharacterSelection
   roster: {fileID: 11400000, guid: 05aa4c83dac0a314fbdf98e38910491a, type: 2}
+  progress: {fileID: 11400000, guid: 3b7e1c4d9a02f6584c1d8e35720ab9f1, type: 2}
   ignoreSavedSelection: 0

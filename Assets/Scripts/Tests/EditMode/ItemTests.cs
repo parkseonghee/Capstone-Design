@@ -61,9 +61,9 @@ namespace RecycleLife.Tests
 
             var player = new RecycleLife.Core.Player(3, 2);
             player.AttachModifiers(mods);
-            player.AddGold(8);
+            player.AddScrap(8);
 
-            Assert.AreEqual(10, player.Gold, "8의 125%는 10이다");
+            Assert.AreEqual(10, player.Scrap, "8의 125%는 10이다");
         }
 
         [Test]
@@ -71,9 +71,9 @@ namespace RecycleLife.Tests
         {
             var player = new RecycleLife.Core.Player(3, 2);
             player.AttachModifiers(new RunModifiers());
-            player.AddGold(8);
+            player.AddScrap(8);
 
-            Assert.AreEqual(8, player.Gold);
+            Assert.AreEqual(8, player.Scrap);
         }
 
         // ── R04 재생의 씨앗 ──────────────────────────────────────────────
@@ -209,21 +209,6 @@ namespace RecycleLife.Tests
             Assert.IsNull(loop.Grid[new Vector2Int(0, 8)]);
             Assert.IsNull(loop.Grid[new Vector2Int(1, 8)]);
             Assert.IsNotNull(loop.Grid[new Vector2Int(2, 8)], "벽은 그대로여야 한다");
-        }
-
-        [Test]
-        public void CleansingPotion_PaysGoldForWhatItKills()
-        {
-            var config = Board();
-            GameLoop loop = Loop(config, new RunModifiers());
-
-            loop.Grid.Place(
-                new Trash(TrashType.Paper, new TrashStats(1, 1, 0, 0, true, 7)),
-                new Vector2Int(0, 8));
-
-            loop.DamageAllEnemies(1);
-
-            Assert.AreEqual(7, loop.Player.Gold);
         }
 
         // ── C02 대청소 물약 ──────────────────────────────────────────────

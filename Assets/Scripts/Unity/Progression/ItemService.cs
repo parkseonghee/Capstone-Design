@@ -212,6 +212,73 @@ namespace RecycleLife.Unity
             progress.ReplaceStash(ids, counts);
         }
 
+        /// <summary>
+        /// 들고 있는 재료를 전부 녹여 스크랩으로 바꾼다. 런 종료 정산(재화 문서 §1·§2)이 부른다.
+        ///
+        /// 재료는 인벤토리에서 빠지고 합계만 돌려준다 — 지갑에 넣는 건 정산(<see cref="RunSettlement"/>)의 몫이다.
+        /// 유물·일회성은 건드리지 않는다(변환 대상이 아니다).
+        /// </summary>
+        /// <param name="melted">녹인 재료 id별 개수. 영수증에 찍을 때 쓴다. null이면 채우지 않는다.</param>
+        /// <returns>나온 스크랩 합계.</returns>
+        /// <summary>
+        /// 지금 가진 재료를 녹이면 몇 스크랩이 되는지. <b>재료는 건드리지 않는다</b> —
+        /// 클리어 영수증에 "지금 마을로 가면 받을 골드"를 미리 찍을 때 쓴다.
+        /// </summary>
+        public int MaterialScrapValue()
+        {
+            if (catalog == null)
+            {
+                return 0;
+            }
+
+            int scrap = 0;
+            var owned = Inventory.Ids;
+            for (int i = 0; i < owned.Count; i++)
+            {
+                ItemConfig.Entry entry;
+                if (catalog.TryGet(owned[i], out entry) && entry.kind == ItemConfig.Kind.Material)
+                {
+                    scrap += Mathf.Max(0, entry.scrapValue) * Inventory.CountOf(owned[i]);
+                }
+            }
+
+            return scrap;
+        }
+
+        public int MeltAllMaterials(Dictionary<string, int> melted = null)
+        {
+            if (catalog == null)
+            {
+                return 0;
+            }
+
+            // 녹이는 동안 목록이 줄어드므로 먼저 복사해 둔다.
+            var owned = new List<string>(Inventory.Ids);
+            int scrap = 0;
+            for (int i = 0; i < owned.Count; i++)
+            {
+                ItemConfig.Entry entry;
+                if (!catalog.TryGet(owned[i], out entry) || entry.kind != ItemConfig.Kind.Material)
+                {
+                    continue;
+                }
+
+                int count = Inventory.CountOf(owned[i]);
+                for (int n = 0; n < count; n++)
+                {
+                    Inventory.Consume(owned[i]);
+                }
+
+                scrap += Mathf.Max(0, entry.scrapValue) * count;
+                if (melted != null)
+                {
+                    melted[owned[i]] = count;
+                }
+            }
+
+            return scrap;
+        }
+
         /// <summary>지금 구독 중인 드롭 알림. 루프가 바뀔 때 떼어 내려고 들고 있는다.</summary>
         private MaterialDropResolver _drops;
 
@@ -439,6 +506,9 @@ namespace RecycleLife.Unity
         /// 효과를 남긴 채 칸만 비우면 버리는 게 공짜 이득이 된다.
         ///
         /// 폭탄은 버릴 수 없다. 인벤토리가 아니라 Player.Bombs에 들어 있고, 버릴 이유도 없다.
+        ///
+        /// <b>재료는 버리는 게 아니라 녹인다</b> — 변환 가치만큼 스크랩이 들어온다(재화 문서 §2 "런 중 수동 변환").
+        /// 인벤토리가 꽉 찰 때 숨통을 틔우는 수단이기도 하다. 배율(R03)은 먹지 않는다(Player.DepositScrap).
         /// </summary>
         /// <returns>실제로 버렸으면 true.</returns>
         public bool Discard(string id)
@@ -457,6 +527,14 @@ namespace RecycleLife.Unity
             if (item.kind == ItemConfig.Kind.Relic)
             {
                 RevertRelic(item);
+            }
+            else if (item.kind == ItemConfig.Kind.Material)
+            {
+                Player player = ActivePlayer;
+                if (player != null)
+                {
+                    player.DepositScrap(item.scrapValue);
+                }
             }
 
             return true;

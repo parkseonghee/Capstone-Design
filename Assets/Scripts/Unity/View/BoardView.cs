@@ -793,7 +793,7 @@ namespace RecycleLife.Unity
             // 상품 색이 "살 수 있는가"로 갈리므로 보유 골드를 읽을 통로를 꽂아 준다.
             if (visuals != null)
             {
-                visuals.BindGoldSource(delegate { return _loop != null ? _loop.Player.Gold : 0; });
+                visuals.BindScrapSource(delegate { return _loop != null ? _loop.Player.Scrap : 0; });
             }
 
             ReleaseAll();

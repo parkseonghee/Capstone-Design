@@ -155,6 +155,10 @@ namespace RecycleLife.Unity
 
             [Tooltip("조합으로만 얻는지. 켜면 상점에 진열되지 않는다(가공 재료·유물 — 조합레시피 문서 §1).")]
             public bool craftOnly;
+
+            [Min(0), Tooltip("재료일 때만 쓴다. 런이 끝나거나 수동 변환할 때 이 값만큼 스크랩으로 바뀐다 " +
+                             "(재화 문서 §2 — 기초 5 · 승급 10 · 혼합 20 · 희귀 50). 0이면 변환해도 아무것도 안 나온다.")]
+            public int scrapValue;
         }
 
         [SerializeField, Tooltip("전체 아이템. 상점은 이 중에서 뽑아 판다.")]

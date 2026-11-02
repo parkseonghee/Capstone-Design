@@ -16,6 +16,8 @@ MonoBehaviour:
   - id: char_a
     config: {fileID: 11400000, guid: 41d0b8e6975c4f3a82016cbd57ea9314, type: 2}
     tint: {r: 0.95, g: 0.9, b: 0.2, a: 1}
+    price: 0
   - id: char_b
     config: {fileID: 11400000, guid: 8e3c17a9b45d2f60c9a83e14d572b6f8, type: 2}
     tint: {r: 0.3, g: 0.55, b: 0.95, a: 1}
+    price: 75

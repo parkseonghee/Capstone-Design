@@ -26,7 +26,7 @@ namespace RecycleLife.Core
         /// <summary>포션 회복량 보너스. R06 진한 포션(+1 = 2 → 3).</summary>
         public int BonusPotionHeal { get; private set; }
 
-        /// <summary>골드 획득 배율(%). 100이 기본. R03 황금 손이 올린다.</summary>
+        /// <summary>획득 배율(%). 100이 기본. R03 황금 손이 올린다. 런 중 재화(스크랩)에 먹는다.</summary>
         public int GoldPercent { get; private set; } = 100;
 
         /// <summary>폭발 피해 면역. R09 방폭 장비 — 자기 폭탄 피해도 무효다.</summary>
@@ -186,7 +186,7 @@ namespace RecycleLife.Core
             return true;
         }
 
-        /// <summary>골드에 배율을 먹인다. 소수점은 버린다.</summary>
+        /// <summary>런 중에 얻는 스크랩에 배율을 먹인다. 소수점은 버린다.</summary>
         public int ApplyGold(int amount)
         {
             if (amount <= 0 || GoldPercent == 100)

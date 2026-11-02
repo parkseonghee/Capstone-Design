@@ -26,6 +26,12 @@ namespace RecycleLife.Unity
         /// <summary>마을에서 산 조합법 id들을 담는 PlayerPrefs 키.</summary>
         private const string RecipesKey = "RecycleLife.KnownRecipes";
 
+        /// <summary>골드로 해금한 챕터 비트마스크를 담는 PlayerPrefs 키. 0번 비트 = 1챕터(공원).</summary>
+        private const string UnlockedChaptersKey = "RecycleLife.UnlockedChapters";
+
+        /// <summary>골드로 산 캐릭터 id 목록을 담는 PlayerPrefs 키.</summary>
+        private const string OwnedCharactersKey = "RecycleLife.OwnedCharacters";
+
         /// <summary>마을에 보관 중인 재료를 담는 PlayerPrefs 키.</summary>
         private const string StashKey = "RecycleLife.Stash";
 
@@ -50,17 +56,14 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("켜면 플레이할 때마다 클리어 기록을 불러오지 않는다(항상 처음부터).")]
         private bool ignoreSavedProgress;
 
-        [Header("골드")]
-        [SerializeField, Tooltip("스테이지에서 죽었을 때 그 판에서 번 골드를 그대로 가질지. " +
-                                 "끄면 클리어했을 때만 적립된다(로그라이트 기본값). " +
-                                 "기획 미확정이라 값으로 열어 뒀다.")]
-        private bool keepGoldOnDefeat;
-
         /// <summary>클리어한 웨이브 비트마스크. 0번 비트 = 첫 스테이지.</summary>
         private int _cleared;
 
         /// <summary>스테이지를 넘어 쌓이는 총 골드.</summary>
         private int _gold;
+
+        /// <summary>골드를 내고 해금한 챕터 비트마스크. 한 번 내면 계속 열려 있다(재화 문서 §7).</summary>
+        private int _unlockedChapters;
 
         /// <summary>
         /// 마을에서 샀거나 직접 만들어 본 조합법 id들.
@@ -69,6 +72,9 @@ namespace RecycleLife.Unity
         /// 플레이어가 산 기록이 엉뚱한 조합법을 가리킨다.
         /// </summary>
         private readonly HashSet<string> _knownRecipes = new HashSet<string>();
+
+        /// <summary>골드를 내고 산 캐릭터 id들(재화 문서 §5). 조합법과 같은 이유로 id로 저장한다.</summary>
+        private readonly HashSet<string> _ownedCharacters = new HashSet<string>();
 
         /// <summary>
         /// 마을에 놓고 가는 재료. 다음 판에 그대로 들고 들어가거나, 쓰레기통에 넣어 골드로 바꾼다.
@@ -91,8 +97,6 @@ namespace RecycleLife.Unity
         public int StageCount => waveSet != null ? waveSet.Waves.Count : 0;
 
         public bool UnlockAll => unlockAll;
-
-        public bool KeepGoldOnDefeat => keepGoldOnDefeat;
 
         /// <summary>지금까지 모은 총 골드. 상점이 생기면 여기서 깎는다.</summary>
         public int Gold
@@ -165,6 +169,49 @@ namespace RecycleLife.Unity
                 return false;
             }
 
+            Save();
+            Changed?.Invoke();
+            return true;
+        }
+
+        // ── 캐릭터 구매 ──────────────────────────────────────────────────
+
+        /// <summary>그 캐릭터를 골드로 산 적이 있는지. 기본 제공 캐릭터인지는 여기서 모른다(가격은 CharacterRoster).</summary>
+        public bool IsCharacterOwned(string characterId)
+        {
+            if (string.IsNullOrEmpty(characterId))
+            {
+                return false;
+            }
+
+            EnsureLoaded();
+            return _ownedCharacters.Contains(characterId);
+        }
+
+        /// <summary>
+        /// 골드를 내고 캐릭터를 산다. 이미 샀으면 돈을 다시 받지 않고 true, 골드가 모자라면 아무것도 안 하고 false.
+        /// </summary>
+        public bool TryBuyCharacter(string characterId, int price)
+        {
+            if (string.IsNullOrEmpty(characterId))
+            {
+                return false;
+            }
+
+            EnsureLoaded();
+
+            if (_ownedCharacters.Contains(characterId))
+            {
+                return true;
+            }
+
+            if (price > 0 && _gold < price)
+            {
+                return false;
+            }
+
+            _gold -= Math.Max(0, price);
+            _ownedCharacters.Add(characterId);
             Save();
             Changed?.Invoke();
             return true;
@@ -325,12 +372,14 @@ namespace RecycleLife.Unity
         }
 
         /// <summary>기록을 전부 지운다. 인스펙터 우클릭 메뉴에서도 부를 수 있다.</summary>
-        [ContextMenu("클리어 기록·골드·조합법·보관함 초기화")]
+        [ContextMenu("클리어 기록·골드·조합법·캐릭터·보관함 초기화")]
         public void ClearAll()
         {
             _cleared = 0;
             _gold = 0;
+            _unlockedChapters = 0;
             _knownRecipes.Clear();
+            _ownedCharacters.Clear();
             _stash.Clear();
             _stashOrder.Clear();
             SelectedIndex = 0;
@@ -453,7 +502,10 @@ namespace RecycleLife.Unity
             return IsCleared(StageIndex(chapterIndex, count - 1));
         }
 
-        /// <summary>그 챕터에 들어갈 수 있는지. 첫 챕터는 항상 열려 있고, 그 뒤는 앞 챕터를 깨야 열린다.</summary>
+        /// <summary>
+        /// 그 챕터가 해금돼 있는지. 첫 챕터(공원)는 기본 제공이고, 그 뒤는 골드를 내고 한 번 해금하면
+        /// 계속 열려 있다(재화 문서 §7). 해금 전에 이미 깬 기록이 있는 챕터(예전 세이브)도 열린 것으로 본다.
+        /// </summary>
         public bool IsChapterUnlocked(int chapterIndex)
         {
             if (chapterIndex < 0 || chapterIndex >= ChapterCount)
@@ -461,7 +513,11 @@ namespace RecycleLife.Unity
                 return false;
             }
 
-            return unlockAll || chapterIndex == 0 || IsChapterCleared(chapterIndex - 1);
+            EnsureLoaded();
+            return unlockAll
+                   || chapterIndex == 0
+                   || (chapterIndex < 32 && (_unlockedChapters & (1 << chapterIndex)) != 0)
+                   || IsChapterCleared(chapterIndex);
         }
 
         /// <summary>
@@ -474,25 +530,24 @@ namespace RecycleLife.Unity
             Select(first < 0 ? 0 : first);
         }
 
-        // ── 스테이지 건너뛰기(유료) ──────────────────────────────────────
+        // ── 스테이지 해금(골드) ──────────────────────────────────────────
         //
-        // 예전에는 "바로 앞 챕터를 깨야 다음이 열린다"는 순서 잠금이었다.
-        // 팀 요청(임시값, 확정 전)으로 그 잠금을 골드 지불로 바꿨다:
-        // 1챕터는 항상 무료, 이미 깬 챕터는 다시 무료, 그 외에는 chapterEntryCost만큼 낸다.
+        // 재화 문서 §7: 공원 기본 제공 · 한강 300 · 해수욕장 700. 마을 골드로 <b>한 번</b> 해금하면
+        // 그 뒤로는 계속 무료다. 앞 스테이지를 깨야 열리는 순서 잠금은 없다 — 해금 비용이 곧 진행 속도다(§8-1).
+        // (예전에는 깨기 전까지 들어갈 때마다 돈을 냈다. 죽으면 또 내야 해서 문서의 '해금'과 맞지 않았다.)
 
-        [Header("스테이지 건너뛰기 비용 (임시값)")]
-        [SerializeField, Tooltip("챕터 인덱스(0부터)별로 건너뛸 때 내는 골드. " +
+        [Header("스테이지 해금 비용 (재화 문서 §7)")]
+        [SerializeField, Tooltip("챕터 인덱스(0부터)별 해금 골드. " +
                                  "0번(1스테이지)은 계산에서 항상 0 취급된다. " +
-                                 "챕터 수보다 배열이 짧으면 남는 챕터는 배열의 마지막 값을 그대로 쓴다. " +
-                                 "기본값: 2스테이지 100골드, 3스테이지 300골드(임시, 밸런스 확정 전).")]
-        private int[] chapterEntryCost = { 0, 100, 300 };
+                                 "챕터 수보다 배열이 짧으면 남는 챕터는 배열의 마지막 값을 그대로 쓴다.")]
+        private int[] chapterEntryCost = { 0, 300, 700 };
 
         /// <summary>
-        /// 그 챕터로 바로 건너뛸 때 내야 하는 골드. 첫 챕터거나 이미 깬 챕터면 0(무료).
+        /// 그 챕터를 해금하는 데 내야 하는 골드. 이미 해금돼 있으면 0(무료).
         /// </summary>
         public int EntryCost(int chapterIndex)
         {
-            if (unlockAll || chapterIndex <= 0 || IsChapterCleared(chapterIndex))
+            if (IsChapterUnlocked(chapterIndex))
             {
                 return 0;
             }
@@ -506,15 +561,15 @@ namespace RecycleLife.Unity
             return Mathf.Max(0, chapterEntryCost[i]);
         }
 
-        /// <summary>지금 가진 골드로 그 챕터에 들어갈 수 있는지(무료 조건 포함).</summary>
+        /// <summary>그 챕터에 지금 들어갈 수 있는지. 이미 해금됐거나, 해금할 골드가 있으면 true.</summary>
         public bool CanAffordChapter(int chapterIndex)
         {
-            return chapterIndex == 0 || IsChapterCleared(chapterIndex) || Gold >= EntryCost(chapterIndex);
+            return IsChapterUnlocked(chapterIndex) || Gold >= EntryCost(chapterIndex);
         }
 
         /// <summary>
-        /// 지도에서 챕터를 고르면서, 필요하면 그 자리에서 골드를 낸다.
-        /// 무료 조건이 아니면 <see cref="EntryCost"/>만큼 <see cref="SpendGold"/>를 시도한다.
+        /// 지도에서 챕터를 고르면서, 아직 잠겨 있으면 그 자리에서 골드를 내고 해금한다.
+        /// 해금은 저장되므로 다음부터는 무료다.
         /// </summary>
         /// <returns>실제로 그 챕터를 골랐으면 true. 돈이 모자라면 아무것도 안 하고 false.</returns>
         public bool TryEnterChapter(int chapterIndex)
@@ -525,9 +580,19 @@ namespace RecycleLife.Unity
             }
 
             int cost = EntryCost(chapterIndex);
-            if (cost > 0 && !SpendGold(cost))
+            if (cost > 0)
             {
-                return false;
+                if (!SpendGold(cost))
+                {
+                    return false;
+                }
+
+                if (chapterIndex < 32)
+                {
+                    _unlockedChapters |= 1 << chapterIndex;
+                    Save();
+                    Changed?.Invoke();
+                }
             }
 
             SelectChapter(chapterIndex);
@@ -609,8 +674,10 @@ namespace RecycleLife.Unity
             _loaded = true;
             _cleared = ignoreSavedProgress ? 0 : PlayerPrefs.GetInt(ClearedKey, 0);
             _gold = ignoreSavedProgress ? 0 : PlayerPrefs.GetInt(GoldKey, 0);
+            _unlockedChapters = ignoreSavedProgress ? 0 : PlayerPrefs.GetInt(UnlockedChaptersKey, 0);
 
             _knownRecipes.Clear();
+            _ownedCharacters.Clear();
             _stash.Clear();
             _stashOrder.Clear();
 
@@ -630,6 +697,15 @@ namespace RecycleLife.Unity
                     foreach (string id in saved.Split(','))
                     {
                         if (!string.IsNullOrEmpty(id)) { _knownRecipes.Add(id); }
+                    }
+                }
+
+                string owned = PlayerPrefs.GetString(OwnedCharactersKey, string.Empty);
+                if (!string.IsNullOrEmpty(owned))
+                {
+                    foreach (string id in owned.Split(','))
+                    {
+                        if (!string.IsNullOrEmpty(id)) { _ownedCharacters.Add(id); }
                     }
                 }
 
@@ -666,7 +742,9 @@ namespace RecycleLife.Unity
 
             PlayerPrefs.SetInt(ClearedKey, _cleared);
             PlayerPrefs.SetInt(GoldKey, _gold);
+            PlayerPrefs.SetInt(UnlockedChaptersKey, _unlockedChapters);
             PlayerPrefs.SetString(RecipesKey, string.Join(",", _knownRecipes));
+            PlayerPrefs.SetString(OwnedCharactersKey, string.Join(",", _ownedCharacters));
 
             var stash = new string[_stashOrder.Count];
             for (int i = 0; i < _stashOrder.Count; i++)

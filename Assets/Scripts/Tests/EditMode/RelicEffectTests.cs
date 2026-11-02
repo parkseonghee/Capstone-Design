@@ -94,10 +94,12 @@ namespace RecycleLife.Tests
         private sealed class RecordingTable : IMaterialDropTable
         {
             public int LastBonus = -1;
+            public int LastWave = -1;
 
-            public bool TryRoll(TrashType type, IRandomSource random, int bonusChance, out string materialId)
+            public bool TryRoll(TrashType type, int waveInStage, IRandomSource random, int bonusChance, out string materialId)
             {
                 LastBonus = bonusChance;
+                LastWave = waveInStage;
                 materialId = "M01";
                 return true;
             }
@@ -133,6 +135,37 @@ namespace RecycleLife.Tests
             drops.MaybeDrop(Make.Trash(TrashType.Paper));
 
             Assert.AreEqual(0, table.LastBonus);
+            Assert.AreEqual(1, table.LastWave, "웨이브를 모르면 1웨이브로 본다");
+        }
+
+        /// <summary>스테이지 번호만 의미 있는 최소 웨이브.</summary>
+        private sealed class StageWave : IWaveConfig
+        {
+            public StageWave(int stage) { StageNumber = stage; }
+
+            public int StageNumber { get; }
+
+            public int WaveNumber => 1;
+
+            public int KillGoal => 1;
+
+            public int SpawnWeightFor(TrashType type) => 0;
+        }
+
+        [Test]
+        public void TheTableIsToldWhichWaveOfTheStageItIs()
+        {
+            // 재료 확률은 스테이지 안 몇 번째 웨이브인지로 정해진다(재화 문서 §3-1: 3% · 4% · 5%).
+            var runner = new WaveRunner(new IWaveConfig[] { new StageWave(1), new StageWave(1), new StageWave(1) });
+            runner.Report(1, 0);
+            runner.Report(1, 0);
+
+            var table = new RecordingTable();
+            var drops = new MaterialDropResolver(table, new MinRandom(), null, runner);
+
+            drops.MaybeDrop(Make.Trash(TrashType.Paper));
+
+            Assert.AreEqual(3, table.LastWave);
         }
 
         // ── R11 연쇄 회복 ─────────────────────────────────────────────────

@@ -73,13 +73,13 @@ namespace RecycleLife.Tests
 
             // 바로 아래 적이 있어도 대기는 때리지 않는다.
             var below = new Vector2Int(loop.Player.Position.x, loop.Player.Position.y + 1);
-            loop.Grid.Place(new Trash(TrashType.Paper, new TrashStats(1, 1, 0, 0, true, 9)), below);
+            loop.Grid.Place(new Trash(TrashType.Paper, new TrashStats(1, 1, 0, 0, true)), below);
 
             StepResult result = loop.Wait();
 
             Assert.AreEqual(0, result.Killed, "대기는 공격이 아니다");
-            Assert.AreEqual(0, result.Gold);
-            Assert.AreEqual(0, loop.Player.Gold);
+            Assert.AreEqual(0, result.Scrap);
+            Assert.AreEqual(0, loop.Player.Scrap);
         }
 
         [Test]

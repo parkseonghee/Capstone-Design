@@ -56,8 +56,8 @@ namespace RecycleLife.Core
         /// <summary>이번 스텝에 부순 <b>벽</b> 수. 공격과 폭발을 합친 값이다.</summary>
         public int WallsDestroyed => _move.WallsDestroyed + _blast.WallsDestroyed;
 
-        /// <summary>이번 스텝에 번 골드. 공격과 폭발을 합친 값이다.</summary>
-        public int Gold => _move.Gold + _blast.Gold;
+        /// <summary>이번 스텝에 모은 스크랩. 공격과 폭발을 합친 값이다.</summary>
+        public int Scrap => _move.Scrap + _blast.Scrap;
 
         /// <summary>이번에 산 상점 상품의 id. 안 샀으면 null이다.</summary>
         public string PurchasedId => _move.PurchasedId;

@@ -21,7 +21,7 @@ namespace RecycleLife.Unity
     /// 계산해 최종 위치를 잡아 두고, 연출 동안은 그룹·피터를 꺼 둔다. 끝나면 줄을 그 최종
     /// 위치에 정확히 돌려놓은 다음 다시 켠다 — 켜져도 위치가 같으니 아무것도 튀지 않는다.
     ///
-    /// 탭하면 바로 최종 상태로 건너뛴다. 일시정지 중에도 돌도록 전부 unscaled time이다.
+    /// 탭 건너뛰기는 <c>skipOnTap</c>을 켰을 때만 된다(기본은 끝까지 보여 줌). 일시정지 중에도 돌도록 전부 unscaled time이다.
     /// </summary>
     public sealed class ReceiptRevealAnimator : MonoBehaviour, IPointerDownHandler
     {
@@ -47,6 +47,9 @@ namespace RecycleLife.Unity
 
         [SerializeField, Tooltip("레이아웃을 다시 계산하고, 연출 동안 얼려 둘 최상위.")]
         private RectTransform layoutRoot;
+
+        [SerializeField, Tooltip("켜면 연출 중 화면을 탭했을 때 바로 최종 상태로 건너뛴다. 끄면 연출을 끝까지 보여 준다.")]
+        private bool skipOnTap = false;
 
         [Header("0. 배경")]
         [SerializeField, Min(0f)] private float overlayDuration = 0.2f;
@@ -288,7 +291,10 @@ namespace RecycleLife.Unity
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            Skip();
+            if (skipOnTap)
+            {
+                Skip();
+            }
         }
 
         private void OnDisable()

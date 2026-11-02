@@ -20,11 +20,15 @@ namespace RecycleLife.Core
         private readonly IRandomSource _random;
 
         private readonly RunModifiers _mods;
+        private readonly WaveRunner _waves;
 
         /// <param name="mods">유물 효과. 드랍 확률 보너스(R10)를 읽는다. 없으면 표 그대로다.</param>
-        public MaterialDropResolver(IMaterialDropTable table, IRandomSource random, RunModifiers mods = null)
+        /// <param name="waves">스테이지 안 몇 번째 웨이브인지 읽는다(확률이 웨이브마다 다르다). 없으면 1웨이브로 본다.</param>
+        public MaterialDropResolver(
+            IMaterialDropTable table, IRandomSource random, RunModifiers mods = null, WaveRunner waves = null)
         {
             _mods = mods;
+            _waves = waves;
             _table = table ?? throw new ArgumentNullException(nameof(table));
             _random = random ?? throw new ArgumentNullException(nameof(random));
         }
@@ -59,7 +63,8 @@ namespace RecycleLife.Core
                 return;
             }
 
-            if (_table.TryRoll(killed.Type, _random, _mods != null ? _mods.TotalDropChance : 0, out materialId))
+            int wave = _waves != null ? Math.Max(1, _waves.WaveInStage) : 1;
+            if (_table.TryRoll(killed.Type, wave, _random, _mods != null ? _mods.TotalDropChance : 0, out materialId))
             {
                 Emit(materialId, killed);
             }

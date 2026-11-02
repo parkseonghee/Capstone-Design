@@ -40,8 +40,18 @@ namespace RecycleLife.Core
         private readonly TrapResolver _traps;
         private readonly MaterialDropResolver _drops;
 
+        /// <summary>적을 잡았을 때 스크랩을 굴린다. 없으면 스크랩이 안 떨어진다.</summary>
+        private readonly ScrapDropResolver _scrap;
+
         /// <summary>독 몬스터를 잡았을 때 그 자리에 독을 깔기 위해 쓴다. 없으면 독 기믹이 꺼진다.</summary>
         private readonly PoisonResolver _poison;
+
+        /// <summary>
+        /// 플레이어 공격이 적·벽 한 칸에 들어갔을 때(맞은 칸, 이번 공격으로 죽었는지).
+        /// 공격 범위·연쇄로 같이 맞은 칸도 하나씩 울린다. 아이템·폭탄 칸은 울리지 않는다.
+        /// 피격 이펙트가 구독한다. 공격을 처리하는 <b>도중에</b> 울리므로 구독자가 보드를 바꾸면 안 된다.
+        /// </summary>
+        public event Action<Vector2Int, bool> Struck;
 
         /// <summary>이번 행동에 피해를 받을 칸들. 매번 재사용해 할당을 만들지 않는다(Hard Rule 8).</summary>
         private readonly List<Vector2Int> _hits;
@@ -64,9 +74,11 @@ namespace RecycleLife.Core
             IRandomSource random = null,
             TrapResolver traps = null,
             MaterialDropResolver drops = null,
-            PoisonResolver poison = null)
+            PoisonResolver poison = null,
+            ScrapDropResolver scrap = null)
         {
             _random = random;
+            _scrap = scrap;
             _traps = traps;
             _drops = drops;
             _poison = poison;
@@ -178,19 +190,19 @@ namespace RecycleLife.Core
             int killed = 0;
             int enemiesKilled = 0;
             int wallsDestroyed = 0;
-            int gold = 0;
+            int scrap = 0;
             int wallHeal = 0;
             for (int i = 0; i < _hits.Count; i++)
             {
                 Vector2Int cell = _hits[i];
                 var hit = (Trash)_grid[cell];
+                Struck?.Invoke(cell, hit.IsDead);
                 if (hit.IsDead)
                 {
                     bool leavesTrap = hit.LeavesTrap;
                     bool leavesPoison = hit.LeavesPoison;
                     _grid.Remove(cell);
                     killed++;
-                    gold += hit.Gold;
                     if (hit.IsEnemy)
                     {
                         enemiesKilled++;
@@ -204,6 +216,7 @@ namespace RecycleLife.Core
                     _traps?.MaybeLeaveTrap(leavesTrap, cell);
                     _poison?.MaybeLeavePoison(leavesPoison, cell);
                     _drops?.MaybeDrop(hit);
+                    scrap += _scrap != null ? _scrap.Roll(hit) : 0;
                 }
             }
 
@@ -242,7 +255,7 @@ namespace RecycleLife.Core
                 ? MoveOutcome.Armed
                 : (bumpedTrash.IsConsumable ? MoveOutcome.Consumed : MoveOutcome.Attacked);
 
-            _player.AddGold(gold);
+            _player.AddScrap(scrap);
 
             return new MoveResult(
                 outcome,
@@ -252,18 +265,18 @@ namespace RecycleLife.Core
                 wallsDestroyed,
                 damage,
                 healed,
-                gold);
+                scrap);
         }
 
         /// <summary>
-        /// 상점 상품을 산다. 골드가 모자라면 아무 일도 일어나지 않는다.
+        /// 상점 상품을 산다. 스크랩이 모자라면 아무 일도 일어나지 않는다.
         ///
         /// 플레이어는 <b>그 칸으로 움직이지 않는다</b> — 적을 때릴 때와 같다.
         /// 산 자리는 비므로 다음 입력에 그리로 걸어 들어갈 수 있다.
         /// </summary>
         private MoveResult Buy(ShopItem item)
         {
-            if (!_player.SpendGold(item.Price))
+            if (!_player.SpendScrap(item.Price))
             {
                 // 무효 입력. 턴을 쓰지 않으므로 상점에서 헛걸음으로 손해 보지 않는다.
                 return MoveResult.Simple(MoveOutcome.TooExpensive);

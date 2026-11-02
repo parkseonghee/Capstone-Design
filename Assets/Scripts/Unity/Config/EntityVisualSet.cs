@@ -106,15 +106,15 @@ namespace RecycleLife.Unity
         public float PoisonFadingAlpha => poisonFadingAlpha;
 
         /// <summary>
-        /// 색을 "살 수 있는가"로 가르려면 플레이어의 골드를 알아야 한다.
+        /// 색을 "살 수 있는가"로 가르려면 플레이어의 스크랩을 알아야 한다.
         /// 뷰가 매번 넘겨주는 대신 여기 한 번 꽂아 둔다.
         /// </summary>
-        private System.Func<int> _goldSource;
+        private System.Func<int> _scrapSource;
 
-        /// <summary>보유 골드를 읽는 통로를 꽂는다. 안 꽂으면 상품이 늘 살 수 있는 색으로 보인다.</summary>
-        public void BindGoldSource(System.Func<int> goldSource)
+        /// <summary>보유 스크랩을 읽는 통로를 꽂는다. 안 꽂으면 상품이 늘 살 수 있는 색으로 보인다.</summary>
+        public void BindScrapSource(System.Func<int> scrapSource)
         {
-            _goldSource = goldSource;
+            _scrapSource = scrapSource;
         }
 
         [Header("체력 하트 (CORE_COMBAT.md §1)")]
@@ -164,8 +164,8 @@ namespace RecycleLife.Unity
             var shopItem = entity as ShopItem;
             if (shopItem != null)
             {
-                int gold = _goldSource != null ? _goldSource() : int.MaxValue;
-                color = gold >= shopItem.Price ? shopItemColor : shopItemUnaffordableColor;
+                int scrap = _scrapSource != null ? _scrapSource() : int.MaxValue;
+                color = scrap >= shopItem.Price ? shopItemColor : shopItemUnaffordableColor;
                 sprite = shopItemSprite;
                 return;
             }

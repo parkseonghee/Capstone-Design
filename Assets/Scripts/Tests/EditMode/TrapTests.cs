@@ -21,7 +21,7 @@ namespace RecycleLife.Tests
 
         /// <summary>죽으면 덫을 남기는 적. LeavesTrap을 켠 것 말고는 평범한 잡몹이다.</summary>
         private static Trash TrapMob(TrashType type, int maxHp, int attack)
-            => new Trash(type, new TrashStats(maxHp, attack, 0, 1, true, 0, leavesTrap: true));
+            => new Trash(type, new TrashStats(maxHp, attack, 0, 1, true, leavesTrap: true));
 
         // ── TrapResolver.TeleportToRandomEmptyCell ───────────────────────
 

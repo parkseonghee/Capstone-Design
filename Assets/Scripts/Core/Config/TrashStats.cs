@@ -17,25 +17,18 @@ namespace RecycleLife.Core
     public readonly struct TrashStats
     {
         public TrashStats(int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType)
-            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, 0, false)
+            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, false)
         {
         }
 
         public TrashStats(
-            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold)
-            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, gold, false)
+            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, bool leavesTrap)
+            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, leavesTrap, false)
         {
         }
 
         public TrashStats(
-            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold,
-            bool leavesTrap)
-            : this(maxHp, attack, heal, spawnWeight, chainsWithSameType, gold, leavesTrap, false)
-        {
-        }
-
-        public TrashStats(
-            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType, int gold,
+            int maxHp, int attack, int heal, int spawnWeight, bool chainsWithSameType,
             bool leavesTrap, bool leavesPoison)
         {
             MaxHp = maxHp;
@@ -43,7 +36,6 @@ namespace RecycleLife.Core
             Heal = heal;
             SpawnWeight = spawnWeight;
             ChainsWithSameType = chainsWithSameType;
-            Gold = gold;
             LeavesTrap = leavesTrap;
             LeavesPoison = leavesPoison;
         }
@@ -78,14 +70,6 @@ namespace RecycleLife.Core
         public bool ChainsWithSameType { get; }
 
         /// <summary>
-        /// 처치했을 때 떨어뜨리는 골드. 종류마다 다르며 전부 인스펙터 값이다(Hard Rule 1).
-        ///
-        /// 역할을 따로 묻지 않는 것도 같은 이유다 — 벽에 돈을 주고 싶으면 표에서 값만 올리면 되고,
-        /// 0이면 아무것도 안 떨어진다. 코드에 "벽은 제외" 같은 분기를 두지 않았다(Hard Rule 3).
-        /// </summary>
-        public int Gold { get; }
-
-        /// <summary>
         /// 죽으면 그 자리에 덫을 남기는 "덫 몬스터" 기믹인지. 기본은 꺼짐 —
         /// 어느 잡몹에 붙일지는 기획이 표에서 켜는 값이라 코드에 종류를 못박지 않는다(Hard Rule 1).
         /// </summary>
@@ -106,15 +90,15 @@ namespace RecycleLife.Core
         ///
         /// 생성자를 직접 부르지 말고 이걸 쓸 것. 필드를 손으로 다시 나열하면
         /// 새 필드가 생겼을 때 조용히 0으로 떨어진다 —
-        /// 실제로 골드를 추가했을 때 이 경로에서 그 사고가 났다.
+        /// 실제로 필드(예전의 골드)를 추가했을 때 이 경로에서 그 사고가 났다.
         /// </summary>
         public TrashStats WithSpawnWeight(int spawnWeight)
             => new TrashStats(
-                MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, Gold, LeavesTrap, LeavesPoison);
+                MaxHp, Attack, Heal, spawnWeight, ChainsWithSameType, LeavesTrap, LeavesPoison);
 
         /// <summary>회복량만 바꾼 사본. 유물이 포션을 강화할 때 쓴다(R06 진한 포션).</summary>
         public TrashStats WithHeal(int heal)
             => new TrashStats(
-                MaxHp, Attack, heal, SpawnWeight, ChainsWithSameType, Gold, LeavesTrap, LeavesPoison);
+                MaxHp, Attack, heal, SpawnWeight, ChainsWithSameType, LeavesTrap, LeavesPoison);
     }
 }

@@ -25,11 +25,12 @@ namespace RecycleLife.Core
             WaveRunner waves = null,
             RunModifiers modifiers = null,
             IMaterialDropTable materialDrops = null,
-            IPoisonConfig poisonConfig = null)
+            IPoisonConfig poisonConfig = null,
+            IScrapDropTable scrapDrops = null)
         {
             GameLoop loop = CreateStaged(
                 board, spawn, trashStats, character, bomb, random, waves, modifiers, materialDrops,
-                poisonConfig);
+                poisonConfig, scrapDrops);
             loop.CompleteSetup();
             return loop;
         }
@@ -48,7 +49,8 @@ namespace RecycleLife.Core
             WaveRunner waves = null,
             RunModifiers modifiers = null,
             IMaterialDropTable materialDrops = null,
-            IPoisonConfig poisonConfig = null)
+            IPoisonConfig poisonConfig = null,
+            IScrapDropTable scrapDrops = null)
         {
             if (board == null) throw new ArgumentNullException(nameof(board));
             if (spawn == null) throw new ArgumentNullException(nameof(spawn));
@@ -80,7 +82,12 @@ namespace RecycleLife.Core
             // 재료 드롭도 덫과 같은 자리다 — 적이 죽는 네 군데가 전부 이 인스턴스를 물어야
             // 어디서 죽든 같은 확률로 떨어진다. 표를 안 넘기면 null이라 아무 일도 안 일어난다.
             MaterialDropResolver drops = materialDrops != null
-                ? new MaterialDropResolver(materialDrops, random, modifiers)
+                ? new MaterialDropResolver(materialDrops, random, modifiers, waves)
+                : null;
+
+            // 스크랩도 같은 자리다. 확률이 스테이지마다 달라서 웨이브 진행(지금 몇 스테이지인지)을 문다.
+            ScrapDropResolver scrap = scrapDrops != null
+                ? new ScrapDropResolver(scrapDrops, random, waves)
                 : null;
 
             // 최대 체력 유물(R01·R02)은 생성 시점에 이미 반영돼야 하트가 맞게 그려진다.
@@ -116,7 +123,7 @@ namespace RecycleLife.Core
 
             // 패배 판정이 이동 규칙을 알아야 한다 — 순서상 리졸버를 먼저 만든다.
             IMoveResolver move = new CombatMoveResolver(
-                grid, player, board, character, chain, random, traps, drops, poison);
+                grid, player, board, character, chain, random, traps, drops, poison, scrap);
 
             return new GameLoop(
                 grid,
@@ -126,12 +133,13 @@ namespace RecycleLife.Core
                 new GravityResolver(grid, traps, poison),
                 stepSpawner,
                 seedSpawner,
-                new BombResolver(grid, player, board, bomb, traps, drops, poison),
+                new BombResolver(grid, player, board, bomb, traps, drops, poison, scrap),
                 new GameOverChecker(grid, player, move),
                 waves,
                 traps,
                 drops,
-                poison);
+                poison,
+                scrap);
         }
     }
 }

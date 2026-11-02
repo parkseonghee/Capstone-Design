@@ -23,6 +23,10 @@ namespace RecycleLife.Unity
             [Tooltip("이 캐릭터를 대표하는 색. 아트가 나오기 전까지 마을 아바타·상(像)을 " +
                      "이 색으로 칠해 \"지금 이 캐릭터를 쓰고 있다\"를 한눈에 보여 준다.")]
             public Color tint;
+
+            [Min(0), Tooltip("마을에서 이 캐릭터를 처음 쓰려면 내야 하는 골드(재화 문서 §5). 0이면 기본 제공. " +
+                             "한 번 사면 계속 쓸 수 있다.")]
+            public int price;
         }
 
         [SerializeField] private Entry[] entries = Array.Empty<Entry>();
@@ -67,6 +71,25 @@ namespace RecycleLife.Unity
             }
 
             return false;
+        }
+
+        /// <summary>그 캐릭터의 해금 골드. 표에 없거나 0이면 기본 제공(0)이다.</summary>
+        public int PriceOf(string id)
+        {
+            if (string.IsNullOrEmpty(id) || entries == null)
+            {
+                return 0;
+            }
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                if (entries[i].id == id)
+                {
+                    return Mathf.Max(0, entries[i].price);
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>표의 첫 캐릭터. 저장된 선택이 없거나 표에서 빠졌을 때의 기본값이다.</summary>

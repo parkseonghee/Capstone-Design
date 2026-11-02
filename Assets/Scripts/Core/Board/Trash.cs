@@ -18,7 +18,6 @@ namespace RecycleLife.Core
             Type = type;
             Heal = Mathf.Max(0, stats.Heal);
             ChainsWithSameType = stats.ChainsWithSameType;
-            Gold = Mathf.Max(0, stats.Gold);
             LeavesTrap = stats.LeavesTrap;
             LeavesPoison = stats.LeavesPoison;
 
@@ -41,9 +40,6 @@ namespace RecycleLife.Core
 
         /// <summary>같은 종류끼리 연쇄로 묶이는지. 벽은 false다(TrashStats 주석 참조).</summary>
         public bool ChainsWithSameType { get; }
-
-        /// <summary>처치했을 때 떨어뜨리는 골드. 0이면 안 떨어진다.</summary>
-        public int Gold { get; }
 
         /// <summary>죽으면 그 자리에 덫을 남기는 "덫 몬스터" 기믹인지(TrashStats 주석 참조).</summary>
         public bool LeavesTrap { get; }

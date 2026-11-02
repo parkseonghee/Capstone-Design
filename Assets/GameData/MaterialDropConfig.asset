@@ -15,23 +15,17 @@ MonoBehaviour:
   drops:
   - type: 7
     materialId: M01
-    chance: 5
   - type: 1
     materialId: M02
-    chance: 5
   - type: 0
     materialId: M03
-    chance: 5
   - type: 8
     materialId: M04
-    chance: 5
   - type: 9
     materialId: M04
-    chance: 5
   - type: 12
     materialId: M05
-    chance: 5
-  defaultChance: 5
+  chanceByWave: 030000000400000005000000
   randomPool:
   - M01
   - M02

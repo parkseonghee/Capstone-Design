@@ -123,15 +123,6 @@ namespace RecycleLife.Tests
             return this;
         }
 
-        /// <summary>처치 보상만 바꾼다. 다른 값은 그대로 둔다.</summary>
-        public FakeTrashStats SetGold(TrashType type, int gold)
-        {
-            TrashStats old = _stats[(int)type];
-            _stats[(int)type] = new TrashStats(
-                old.MaxHp, old.Attack, old.Heal, old.SpawnWeight, old.ChainsWithSameType, gold);
-            return this;
-        }
-
         public TrashStats For(TrashType type) => _stats[(int)type];
     }
 

@@ -42,6 +42,9 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("몬스터 종류별 재료 드롭 표. 비워 두면 재료가 나오지 않는다.")]
         private MaterialDropConfig materialDrops;
 
+        [SerializeField, Tooltip("스테이지별 스크랩 드랍 확률(재화 문서 §3-2). 비워 두면 스크랩이 나오지 않는다.")]
+        private ScrapDropConfig scrapDrops;
+
         [SerializeField, Tooltip("웨이브 목록(3스테이지 × 3웨이브). 비워 두면 웨이브 없이 무한히 돈다.")]
         private WaveSet waveSet;
 
@@ -299,9 +302,10 @@ namespace RecycleLife.Unity
 
             Loop = GameLoopFactory.CreateStaged(
                 config, spawnConfig, trashStats, resolvedCharacter, bombConfig,
-                new SystemRandomSource(CurrentSeed), waves, Modifiers, materialDrops, poisonConfig);
+                new SystemRandomSource(CurrentSeed), waves, Modifiers, materialDrops, poisonConfig,
+                scrapDrops);
 
-            // 웨이브 사이 인계: 체력·폭탄·골드를 그대로 물려받는다.
+            // 웨이브 사이 인계: 체력·폭탄·스크랩을 그대로 물려받는다.
             if (_carryOver != null)
             {
                 Loop.Player.CarryOver(_carryOver);

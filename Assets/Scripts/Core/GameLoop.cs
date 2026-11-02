@@ -31,6 +31,7 @@ namespace RecycleLife.Core
         private readonly WaveRunner _waves;
         private readonly TrapResolver _traps;
         private readonly MaterialDropResolver _drops;
+        private readonly ScrapDropResolver _scrap;
         private readonly PoisonResolver _poison;
 
         public GameLoop(
@@ -46,9 +47,11 @@ namespace RecycleLife.Core
             WaveRunner waves = null,
             TrapResolver traps = null,
             MaterialDropResolver drops = null,
-            PoisonResolver poison = null)
+            PoisonResolver poison = null,
+            ScrapDropResolver scrap = null)
         {
             _traps = traps;
+            _scrap = scrap;
             _drops = drops;
             _poison = poison;
             Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -60,6 +63,11 @@ namespace RecycleLife.Core
             _seedSpawner = seedSpawner ?? throw new ArgumentNullException(nameof(seedSpawner));
             _bombs = bombs ?? throw new ArgumentNullException(nameof(bombs));
             _bombs.Exploded += (cell, radius) => BombExploded?.Invoke(cell, radius);
+            if (move is CombatMoveResolver combat)
+            {
+                combat.Struck += (cell, killed) => PlayerStruck?.Invoke(cell, killed);
+            }
+
             _gameOver = gameOver ?? throw new ArgumentNullException(nameof(gameOver));
 
             // 웨이브는 선택이다. 안 넘기면 웨이브 없이 무한히 도는 기존 동작 그대로다.
@@ -140,6 +148,13 @@ namespace RecycleLife.Core
         /// 폭발 이펙트가 구독한다. 폭발을 처리하는 <b>도중에</b> 울리므로 구독자가 보드를 바꾸면 안 된다.
         /// </summary>
         public event Action<Vector2Int, int> BombExploded;
+
+        /// <summary>
+        /// 플레이어 공격이 적·벽 한 칸에 들어갔을 때(맞은 칸, 그 공격으로 죽었는지).
+        /// 범위·연쇄로 같이 맞은 칸도 하나씩 울린다. 피격 이펙트가 구독한다.
+        /// 공격을 처리하는 <b>도중에</b> 울리므로 구독자가 보드를 바꾸면 안 된다.
+        /// </summary>
+        public event Action<Vector2Int, bool> PlayerStruck;
 
         /// <summary>
         /// 바닥에 깔린 독. 독이 깔린 칸을 뷰가 읽어 그린다.
@@ -331,11 +346,11 @@ namespace RecycleLife.Core
                         bool leavesTrap = trash.LeavesTrap;
                         bool leavesPoison = trash.LeavesPoison;
                         Grid.Remove(cell);
-                        Player.AddGold(trash.Gold);
                         _waves.Report(1, 0);
                         _traps?.MaybeLeaveTrap(leavesTrap, cell);
                         _poison?.MaybeLeavePoison(leavesPoison, cell);
                         _drops?.MaybeDrop(trash);
+                        RollScrap(trash);
                     }
                 }
             }
@@ -393,11 +408,11 @@ namespace RecycleLife.Core
                 bool leavesTrap = target.LeavesTrap;
                 bool leavesPoison = target.LeavesPoison;
                 Grid.Remove(best);
-                Player.AddGold(target.Gold);
                 _waves.Report(1, 0);
                 _traps?.MaybeLeaveTrap(leavesTrap, best);
                 _poison?.MaybeLeavePoison(leavesPoison, best);
                 _drops?.MaybeDrop(target);
+                RollScrap(target);
                 killed++;
             }
 
@@ -612,7 +627,7 @@ namespace RecycleLife.Core
 
         /// <summary>
         /// 독으로 죽은 블록을 걷어낸다. 중력 페이즈가 도는 도중에 죽은 것들이라
-        /// 그 자리에서 바로 치우지 않고 여기서 한꺼번에 정리한다 — 처치 보상(골드·재료·덱·독)을
+        /// 그 자리에서 바로 치우지 않고 여기서 한꺼번에 정리한다 — 처치 보상(스크랩·재료·덫·독)을
         /// 먹이는 처리가 그렇게 해야 한 군데에 모인다.
         ///
         /// 여기서 살아서 죽은 블록은 다른 경로가 없다 — 공격·폭발·아이템은 죽이자마자 걷어낸다.
@@ -636,8 +651,6 @@ namespace RecycleLife.Core
                     bool leavesTrap = trash.LeavesTrap;
                     bool leavesPoison = trash.LeavesPoison;
                     Grid.Remove(cell);
-                    Player.AddGold(trash.Gold);
-
                     if (trash.IsEnemy)
                     {
                         enemiesKilled++;
@@ -650,7 +663,17 @@ namespace RecycleLife.Core
                     _traps?.MaybeLeaveTrap(leavesTrap, cell);
                     _poison?.MaybeLeavePoison(leavesPoison, cell);
                     _drops?.MaybeDrop(trash);
+                    RollScrap(trash);
                 }
+            }
+        }
+
+        /// <summary>스텝 밖에서 죽은 적(아이템·독)의 스크랩을 굴려 바로 지갑에 넣는다.</summary>
+        private void RollScrap(Trash killed)
+        {
+            if (_scrap != null)
+            {
+                Player.AddScrap(_scrap.Roll(killed));
             }
         }
 

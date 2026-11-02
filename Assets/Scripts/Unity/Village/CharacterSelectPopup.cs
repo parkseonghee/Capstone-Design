@@ -11,6 +11,9 @@ namespace RecycleLife.Unity
     ///
     /// 뒤의 어두운 막(dimmer)을 누르거나 취소를 누르면 그냥 닫는다.
     /// 이미 고른 캐릭터를 다시 누르면 선택 버튼을 숨기고 안내만 보여 준다.
+    ///
+    /// 아직 안 산 캐릭터(재화 문서 §5)면 같은 창이 구매 창이 된다 — 가격을 보여 주고, 확인 버튼이 "구매"로 바뀐다.
+    /// 구매에 성공하면 그 캐릭터를 바로 고른다. 골드가 모자라면 확인 버튼을 숨기고 필요한 골드만 알려 준다.
     /// </summary>
     public sealed class CharacterSelectPopup : MonoBehaviour, IVillageFeature
     {
@@ -32,12 +35,31 @@ namespace RecycleLife.Unity
         [SerializeField] private TextMeshProUGUI nameLabel;
         [SerializeField] private TextMeshProUGUI messageLabel;
         [SerializeField] private Button confirmButton;
+        [SerializeField, Tooltip("확인 버튼의 글자. 선택/구매에 따라 바뀐다. 비우면 바꾸지 않는다.")]
+        private TextMeshProUGUI confirmLabel;
         [SerializeField] private Button cancelButton;
         [SerializeField] private TextMeshProUGUI cancelLabel;
+
+        [Header("가격 표시 (마을 골드 UI와 같은 모양)")]
+        [SerializeField, Tooltip("금화 + 숫자 알약. 안 산 캐릭터일 때만 켠다. 비우면 가격을 따로 보여 주지 않는다.")]
+        private GameObject priceTag;
+        [SerializeField] private TextMeshProUGUI priceLabel;
+        [SerializeField, Min(0f), Tooltip("가격 알약이 켜졌을 때 메시지를 오른쪽으로 미는 거리(캔버스 px). 알약 너비 + 간격.")]
+        private float priceIndent = 214f;
+        [SerializeField, Tooltip("살 수 있을 때 가격 숫자 색.")]
+        private Color affordColor = new Color(0.302f, 0.294f, 0.196f, 1f);
+        [SerializeField, Tooltip("골드가 모자랄 때 가격 숫자 색.")]
+        private Color shortColor = new Color(0.85f, 0.25f, 0.2f, 1f);
 
         [Header("문구")]
         [SerializeField] private string askText = "이 캐릭터를 선택하시겠습니까?";
         [SerializeField] private string alreadyText = "지금 선택된 캐릭터입니다";
+        [SerializeField, Tooltip("가격은 옆의 금화 알약이 보여 준다. {0}을 넣으면 가격 숫자로 바뀐다.")]
+        private string buyAskText = "구매하시겠습니까?";
+        [SerializeField, Tooltip("{0}이 가격, {1}이 지금 가진 골드다.")]
+        private string notEnoughText = "골드가 부족합니다";
+        [SerializeField] private string selectText = "선택";
+        [SerializeField] private string buyText = "구매";
         [SerializeField] private string cancelText = "취소";
         [SerializeField] private string closeText = "닫기";
 
@@ -120,9 +142,11 @@ namespace RecycleLife.Unity
 
         private void Confirm()
         {
-            if (_target != null && selection != null)
+            if (_target != null && selection != null && !selection.TryBuy(_target.CharacterId))
             {
-                selection.Select(_target.CharacterId);
+                // 창을 연 사이 골드가 줄었다 — 닫지 말고 부족 안내로 다시 채운다.
+                Fill(_target.CharacterId);
+                return;
             }
 
             Close();
@@ -141,9 +165,50 @@ namespace RecycleLife.Unity
             portrait.enabled = portrait.sprite != null;
 
             bool already = selection != null && selection.SelectedId == id;
-            messageLabel.text = already ? alreadyText : askText;
-            confirmButton.gameObject.SetActive(!already);
-            cancelLabel.text = already ? closeText : cancelText;
+            bool locked = selection != null && !selection.IsUnlocked(id);
+            bool canBuy = !locked || selection.CanAfford(id);
+            int price = selection != null ? selection.PriceOf(id) : 0;
+
+            if (already)
+            {
+                messageLabel.text = alreadyText;
+            }
+            else if (!locked)
+            {
+                messageLabel.text = askText;
+            }
+            else if (canBuy)
+            {
+                messageLabel.text = string.Format(buyAskText, price);
+            }
+            else
+            {
+                messageLabel.text = string.Format(notEnoughText, price, selection.Gold);
+            }
+
+            // 안 산 캐릭터면 메시지 앞에 금화 알약으로 가격을 띄운다. 모자라면 숫자를 빨갛게.
+            bool showPrice = priceTag != null && locked && !already;
+            if (priceTag != null)
+            {
+                priceTag.SetActive(showPrice);
+            }
+
+            if (showPrice && priceLabel != null)
+            {
+                priceLabel.text = price.ToString();
+                priceLabel.color = canBuy ? affordColor : shortColor;
+            }
+
+            messageLabel.margin = new Vector4(showPrice ? priceIndent : 0f, 0f, 0f, 0f);
+
+            bool showConfirm = !already && canBuy;
+            confirmButton.gameObject.SetActive(showConfirm);
+            if (confirmLabel != null)
+            {
+                confirmLabel.text = locked ? buyText : selectText;
+            }
+
+            cancelLabel.text = showConfirm ? cancelText : closeText;
         }
 
         private void Animate(float to, Ease ease, TweenCallback onComplete)
