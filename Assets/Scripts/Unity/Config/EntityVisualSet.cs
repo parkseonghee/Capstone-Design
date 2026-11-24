@@ -195,6 +195,33 @@ namespace RecycleLife.Unity
             sprite = null;
         }
 
+        /// <summary>지금 가진 스크랩으로 이 상품을 살 수 있는지. 스크랩 출처가 없으면 산다고 본다.</summary>
+        public bool CanAfford(ShopItem item)
+        {
+            return item == null || _scrapSource == null || _scrapSource() >= item.Price;
+        }
+
+        /// <summary>폭탄 그림. 아이템 아이콘 표에 폭탄(B01)을 같은 그림으로 올릴 때 쓴다.</summary>
+        public Sprite BombSprite => bombSprite;
+
+        /// <summary>보드 밖(도감 등)에서 종류만으로 그림과 색을 찾는다. 표에 없으면 false.</summary>
+        public bool TryResolveTrash(TrashType type, out Color color, out Sprite sprite)
+        {
+            for (int i = 0; i < trash.Length; i++)
+            {
+                if (trash[i].type == type)
+                {
+                    color = trash[i].color;
+                    sprite = trash[i].sprite;
+                    return true;
+                }
+            }
+
+            color = fallbackColor;
+            sprite = null;
+            return false;
+        }
+
         /// <summary>이 종류의 연출 수치. 안 꽂아 뒀으면 null — 호출하는 쪽이 기본값으로 대신한다.</summary>
         public MonsterFeedbackSettings ResolveFeedback(TrashType type)
         {

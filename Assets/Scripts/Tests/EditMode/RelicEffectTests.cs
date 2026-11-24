@@ -8,7 +8,7 @@ namespace RecycleLife.Tests
     /// 조합레시피 문서로 새로 생긴 유물 효과 4종.
     ///  - R09 날카로운 삽: 공격력 +1
     ///  - R12 튼튼한 장화: 덫 효과 면역
-    ///  - R10 넝마주이: 재료 드랍 확률 증가
+    ///  - R10 행운의 동전: 재료 드랍 확률 증가
     ///  - R11 재활용 장갑: 한 번의 공격으로 N마리 이상 잡으면 체력 회복
     /// </summary>
     public sealed class RelicEffectTests

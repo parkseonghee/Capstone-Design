@@ -57,7 +57,7 @@ namespace RecycleLife.Core
         /// <summary>덫에 닿아도 날아가지 않는다. R12 튼튼한 장화.</summary>
         public bool ImmuneToTraps { get; private set; }
 
-        /// <summary>재료 드랍 확률 보너스(%p). R10 넝마주이. 드랍 표의 확률에 그대로 더한다.</summary>
+        /// <summary>재료 드랍 확률 보너스(%p). R10 행운의 동전. 드랍 표의 확률에 그대로 더한다.</summary>
         public int BonusDropChance { get; private set; }
 
         /// <summary>

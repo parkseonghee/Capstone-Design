@@ -86,7 +86,7 @@ namespace RecycleLife.Unity
             /// <summary>덫 효과 면역 — 밟아도 날아가지 않는다. R12 튼튼한 장화.</summary>
             TrapImmunity,
 
-            /// <summary>재료 드랍 확률 증가. R10 넝마주이. amount = 더할 %p.</summary>
+            /// <summary>재료 드랍 확률 증가. R10 행운의 동전. amount = 더할 %p.</summary>
             DropChance,
 
             /// <summary>

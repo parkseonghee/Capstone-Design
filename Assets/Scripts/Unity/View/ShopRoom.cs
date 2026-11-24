@@ -55,6 +55,9 @@ namespace RecycleLife.Unity
                                          "품목은 상점당 하나씩 한정이고 리롤은 없다.")]
         private int materialPickCount = 1;
 
+        [SerializeField, Tooltip("상품 줄 뒤에 탁자와 상인을 그리는 좌판. 비우면 상품만 보인다.")]
+        private ShopStallView stall;
+
         [SerializeField, Tooltip("재료를 고를 창. 판의 C10 재료 전환기와 같은 창을 쓴다.")]
         private MaterialPickerView materialPicker;
 
@@ -204,6 +207,14 @@ namespace RecycleLife.Unity
             loop.EnterShop();
 
             PlaceGoods(loop, waves.WaveInStage);
+
+            // 좌판은 상품 칸 전체(슬롯)에 맞춘다 — 놓인 상품 수와 상관없이 탁자·상인 자리가 늘 같고,
+            // 상인이 상품 사이 빈 칸 뒤에 서서 얼굴이 상품에 가리지 않는다.
+            // 상품이 팔려 칸이 비어도 탁자는 그대로 둔다.
+            if (stall != null)
+            {
+                stall.Show(slots);
+            }
 
             if (titleLabel != null && waves.Current != null)
             {
@@ -483,6 +494,11 @@ namespace RecycleLife.Unity
         private void Hide()
         {
             IsOpen = false;
+
+            if (stall != null)
+            {
+                stall.Hide();
+            }
 
             if (banner != null && banner.activeSelf)
             {

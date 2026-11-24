@@ -1,0 +1,20 @@
+{
+    "name": "RecycleLife.Editor",
+    "rootNamespace": "RecycleLife.Editor",
+    "references": [
+        "RecycleLife.Core",
+        "RecycleLife.Unity",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

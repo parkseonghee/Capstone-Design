@@ -61,7 +61,10 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("아이콘 크기(캔버스 단위).")]
         private Vector2 iconSize = new Vector2(96f, 96f);
 
-        [SerializeField, Tooltip("아이템별 아이콘. id가 ItemConfig와 같아야 한다.")]
+        [SerializeField, Tooltip("공용 아이콘 표. 여기 있는 아이템은 아래 표보다 먼저 쓴다. 도감과 같은 에셋이다.")]
+        private ItemIconSet iconSet;
+
+        [SerializeField, Tooltip("아이템별 아이콘. id가 ItemConfig와 같아야 한다. 공용 표(iconSet)에 없을 때만 본다.")]
         private IconEntry[] icons = new IconEntry[0];
 
         [SerializeField, Tooltip("표에 없는 아이템의 아이콘. 비우면 단색 사각형이다.")]
@@ -524,6 +527,11 @@ namespace RecycleLife.Unity
         /// </summary>
         public void ResolveIcon(string id, out Sprite sprite, out Color color)
         {
+            if (iconSet != null && iconSet.TryGet(id, out sprite, out color))
+            {
+                return;
+            }
+
             for (int i = 0; i < icons.Length; i++)
             {
                 if (icons[i].id != id)

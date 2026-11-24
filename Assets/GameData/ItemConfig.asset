@@ -23,6 +23,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uCD5C\uB300 \uCCB4\uB825 +1 (T1)"
     craftOnly: 1
+    scrapValue: 0
   - id: R05
     displayName: "\uC9C4\uD55C \uD3EC\uC158"
     kind: 0
@@ -33,8 +34,9 @@ MonoBehaviour:
     confirmed: 0
     description: "\uD3EC\uC158 \uD68C\uBCF5\uB7C9 2 \u2192 3 (T1)"
     craftOnly: 1
+    scrapValue: 0
   - id: R10
-    displayName: "\uB11D\uB9C8\uC8FC\uC774"
+    displayName: "\uD589\uC6B4\uC758 \uB3D9\uC804"
     kind: 0
     effect: 14
     amount: 5
@@ -43,6 +45,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uC7AC\uB8CC \uB4DC\uB78D \uD655\uB960 +5%p (T1)"
     craftOnly: 1
+    scrapValue: 0
   - id: R12
     displayName: "\uD2BC\uD2BC\uD55C \uC7A5\uD654"
     kind: 0
@@ -54,6 +57,7 @@ MonoBehaviour:
     description: "\uB36B\uC744 \uBC1F\uC544\uB3C4 \uB0A0\uC544\uAC00\uC9C0 \uC54A\uB294\uB2E4
       (T1)"
     craftOnly: 1
+    scrapValue: 0
   - id: R02
     displayName: "\uAC15\uC778\uD55C \uBAB8"
     kind: 0
@@ -64,6 +68,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uCD5C\uB300 \uCCB4\uB825 +2 (T2)"
     craftOnly: 1
+    scrapValue: 0
   - id: R06
     displayName: "\uD3ED\uD0C4 \uC8FC\uBA38\uB2C8"
     kind: 0
@@ -74,6 +79,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uD3ED\uD0C4 \uBCF4\uC720 \uC218 +2 (T2)"
     craftOnly: 1
+    scrapValue: 0
   - id: R07
     displayName: "\uBC29\uD3ED \uC7A5\uBE44"
     kind: 0
@@ -84,6 +90,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uD3ED\uBC1C \uD53C\uD574 \uBA74\uC5ED (T2)"
     craftOnly: 1
+    scrapValue: 0
   - id: R08
     displayName: "\uC815\uD654 \uD544\uD130"
     kind: 0
@@ -94,6 +101,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uC0C1\uD0DC\uC774\uC0C1 \uB370\uBBF8\uC9C0 \uBA74\uC5ED (T2)"
     craftOnly: 1
+    scrapValue: 0
   - id: R11
     displayName: "\uC7AC\uD65C\uC6A9 \uC7A5\uAC11"
     kind: 0
@@ -105,6 +113,7 @@ MonoBehaviour:
     description: "\uD55C \uBC88\uC5D0 5\uB9C8\uB9AC \uC774\uC0C1 \uCC98\uCE58\uD558\uBA74
       \uCCB4\uB825 1 \uD68C\uBCF5 (T2)"
     craftOnly: 1
+    scrapValue: 0
   - id: R03
     displayName: "\uC7AC\uC0DD\uC758 \uC528\uC557"
     kind: 0
@@ -115,6 +124,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uC0AC\uB9DD \uC2DC 1\uD68C \uBD80\uD65C (T3)"
     craftOnly: 1
+    scrapValue: 0
   - id: R04
     displayName: "\uB300\uD615 \uD3ED\uC57D"
     kind: 0
@@ -125,6 +135,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uD3ED\uBC1C \uBC94\uC704 3\xD73 \u2192 5\xD75 (T3)"
     craftOnly: 1
+    scrapValue: 0
   - id: R09
     displayName: "\uB0A0\uCE74\uB85C\uC6B4 \uC0BD"
     kind: 0
@@ -135,6 +146,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uACF5\uACA9\uB825 +1 (T3)"
     craftOnly: 1
+    scrapValue: 0
   - id: R13
     displayName: "\uAC70\uB300\uD55C \uBAB8"
     kind: 0
@@ -145,6 +157,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uCD5C\uB300 \uCCB4\uB825 +3 (T3)"
     craftOnly: 1
+    scrapValue: 0
   - id: C01
     displayName: "\uC815\uD654\uC758 \uBB3C\uC57D"
     kind: 1
@@ -155,6 +168,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 1\uB370\uBBF8\uC9C0 (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C02
     displayName: "\uB300\uCCAD\uC18C \uBB3C\uC57D"
     kind: 1
@@ -166,6 +180,7 @@ MonoBehaviour:
     description: "\uC77C\uBC18 \uBAAC\uC2A4\uD130 5\uB9C8\uB9AC \uC989\uC2DC \uCC98\uCE58
       (C2)"
     craftOnly: 0
+    scrapValue: 0
   - id: C03
     displayName: "\uC751\uAE09 \uD3EC\uC158"
     kind: 1
@@ -176,6 +191,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uCCB4\uB825 2 \uD68C\uBCF5 (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C04
     displayName: "\uC81C\uAC70 \uC2A4\uD504\uB808\uC774"
     kind: 1
@@ -186,6 +202,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uBCF4\uB4DC\uC758 \uBAA8\uB4E0 \uB36B \uC81C\uAC70 (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C05
     displayName: "\uC218\uC9D1 \uC7A5\uAC11"
     kind: 1
@@ -197,6 +214,7 @@ MonoBehaviour:
     description: "\uC774\uBC88 \uC2A4\uD14C\uC774\uC9C0 \uB3D9\uC548 \uC7AC\uB8CC
       \uB4DC\uB78D \uD655\uB960 +10%p (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C06
     displayName: "\uBC29\uB3C5\uBA74"
     kind: 1
@@ -207,6 +225,7 @@ MonoBehaviour:
     confirmed: 0
     description: "3\uD134 \uB3D9\uC548 \uD53C\uD574 \uBB34\uD6A8 (C2)"
     craftOnly: 0
+    scrapValue: 0
   - id: C07
     displayName: "\uC7AC\uBC30\uCE58 \uBB3C\uC57D"
     kind: 1
@@ -218,6 +237,7 @@ MonoBehaviour:
     description: "\uBCF4\uB4DC\uC758 \uBAAC\uC2A4\uD130 \uBC30\uCE58\uB97C \uC11E\uB294\uB2E4
       (C2)"
     craftOnly: 0
+    scrapValue: 0
   - id: C08
     displayName: "\uACE0\uB18D\uCD95 \uC815\uD654\uC758 \uBB3C\uC57D"
     kind: 1
@@ -228,6 +248,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 2\uB370\uBBF8\uC9C0 (C2)"
     craftOnly: 0
+    scrapValue: 0
   - id: C09
     displayName: "\uC644\uC804 \uC815\uD654\uC758 \uBB3C\uC57D"
     kind: 1
@@ -238,6 +259,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uB9F5 \uC804\uCCB4 \uC801\uC5D0\uAC8C 3\uB370\uBBF8\uC9C0 (C3)"
     craftOnly: 0
+    scrapValue: 0
   - id: C10
     displayName: "\uC7AC\uB8CC \uC804\uD658\uAE30"
     kind: 1
@@ -249,6 +271,7 @@ MonoBehaviour:
     description: "\uC7AC\uB8CC\uB97C \uC774 \uCE78\uC5D0 \uB04C\uC5B4\uB2E4 \uB193\uC73C\uBA74
       \uC6D0\uD558\uB294 \uAE30\uCD08 \uC7AC\uB8CC\uB85C \uBC14\uAFBC\uB2E4 (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C11
     displayName: "\uBC29\uD638\uBCF5"
     kind: 1
@@ -259,6 +282,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uB2E4\uC74C \uD53C\uACA9 1\uD68C \uBB34\uD6A8 (C1)"
     craftOnly: 0
+    scrapValue: 0
   - id: C12
     displayName: "\uC644\uC804 \uD68C\uBCF5 \uD0A4\uD2B8"
     kind: 1
@@ -269,6 +293,7 @@ MonoBehaviour:
     confirmed: 0
     description: "\uCCB4\uB825 \uC804\uBD80 \uD68C\uBCF5 (C2)"
     craftOnly: 0
+    scrapValue: 0
   - id: B01
     displayName: "\uD3ED\uD0C4"
     kind: 1
@@ -281,6 +306,7 @@ MonoBehaviour:
       \uD6C4 3\uBC88 \uC774\uB3D9\uD558\uBA74 \uD130\uC9C4\uB2E4. \uD50C\uB808\uC774\uC5B4
       \uD53C\uACA9 3"
     craftOnly: 0
+    scrapValue: 0
   - id: M01
     displayName: "\uACE0\uCCA0"
     kind: 2

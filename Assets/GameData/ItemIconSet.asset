@@ -1,0 +1,138 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a0278d5ae65cb34a932360083378d23, type: 3}
+  m_Name: ItemIconSet
+  m_EditorClassIdentifier: RecycleLife.Unity::RecycleLife.Unity.ItemIconSet
+  icons:
+  - id: M01
+    sprite: {fileID: -220591066254666450, guid: 037b90e8bfac57d4fbd5472b7ce58872, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: M02
+    sprite: {fileID: -6283674305876254230, guid: c713d9b02f29ac0469544b867e987948, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: M03
+    sprite: {fileID: 1925191511592307085, guid: c79d16308c8ce4b4f831cae7277e5551, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: M04
+    sprite: {fileID: -9077991087687103526, guid: 3dae26df934b0704a8bfae31f3930dda, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: M05
+    sprite: {fileID: 3998422335983541691, guid: d7c49faf2d9fe78439ae21ab103b6f7f, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: U01
+    sprite: {fileID: 9051673861237029144, guid: 6214f070fe77c6748b48b5d4b2ec0ed8, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: U02
+    sprite: {fileID: -6536533671858146372, guid: 46be18ece6aa12f49a68b9c111fa237a, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: U03
+    sprite: {fileID: 4187422818215578484, guid: ebdbe759477f0bc40ab0ffc57a2da5cf, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: U04
+    sprite: {fileID: -3960916945571190222, guid: 8c9d3ff1abc6ee44aa7df25eb9206e0f, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: U05
+    sprite: {fileID: -1434089191231808341, guid: 0c4b001347ddc9149ad5eba6d3c0ae86, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X01
+    sprite: {fileID: -3560802148206139982, guid: e036e9d02d1bde74a94ae1c76909c3d5, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X02
+    sprite: {fileID: -2994396770263734582, guid: e5543fa7adb5b744dbae8210f214f49b, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X03
+    sprite: {fileID: -5235031640925114808, guid: a8fdad232e05d98498a32442b6364695, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X04
+    sprite: {fileID: -1735941497618345666, guid: 583e316b1d0b8d9459d90974eaa4e3db, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X05
+    sprite: {fileID: -7457098057845222164, guid: 8653952b9a7a7b64d8abed0b2558e96b, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: X06
+    sprite: {fileID: -2284573261470740773, guid: 561dec0ff31653b4381a90a51499ddcd, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C01
+    sprite: {fileID: 2552236175195998831, guid: cfe88610fe80930488820cb7d969da9d, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C02
+    sprite: {fileID: 4122172574766132496, guid: 5fa3d755ab2332c4690d147d7ec97830, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C05
+    sprite: {fileID: -4364883753215532736, guid: 4a7dd716dbdf5cc488722e700ed6a15f, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C06
+    sprite: {fileID: -8243022775523232129, guid: b7564cd1cd9b85046a977ddbbb14c4a0, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C07
+    sprite: {fileID: 6664680290048702109, guid: c34b75315c95fc2428ccfa1a2fab004b, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C08
+    sprite: {fileID: 8100782839654012927, guid: 3adad6556e0c9044283efff290d84f64, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C09
+    sprite: {fileID: -6346874314210046221, guid: 8472aab7216fdde4bbd3ff090cb3cbc1, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C10
+    sprite: {fileID: 1615017563221775368, guid: 63347c6ddea74b945bccd27551b8ed7b, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C11
+    sprite: {fileID: 8749255248244192082, guid: 41e3570f59ddfec4a9acc0b5ce156cac, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C12
+    sprite: {fileID: 6762564253197423016, guid: 800c10e5006e1ae429809e567069c9d2, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: B01
+    sprite: {fileID: 21300000, guid: bff8d2201ff9b3943aca9bc6cd001870, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: SHOP_PICK_MATERIAL
+    sprite: {fileID: -220591066254666450, guid: 037b90e8bfac57d4fbd5472b7ce58872, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C03
+    sprite: {fileID: 5713948115399773421, guid: 088105a7d412d8441a5898f0182f8469, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: C04
+    sprite: {fileID: 1552137801947852617, guid: 98aa546cfbd0c7b4e8990a37d48ad9f7, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R01
+    sprite: {fileID: 2191180658420373702, guid: 95ac6e2a37ad09842961f72c5ee9dc5d, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R02
+    sprite: {fileID: -3868851430304389928, guid: 83c17c2f4c464c742ae0f23bd64b005f, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R03
+    sprite: {fileID: 3715115114942354258, guid: 8f5a429b7e3f743499dc673ce46a2a14, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R06
+    sprite: {fileID: -1425772511618674625, guid: 3526f1de879241b418d9cd1f48e76e90, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R07
+    sprite: {fileID: -1389126955254498916, guid: 9d56a586b078dfa4a95060ebf6980b57, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R08
+    sprite: {fileID: -3157863595122827932, guid: 216b527785f6712489a6970b05fced3c, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R09
+    sprite: {fileID: 2874594426252915776, guid: a36b3a6cba879f646a8850140c3ee834, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R10
+    sprite: {fileID: -4156025274044464290, guid: 431b79a310f98d24d8d8a655f23ba82e, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R11
+    sprite: {fileID: 6413224927872743522, guid: 14f0e1d69194c874a9d1f6664d9b20e3, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R12
+    sprite: {fileID: 89049402600352010, guid: f3577c851194e394cb0bd7282794ec41, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - id: R13
+    sprite: {fileID: -3261904526580527092, guid: 85945422c778a5545af7a79cd5bb4bd8, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}

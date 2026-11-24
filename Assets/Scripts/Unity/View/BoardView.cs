@@ -47,6 +47,16 @@ namespace RecycleLife.Unity
         [SerializeField, Tooltip("(선택) 보드 배경. 연결하면 보이는 영역에 맞춰 스케일만 조정한다.")]
         private SpriteRenderer boardBackground;
 
+        [SerializeField, Tooltip("상점 상품을 아이템의 실제 아이콘으로 그릴 표. 인벤토리·도감과 같은 에셋이다. " +
+                                 "표에 없는 상품은 EntityVisualSet의 상점 상품 그림으로 그린다.")]
+        private ItemIconSet shopItemIcons;
+
+        [SerializeField, Min(0.1f), Tooltip("상점 상품 아이콘 크기(칸 대비). 아이콘 그림에 투명 여백이 있어 1보다 조금 크게 둔다.")]
+        private float shopIconScale = 1.3f;
+
+        [SerializeField, Tooltip("스크랩이 모자라 못 사는 상품 아이콘에 곱할 색.")]
+        private Color unaffordableShopIconTint = new Color(0.45f, 0.45f, 0.45f, 1f);
+
         [Header("레이아웃")]
         [SerializeField, Min(0.05f), Tooltip("한 칸의 월드 크기.")]
         private float cellSize = 1f;
@@ -136,6 +146,12 @@ namespace RecycleLife.Unity
 
             /// <summary>마지막으로 그린 체력. 값이 그대로면 스프라이트를 다시 안 바꾼다.</summary>
             public int ShownHp;
+
+            /// <summary>
+            /// 스프라이트를 한 칸 크기로 맞추는 배율. 보드 그림은 1유닛짜리라 1이지만,
+            /// 상점 상품의 아이템 아이콘(256px)은 크기가 달라서 긴 변이 1유닛이 되게 줄인다.
+            /// </summary>
+            public float SpriteFit = 1f;
 
             /// <summary>폭탄 위에 뜨는 남은 턴 숫자. 폭탄이 아닌 칸은 null이다.</summary>
             public TextMesh Fuse;
@@ -468,14 +484,16 @@ namespace RecycleLife.Unity
             float bottom = slot.Position.y - half;
             float visible = Mathf.Clamp(revealLine - bottom, 0f, fullSize);
 
+            float fit = slot.SpriteFit;
+
             if (visible >= fullSize)
             {
-                view.localScale = new Vector3(fullSize, fullSize, 1f);
+                view.localScale = new Vector3(fullSize * fit, fullSize * fit, 1f);
                 view.localPosition = slot.Position;
                 return true;
             }
 
-            view.localScale = new Vector3(fullSize, visible, 1f);
+            view.localScale = new Vector3(fullSize * fit, visible * fit, 1f);
             view.localPosition = new Vector3(slot.Position.x, bottom + visible * 0.5f, slot.Position.z);
             return false;
         }
@@ -1095,6 +1113,29 @@ namespace RecycleLife.Unity
             else if (visuals != null)
             {
                 visuals.Resolve(entity, out color, out sprite);
+            }
+
+            // 상점 상품은 그 아이템의 실제 아이콘으로 그린다. 못 사는 상품은 어둡게.
+            var shopItem = entity as ShopItem;
+            Sprite shopIcon;
+            Color shopIconColor;
+            float fit = 1f;
+            if (shopItem != null && shopItemIcons != null && shopItemIcons.TryGet(shopItem.Id, out shopIcon, out shopIconColor))
+            {
+                sprite = shopIcon;
+                color = visuals == null || visuals.CanAfford(shopItem)
+                    ? shopIconColor
+                    : shopIconColor * unaffordableShopIconTint;
+
+                Vector3 size = shopIcon.bounds.size;
+                float longest = Mathf.Max(size.x, size.y);
+                fit = longest > 0f ? shopIconScale / longest : 1f;
+            }
+
+            if (!Mathf.Approximately(slot.SpriteFit, fit))
+            {
+                slot.SpriteFit = fit;
+                slot.Settled = false;   // 크기가 바뀌었으니 LateUpdate가 다시 잡게 깨운다
             }
 
             view.sprite = sprite != null ? sprite : PlaceholderSprite.Square;
